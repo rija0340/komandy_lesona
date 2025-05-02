@@ -1,0 +1,2640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lesson/Publication Order Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom CSS for enhancements */
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: #f8fafc;
+        }
+        
+        .highlight-row {
+            background-color: #f0fdf4 !important;
+        }
+        
+        .highlight-col {
+            background-color: #ecfdf5 !important;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #10b981;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive table adjustments */
+        @media (max-width: 768px) {
+            .responsive-table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+        }
+        
+        /* Modal animations */
+        .modal-enter {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        
+        .modal-enter-active {
+            opacity: 1;
+            transform: scale(1);
+            transition: opacity 200ms, transform 200ms;
+        }
+        
+        .modal-exit {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        .modal-exit-active {
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity 200ms, transform 200ms;
+        }
+
+        /* Table base styles */
+        .responsive-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        /* Header cells */
+        .responsive-table th {
+            padding: 4px 6px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            white-space: nowrap;
+        }
+
+        /* Data cells */
+        .responsive-table td {
+            padding: 3px 4px;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+        }
+
+        /* Visual hierarchy for different levels */
+        /* Category headers */
+        .responsive-table tr:first-child th {
+            background-color: #edf2f7;
+            border-bottom: 2px solid #cbd5e0;
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        /* Add alternating row colors */
+.responsive-table tr:nth-child(even) {
+    background-color: #f9fafb;
+}
+
+/* Highlight totals row */
+.total-cell {
+    font-weight: 600;
+    background-color: #f3f4f6;
+}
+
+/* Make headers more distinct */
+.responsive-table th {
+    font-weight: 600;
+    letter-spacing: 0.025em;
+}
+
+/* Improve number readability */
+.numeric-cell {
+    font-family: 'Monaco', 'Consolas', monospace;
+}
+
+/* Optimize spacing */
+.responsive-table td {
+    padding: 2px 4px;
+}
+
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #selectedOrdersDisplay,
+    #selectedOrdersDisplay * {
+        visibility: visible;
+    }
+    #selectedOrdersDisplay {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+    #closeSelectedOrders,
+    #printSelectedOrders {
+        display: none;
+    }
+    
+    /* Styles supplémentaires pour l'impression */
+    table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+    }
+    thead {
+        background-color: #f8f9fa !important;
+        -webkit-print-color-adjust: exact;
+    }
+}
+
+/* Styles pour le modal de saisie des commandes */
+.modal-header-sticky {
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 10;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+/* Animation pour l'accordéon */
+.category-content {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Styles pour les inputs numériques */
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Styles pour les boutons de quantité */
+.quantity-btn {
+    transition: all 0.2s ease-in-out;
+}
+
+.quantity-btn:hover {
+    background-color: #e5e7eb;
+}
+
+/* Style pour le total en position sticky */
+#orderTotalRecap {
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 20;
+    padding: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+/* Mobile card view for tables */
+@media (max-width: 768px) {
+    .responsive-table table {
+        display: none; /* Hide the table on mobile */
+    }
+    
+    .mobile-card-view {
+        display: block;
+    }
+    
+    .person-card {
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1rem;
+        padding: 1rem;
+    }
+    
+    .person-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .person-name {
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: #2d3748;
+        display: flex;
+        align-items: center;
+    }
+    
+    .person-checkbox {
+        margin-right: 0.75rem;
+    }
+    
+    .person-total {
+        font-weight: 600;
+        color: #2d3748;
+        background-color: #edf2f7;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+    }
+    
+    .person-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .order-items {
+        margin-top: 0.75rem;
+    }
+    
+    .order-category {
+        margin-bottom: 0.75rem;
+    }
+    
+    .category-name {
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 0.25rem;
+    }
+    
+    .order-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.25rem 0;
+        border-bottom: 1px dashed #e2e8f0;
+    }
+    
+    .item-details {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .item-language {
+        font-size: 0.9rem;
+    }
+    
+    .item-format {
+        font-size: 0.8rem;
+        color: #718096;
+    }
+    
+    .item-quantity {
+        font-weight: 500;
+    }
+    
+    .totals-card {
+        background-color: #edf2f7;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-top: 1rem;
+        font-weight: 600;
+    }
+    
+    .totals-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #cbd5e0;
+    }
+}
+
+@media (min-width: 769px) {
+    .mobile-card-view {
+        display: none; /* Hide cards on desktop */
+    }
+}
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+    </div>
+    
+    <!-- Main Container -->
+    <div class="mx-2 px-2 py-2">
+        <!-- Header -->
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">Komandin'ny Lesona S.S</h1>
+        </header>
+        
+        <!-- Control Panel -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="flex flex-wrap justify-between items-center gap-4">
+                <div class="flex items-center space-x-4">
+                    <button id="addPersonBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center">
+                        <i class="fas fa-user-plus mr-2"></i> Ajouter
+                    </button>
+                    <button id="saveDataBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md flex items-center">
+                        <i class="fas fa-save mr-2"></i> Enregistrer
+                    </button>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="exportDataBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md flex items-center">
+                        <i class="fas fa-file-export mr-2"></i> JSON
+                    </button>
+                    <button id="importDataBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md flex items-center">
+                        <i class="fas fa-file-import mr-2"></i> Import
+                    </button>
+                    <input type="file" id="fileInput" class="hidden" accept=".json">
+                    <button id="exportExcelBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center">
+                        <i class="fas fa-file-excel mr-2"></i> Excel
+                    </button>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="showSelectedOrdersBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md flex items-center">
+                        <i class="fas fa-eye mr-2"></i> Voir sélection
+                    </button>
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center" onclick="openOrderEntry()">
+                        <i class="fas fa-plus-circle mr-2"></i> Nouvelle commande
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Order Summary -->
+        <div id="orderSummary" class="bg-white rounded-lg shadow-md p-6 mb-8 hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-800">Order Summary</h2>
+                <button id="closeSummaryBtn" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="summaryContent" class="overflow-auto max-h-96"></div>
+        </div>
+        
+        <!-- Main Order Table -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="p-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-800">Liste Komandy</h2>
+            </div>
+            <div class="responsive-table">
+                <table id="orderTable" class="w-full border-collapse">
+                    <thead id="tableHeader" class="sticky-header">
+                        <!-- Dynamic headers will be inserted here -->
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Dynamic content will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Category Modal -->
+    <div id="categoryModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold text-gray-800">Add New Category</h3>
+                    <button id="closeCategoryModal" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <form id="categoryForm" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="categoryId" class="block text-sm font-medium text-gray-700 mb-1">Category ID</label>
+                            <input type="text" id="categoryId" name="categoryId" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                            <p class="text-xs text-gray-500 mt-1">Unique identifier (e.g., 'lb' for lehibe)</p>
+                        </div>
+                        <div>
+                            <label for="categoryName" class="block text-sm font-medium text-gray-700 mb-1">Category Name</label>
+                            <input type="text" id="categoryName" name="categoryName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Languages</label>
+                        <div id="languagesContainer" class="space-y-3">
+                            <!-- Language fields will be added here -->
+                        </div>
+                        <button type="button" id="addLanguageBtn" class="mt-2 text-sm text-blue-600 hover:text-blue-800 flex items-center">
+                            <i class="fas fa-plus-circle mr-1"></i> Add Language
+                        </button>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button type="button" id="cancelCategoryBtn" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                            Save Category
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Person Modal -->
+    <div id="personModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold text-gray-800">Add New Person</h3>
+                    <button id="closePersonModal" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <form id="personForm" class="space-y-4">
+                    <div>
+                        <label for="personName" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                        <input type="text" id="personName" name="personName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    </div>
+                    
+                    <div>
+                        <label for="personId" class="block text-sm font-medium text-gray-700 mb-1">ID/Reference</label>
+                        <input type="text" id="personId" name="personId" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <p class="text-xs text-gray-500 mt-1">Optional identifier for the person</p>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button type="button" id="cancelPersonBtn" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                            Add Person
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Ajouter cette section avant le footer -->
+<section id="selectedOrdersDisplay" class="bg-white rounded-lg shadow-md p-6 mt-8 hidden">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold text-gray-800">Commandes sélectionnées</h2>
+        <div class="flex gap-2">
+            <button id="closeSelectedOrders" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md flex items-center">
+                <i class="fas fa-times mr-2"></i> Fermer
+            </button>
+            <button id="printSelectedOrders" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center">
+                <i class="fas fa-print mr-2"></i> Imprimer
+            </button>
+        </div>
+    </div>
+    <div id="selectedOrdersContent" class="prose max-w-none">
+        <!-- Le contenu des commandes sélectionnées sera inséré ici -->
+    </div>
+</section>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-md shadow-lg transform translate-y-10 opacity-0 transition-all duration-300 flex items-center hidden">
+        <span id="toastMessage"></span>
+        <button id="closeToast" class="ml-4">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    
+    <!-- Modal de saisie alternative des commandes -->
+    <div id="orderEntryModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <!-- En-tête du modal avec le récapitulatif -->
+            <div class="bg-gray-100 p-4 border-b sticky top-0 z-10">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-800" id="orderPersonName">Commande pour: </h3>
+                        <p class="text-sm text-gray-600" id="orderPersonId"></p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-blue-600" id="orderTotalRecap">Total: 0 Ar</div>
+                        <div class="flex gap-2 mt-2">
+                            <button id="cancelOrderEntry" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+                                Annuler
+                            </button>
+                            <button id="confirmOrderEntry" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                                Valider la commande
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Corps du modal avec l'accordéon -->
+            <div class="overflow-y-auto p-4">
+                <div id="categoriesAccordion" class="space-y-4">
+                    <!-- Template pour chaque catégorie -->
+                    <div class="border rounded-lg overflow-hidden mb-2">
+                        <div class="bg-gray-50 p-4 cursor-pointer hover:bg-gray-100 flex items-center justify-between">
+                            <div class="flex items-center gap-2 flex-grow">
+                                <h4 class="font-medium text-gray-800">Nom de la catégorie</h4>
+                                <!-- Nouveau style pour le récapitulatif -->
+                                <div class="category-summary inline-flex items-center">
+                                    <span class="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full ml-3"></span>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="category-content p-4 border-t hidden">
+                            <!-- Contenu de la catégorie -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- Footer -->
+<footer class="mt-12 bg-white rounded-lg shadow-md p-6">
+    <div class="flex flex-col md:flex-row items-center justify-between">
+        <div class="flex items-center mb-4 md:mb-0">
+            <img src="https://cdn-icons-png.flaticon.com/512/2702/2702134.png" alt="Book Icon" class="w-10 h-10 mr-3">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-800">Gestion des komandy</h3>
+                <p class="text-sm text-gray-600">Système de gestion des commandes lesona SS</p>
+            </div>
+        </div>
+        <div class="text-sm text-gray-500">
+            &copy; 2025 Tous droits réservés
+        </div>
+    </div>
+</footer>
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    <script>
+        // Main Application State
+        const appState = {
+            data: {
+                categories: [],
+                people: []
+            },
+            selectedPerson: null,
+            currentCell: null
+        };
+        // Add this to the existing styles section
+        const categoryColors = {
+        'lb': 'bg-blue-0',  // lehibe - light blue
+        'tzo': 'bg-green-50', // Tanora zokiny - light green  
+        'zt': 'bg-yellow-50', // Zatovo - light yellow
+        'tza': 'bg-purple-50', // T. za - light purple
+        'ak': 'bg-pink-50', // Ankizy - light pink
+        'zm': 'bg-orange-50', // Z. mino - light orange
+        'zb': 'bg-red-50', // Z. bodo - light red
+        'mf': 'bg-indigo-50', // Mofon'aina - light indigo
+        'fh': 'bg-gray-50', // fihirana - light gray
+        'llmf': 'bg-teal-50', // LL + MA - light teal
+        'llmf': 'bg-teal-50', // LL + MA - light teal
+        'tt': 'bg-amber-50' // tatitra - light amber
+        };
+        // DOM Elements
+        const elements = {
+            orderTable: document.getElementById('orderTable'),
+            tableHeader: document.getElementById('tableHeader'),
+            tableBody: document.getElementById('tableBody'),
+            addCategoryBtn: document.getElementById('addCategoryBtn'),
+            addPersonBtn: document.getElementById('addPersonBtn'),
+            saveDataBtn: document.getElementById('saveDataBtn'),
+            exportDataBtn: document.getElementById('exportDataBtn'),
+            importDataBtn: document.getElementById('importDataBtn'),
+            fileInput: document.getElementById('fileInput'),
+            orderSummary: document.getElementById('orderSummary'),
+            summaryContent: document.getElementById('summaryContent'),
+            closeSummaryBtn: document.getElementById('closeSummaryBtn'),
+            categoryModal: document.getElementById('categoryModal'),
+            closeCategoryModal: document.getElementById('closeCategoryModal'),
+            cancelCategoryBtn: document.getElementById('cancelCategoryBtn'),
+            categoryForm: document.getElementById('categoryForm'),
+            languagesContainer: document.getElementById('languagesContainer'),
+            addLanguageBtn: document.getElementById('addLanguageBtn'),
+            personModal: document.getElementById('personModal'),
+            closePersonModal: document.getElementById('closePersonModal'),
+            cancelPersonBtn: document.getElementById('cancelPersonBtn'),
+            personForm: document.getElementById('personForm'),
+            personName: document.getElementById('personName'),
+            categoryId: document.getElementById('categoryId'),
+            categoryName: document.getElementById('categoryName'),
+            personId: document.getElementById('personId'),
+            toast: document.getElementById('toast'),
+            toastMessage: document.getElementById('toastMessage'),
+            closeToast: document.getElementById('closeToast'),
+            loadingOverlay: document.getElementById('loadingOverlay')
+        };
+
+        // État local pour le modal de saisie des commandes
+        const orderEntryState = {
+            currentPersonId: null,
+            tempOrders: {},
+            originalOrders: {}
+        };
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            setupEventListeners();
+        });
+
+        // Load data from localStorage or initialize with sample data
+        function loadData() {
+            showLoading();
+            
+            // Simulate loading delay for better UX
+            setTimeout(() => {
+                const savedData = localStorage.getItem('orderManagementData');
+                
+                if (savedData) {
+                    try {
+                        appState.data = JSON.parse(savedData);
+                        showToast('Données chargées avec succès');
+                    } catch (error) {
+                        console.error('Erreur lors du chargement des données:', error);
+                        initializeSampleData();
+                        showToast('Erreur de chargement. Données d\'exemple utilisées', 'error');
+                    }
+                } else {
+                    initializeSampleData();
+                    showToast('Initialisé avec des données d\'exemple');
+                }
+                
+                renderTable();
+                hideLoading();
+            }, 500);
+        }
+
+        // Initialize with sample data if no saved data exists
+        function initializeSampleData() {
+            appState.data = {
+                categories: [
+                    {
+                        id: 'lb',
+                        name: 'lehibe',
+                        languages: [
+                            { 
+                                id: 'gs', 
+                                name: 'gs', 
+                                formats: [
+                                    { id: 'gm', name: 'GM', price: 3300 }, 
+                                    { id: 'pm', name: 'PM', price: 2700 }
+                                ] 
+                            },
+                            { 
+                                id: 'fr', 
+                                name: 'fr', 
+                                formats: [
+                                    { id: '', name: '', price: 6000 }
+                                ] 
+                            },
+                            { 
+                                id: 'en', 
+                                name: 'en', 
+                                formats: [
+                                    { id: '', name: '', price: 6000 }
+                                ] 
+                            }
+                        ]
+                    },
+                    {
+                        id: 'tzo',
+                        name: 'Tanora zokiny',
+                        languages: [
+                            { 
+                                id: 'gs', 
+                                name: 'gs', 
+                                formats: [
+                                    { id: '', name: '', price: 6000 }
+                                ] 
+                            },
+                            { 
+                                id: 'fr', 
+                                name: 'fr', 
+                                formats: [
+                                    { id: '', name: '', price: 3300 }
+                                ] 
+                            },
+                            { 
+                                id: 'en', 
+                                name: 'en', 
+                                formats: [
+                                    { id: '', name: '', price: 6000 }
+                                ] 
+                            }
+                        ]
+                    },
+                    {
+                        id: 'zt',
+                        name: 'Zatovo',
+                        languages: [
+                            { 
+                                id: 'gs', 
+                                name: 'gs', 
+                                formats: [
+                                    { id: '', name: '', price: 6000 }
+                                ] 
+                            },
+                            { 
+                                id: 'en', 
+                                name: 'en', 
+                                formats: [
+                                    { id: '', name: '', price: 3300 }
+                                ] 
+                            }
+                        ]
+                    },
+                    {
+                        id: 'tza',
+                        name: 'T. za',
+                        languages: [
+                            { 
+                                id: 'gs', 
+                                name: 'gs', 
+                                formats: [
+                                    { id: '', name: '', price: 6000 }
+                                ] 
+                            }
+                        ]
+                    },
+                    {
+                        id: 'ak',
+                        name: 'Ankizy',
+                        languages: [
+                            { 
+                                id: 'gs', 
+                                name: 'gs', 
+                                formats: [
+                                    { id: '', name: '', price: 3300 }
+                                ] 
+                            }
+                        ]
+                    },
+                    {
+                        id: 'zm',
+                        name: 'Z. mino',
+                        languages: [
+                            { 
+                                id: 'gs', 
+                                name: 'gs', 
+                                formats: [
+                                    { id: '', name: '', price: 3300 }
+                                ] 
+                            }
+                        ]
+                    },
+                    {
+                        id: 'zb',
+                        name: 'Z. bodo',
+                        languages: [
+                            { 
+                                id: 'gs', 
+                                name: 'gs', 
+                                formats: [
+                                    { id: '', name: '', price: 3300 }
+                                ] 
+                            }
+                        ]
+                    },
+                    {
+                        id: 'mf',
+                        name: 'Mofon\'aina',
+                        languages: [
+                            { 
+                                id: 'gs', 
+                                name: 'gs', 
+                                formats: [
+                                    { id: 'gm', name: 'GM', price: 3300 }, 
+                                    { id: 'pm', name: 'PM', price: 3300 }
+                                ] 
+                            }
+                        ]
+                    },
+                    {
+                        id: 'fh',
+                        name: 'fihirana',
+                        languages: [
+                            { 
+                                id: 'gs', 
+                                name: 'gs', 
+                                formats: [
+                                    { id: '', name: '', price: 2700 }
+                                ] 
+                            }
+                        ]
+                    },
+                    {
+                        id: 'llmf_gm',  // Changed ID to be unique
+                        name: 'LL + MA(GM)',
+                        languages: [
+                            { 
+                                id: 'gs', 
+                                name: 'gs', 
+                                formats: [
+                                    { id: '', name: '', price: 9000 }
+                                ] 
+                            }
+                        ]
+                    },
+                    {
+                        id: 'llmf_pm',  // Changed ID to be unique
+                        name: 'LL + MA(PM)',
+                        languages: [
+                            { 
+                                id: 'gs', 
+                                name: 'gs', 
+                                formats: [
+                                    { id: '', name: '', price: 6500 }
+                                ] 
+                            }
+                        ]
+                    },
+                    {
+                        id: 'tt',
+                        name: 'tatitra',
+                        languages: [
+                            { 
+                                id: 'gs', 
+                                name: 'gs', 
+                                formats: [
+                                    { id: '', name: '', price: 5300 }
+                                ] 
+                            }
+                        ]
+                    }
+                ],
+                people: [
+                    // { id: "p1", name: "John Doe", orders: {} },
+                    // { id: "p2", name: "Jane Smith", orders: {} }
+                ]
+            };
+        }
+
+        // Save data to localStorage
+        function saveData() {
+            showLoading();
+            
+            try {
+                localStorage.setItem('orderManagementData', JSON.stringify(appState.data));
+                showToast('Données enregistrées avec succès');
+            } catch (error) {
+                console.error('Erreur lors de l\'enregistrement des données:', error);
+                showToast('Erreur d\'enregistrement des données', 'error');
+            }
+            
+            hideLoading();
+        }
+
+        // Export data as JSON file
+        function exportData() {
+            showLoading();
+            
+            try {
+                const dataStr = JSON.stringify(appState.data, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+                
+                const exportFileDefaultName = `order_data_${new Date().toISOString().slice(0, 10)}.json`;
+                
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+                
+                showToast('Données exportées avec succès');
+            } catch (error) {
+                console.error('Erreur lors de l\'exportation des données:', error);
+                showToast('Erreur lors de l\'exportation des données', 'error');
+            }
+            
+            hideLoading();
+        }
+
+        // Import data from JSON file
+        function importData() {
+            elements.fileInput.click();
+        }
+
+        // Setup all event listeners
+        function setupEventListeners() {
+            // Button click events
+            if (elements.addCategoryBtn) {
+                elements.addCategoryBtn.addEventListener('click', showCategoryModal);
+            }
+            elements.addPersonBtn.addEventListener('click', showPersonModal);
+            elements.saveDataBtn.addEventListener('click', saveData);
+            elements.exportDataBtn.addEventListener('click', exportData);
+            elements.importDataBtn.addEventListener('click', importData);
+            elements.closeSummaryBtn.addEventListener('click', hideOrderSummary);
+            
+            // Modal close events
+            elements.closeCategoryModal.addEventListener('click', hideCategoryModal);
+            elements.cancelCategoryBtn.addEventListener('click', hideCategoryModal);
+            elements.closePersonModal.addEventListener('click', hidePersonModal);
+            elements.cancelPersonBtn.addEventListener('click', hidePersonModal);
+            
+            // Form submit events
+            elements.categoryForm.addEventListener('submit', handleCategorySubmit);
+            elements.personForm.addEventListener('submit', handlePersonSubmit);
+            
+            // File input change event
+            elements.fileInput.addEventListener('change', handleFileImport);
+            
+            // Toast close event
+            elements.closeToast.addEventListener('click', hideToast);
+            
+            // Add language button
+            elements.addLanguageBtn.addEventListener('click', addLanguageField);
+            
+            // Table cell events (delegated)
+            elements.tableBody.addEventListener('focusin', handleCellFocus, true);
+            elements.tableBody.addEventListener('focusout', handleCellBlur, true);
+            elements.tableBody.addEventListener('input', handleQuantityChange);
+        }
+
+        // Show category modal
+        function showCategoryModal() {
+            elements.categoryModal.classList.remove('hidden');
+            elements.languagesContainer.innerHTML = '';
+            elements.categoryForm.reset();
+            addLanguageField(); // Add one language field by default
+        }
+
+        // Hide category modal
+        function hideCategoryModal() {
+            elements.categoryModal.classList.add('hidden');
+        }
+
+        // Show person modal
+        function showPersonModal() {
+            elements.personModal.classList.remove('hidden');
+            elements.personForm.reset();
+        }
+
+        // Hide person modal
+        function hidePersonModal() {
+            elements.personModal.classList.add('hidden');
+        }
+
+        // Add a new language field to the category form
+        function addLanguageField(languageData = null) {
+            const languageId = languageData ? languageData.id : '';
+            const languageName = languageData ? languageData.name : '';
+            
+            const languageDiv = document.createElement('div');
+            languageDiv.className = 'border border-gray-200 rounded-md p-3 bg-gray-50';
+            
+            languageDiv.innerHTML = `
+                <div class="flex justify-between items-center mb-2">
+                    <h4 class="text-sm font-medium text-gray-700">Language</h4>
+                    <button type="button" class="text-red-500 hover:text-red-700 remove-language">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Language ID</label>
+                        <input type="text" class="language-id w-full px-2 py-1 text-sm border border-gray-300 rounded-md" value="${languageId}" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Language Name</label>
+                        <input type="text" class="language-name w-full px-2 py-1 text-sm border border-gray-300 rounded-md" value="${languageName}" required>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Formats</label>
+                    <div class="formats-container space-y-2 mb-2"></div>
+                    <button type="button" class="add-format text-xs text-blue-600 hover:text-blue-800 flex items-center">
+                        <i class="fas fa-plus-circle mr-1"></i> Add Format
+                    </button>
+                </div>
+            `;
+            
+            elements.languagesContainer.appendChild(languageDiv);
+            
+            // Add event listeners for the new language
+            const removeBtn = languageDiv.querySelector('.remove-language');
+            removeBtn.addEventListener('click', () => languageDiv.remove());
+            
+            const addFormatBtn = languageDiv.querySelector('.add-format');
+            addFormatBtn.addEventListener('click', () => addFormatField(languageDiv.querySelector('.formats-container')));
+            
+            // Add format fields if provided
+            if (languageData && languageData.formats) {
+                const formatsContainer = languageDiv.querySelector('.formats-container');
+                languageData.formats.forEach(format => {
+                    addFormatField(formatsContainer, format);
+                });
+            } else {
+                // Add one format field by default
+                addFormatField(languageDiv.querySelector('.formats-container'));
+            }
+        }
+
+        // Add a new format field to a language
+        function addFormatField(container, formatData = null) {
+            const formatId = formatData ? formatData.id : '';
+            const formatName = formatData ? formatData.name : '';
+            const formatPrice = formatData ? formatData.price : '';
+            
+            const formatDiv = document.createElement('div');
+            formatDiv.className = 'border border-gray-200 rounded-md p-2 bg-white';
+            
+            formatDiv.innerHTML = `
+                <div class="flex justify-between items-center mb-1">
+                    <h5 class="text-xs font-medium text-gray-600">Format</h5>
+                    <button type="button" class="text-red-500 hover:text-red-700 remove-format">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Format ID</label>
+                        <input type="text" class="format-id w-full px-2 py-1 text-xs border border-gray-300 rounded-md" value="${formatId}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Format Name</label>
+                        <input type="text" class="format-name w-full px-2 py-1 text-xs border border-gray-300 rounded-md" value="${formatName}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Price</label>
+                        <input type="number" class="format-price w-full px-2 py-1 text-xs border border-gray-300 rounded-md" value="${formatPrice}" required>
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(formatDiv);
+            
+            // Add event listener for the remove button
+            const removeBtn = formatDiv.querySelector('.remove-format');
+            removeBtn.addEventListener('click', () => formatDiv.remove());
+        }
+
+        // Handle category form submission
+        function handleCategorySubmit(e) {
+            e.preventDefault();
+            
+            const categoryId = elements.categoryId.value.trim();
+            const categoryName = elements.categoryName.value.trim();
+            
+            // Validate category ID and name
+            if (!categoryId || !categoryName) {
+                showToast('Category ID and Name are required', 'error');
+                return;
+            }
+            
+            // Check if category ID already exists
+            if (appState.data.categories.some(cat => cat.id === categoryId)) {
+                showToast('Category ID already exists', 'error');
+                return;
+            }
+            
+            // Collect languages data
+            const languages = [];
+            const languageDivs = elements.languagesContainer.querySelectorAll('.border-gray-200');
+            
+            if (languageDivs.length === 0) {
+                showToast('At least one language is required', 'error');
+                return;
+            }
+            
+            for (const langDiv of languageDivs) {
+                const languageId = langDiv.querySelector('.language-id').value.trim();
+                const languageName = langDiv.querySelector('.language-name').value.trim();
+                
+                if (!languageId || !languageName) {
+                    showToast('Language ID and Name are required for all languages', 'error');
+                    return;
+                }
+                
+                // Collect formats data
+                const formats = [];
+                const formatDivs = langDiv.querySelectorAll('.formats-container > .border-gray-200');
+                
+                if (formatDivs.length === 0) {
+                    showToast('At least one format is required for each language', 'error');
+                    return;
+                }
+                
+                for (const formatDiv of formatDivs) {
+                    const formatId = formatDiv.querySelector('.format-id').value.trim();
+                    const formatName = formatDiv.querySelector('.format-name').value.trim();
+                    const formatPrice = formatDiv.querySelector('.format-price').value.trim();
+                    
+                    if (!formatPrice) {
+                        showToast('Price is required for all formats', 'error');
+                        return;
+                    }
+                    
+                    formats.push({
+                        id: formatId,
+                        name: formatName,
+                        price: Number(formatPrice)
+                    });
+                }
+                
+                languages.push({
+                    id: languageId,
+                    name: languageName,
+                    formats: formats
+                });
+            }
+            
+            // Add the new category
+            appState.data.categories.push({
+                id: categoryId,
+                name: categoryName,
+                languages: languages
+            });
+            
+            // Save and refresh
+            saveData();
+            renderTable();
+            hideCategoryModal();
+            
+            showToast('Category added successfully');
+        }
+
+        // Handle person form submission
+        function handlePersonSubmit(e) {
+            e.preventDefault();
+            
+            const personName = elements.personName.value.trim();
+            const personId = elements.personId.value.trim();
+            
+            if (!personName) {
+                showToast('Person name is required', 'error');
+                return;
+            }
+            
+            // Generate a unique ID if not provided
+            const finalPersonId = personId || `person_${Date.now()}`;
+            
+            // Add the new person
+            appState.data.people.push({
+                id: finalPersonId,
+                name: personName,
+                orders: {}
+            });
+            
+            // Save and refresh
+            saveData();
+            renderTable();
+            hidePersonModal();
+            
+            showToast('Person added successfully');
+        }
+
+        // Handle file import
+        function handleFileImport(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const importedData = JSON.parse(event.target.result);
+                    
+                    // Validate the imported data structure
+                    if (!importedData.categories || !importedData.people) {
+                        throw new Error('Structure de données invalide');
+                    }
+                    
+                    appState.data = importedData;
+                    saveData();
+                    renderTable();
+                    showToast('Données importées avec succès');
+                } catch (error) {
+                    console.error('Erreur lors de l\'importation des données:', error);
+                    showToast('Erreur d\'importation. Format de fichier invalide.', 'error');
+                }
+                
+                // Reset file input
+                elements.fileInput.value = '';
+            };
+            
+            reader.readAsText(file);
+        }
+
+        // Handle cell focus
+        function handleCellFocus(e) {
+            if (e.target.tagName === 'INPUT') {
+                const cell = e.target.closest('td');
+                if (!cell) return;
+                
+                // Highlight the row and column
+                const row = cell.parentElement;
+                const colIndex = cell.cellIndex;
+                
+                // Remove previous highlights
+                document.querySelectorAll('.highlight-row').forEach(el => el.classList.remove('highlight-row'));
+                document.querySelectorAll('.highlight-col').forEach(el => el.classList.remove('highlight-col'));
+                
+                // Highlight current row
+                row.classList.add('highlight-row');
+                
+                // Highlight all cells in the same column
+                const allRows = elements.tableBody.querySelectorAll('tr');
+                allRows.forEach(r => {
+                    if (r.cells[colIndex]) {
+                        r.cells[colIndex].classList.add('highlight-col');
+                    }
+                });
+                
+                // Store the current cell
+                appState.currentCell = cell;
+            }
+        }
+
+        // Handle cell blur
+        function handleCellBlur() {
+            // Remove highlights after a delay to allow click events to process
+            setTimeout(() => {
+                document.querySelectorAll('.highlight-row').forEach(el => el.classList.remove('highlight-row'));
+                document.querySelectorAll('.highlight-col').forEach(el => el.classList.remove('highlight-col'));
+            }, 100);
+        }
+
+        // Handle quantity input change
+        function handleQuantityChange(e) {
+            if (e.target.tagName === 'INPUT' && e.target.type === 'number') {
+                const cell = e.target.closest('td');
+                if (!cell) return;
+                
+                const row = cell.parentElement;
+                const personId = row.dataset.personId;
+                const columnKey = cell.dataset.columnKey;
+                const quantity = parseInt(e.target.value) || 0;
+                
+                // Update the order in the data model
+                const person = appState.data.people.find(p => p.id === personId);
+                if (person) {
+                    if (!person.orders) person.orders = {};
+                    person.orders[columnKey] = quantity;
+                }
+                
+                // Update the person's total
+                updatePersonTotal(personId);
+                
+                // Auto-save
+                saveData();
+            }
+        }
+
+        // Update the total for a specific person
+        function updatePersonTotal(personId) {
+            const person = appState.data.people.find(p => p.id === personId);
+            if (!person) return;
+            
+            let total = 0;
+            
+            // Calculate total based on orders
+            for (const [key, quantity] of Object.entries(person.orders || {})) {
+                if (quantity > 0) {
+                    const [categoryId, languageId, formatId] = key.split('|');
+                    const category = appState.data.categories.find(c => c.id === categoryId);
+                    if (!category) continue;
+                    
+                    const language = category.languages.find(l => l.id === languageId);
+                    if (!language) continue;
+                    
+                    const format = language.formats.find(f => f.id === formatId);
+                    if (!format) continue;
+                    
+                    total += quantity * format.price;
+                }
+            }
+            
+            // Update the total cell
+            const totalCell = elements.tableBody.querySelector(`tr[data-person-id="${personId}"] .total-cell`);
+            if (totalCell) {
+                totalCell.textContent = total.toLocaleString();
+            }
+        }
+
+        // Render the entire table
+        function renderTable() {
+            renderTableHeader();
+            renderTableBody();
+            renderMobileCards(); // Add this line to render mobile cards
+        }
+
+        // Render the table header with categories, languages, and formats
+        function renderTableHeader() {
+            elements.tableHeader.innerHTML = '';
+            
+            if (appState.data.categories.length === 0) {
+                return;
+            }
+            
+            // Create header rows
+            const categoryRow = document.createElement('tr');
+            const languageRow = document.createElement('tr');
+            const formatRow = document.createElement('tr');
+            const priceRow = document.createElement('tr');
+
+            // Add combined person header
+            const nameHeader = document.createElement('th');
+            nameHeader.className = 'sticky left-0 bg-gray-100 border-r border-gray-200 px-4 py-2 text-left z-10';
+            nameHeader.rowSpan = 4;
+            nameHeader.textContent = 'Person';
+            categoryRow.appendChild(nameHeader);
+
+            // Add headers for each category
+            for (const category of appState.data.categories) {
+                const colCount = countColumnsForCategory(category);
+                
+                // Category header
+                const categoryHeader = document.createElement('th');
+                categoryHeader.className = 'bg-gray-100 px-4 py-2 text-center border-b border-gray-200';
+                categoryHeader.colSpan = colCount;
+                categoryHeader.textContent = category.name;
+                categoryRow.appendChild(categoryHeader);
+                
+                // Language headers
+                for (const language of category.languages) {
+                    const langColCount = countColumnsForLanguage(language);
+                    
+                    const languageHeader = document.createElement('th');
+                    languageHeader.className = 'bg-gray-50 px-3 py-1 text-center border-b border-gray-200';
+                    languageHeader.colSpan = langColCount;
+                    languageHeader.textContent = language.name;
+                    languageRow.appendChild(languageHeader);
+                    
+                    // Format headers
+                    for (const format of language.formats) {
+                        const formatHeader = document.createElement('th');
+                        formatHeader.className = 'bg-white px-2 py-1 text-center border-b border-gray-200 text-sm';
+                        formatHeader.textContent = format.name || 'Standard';
+                        formatRow.appendChild(formatHeader);
+                        
+                        // Price header
+                        const priceHeader = document.createElement('th');
+                        priceHeader.className = 'bg-gray-50 px-2 py-1 text-center text-sm font-medium';
+                        priceHeader.textContent = format.price.toLocaleString();
+                        priceRow.appendChild(priceHeader);
+                    }
+                }
+            }
+            
+            // Total header
+            const totalHeader = document.createElement('th');
+            totalHeader.className = 'bg-gray-100 px-4 py-2 text-center border-l border-gray-200';
+            totalHeader.rowSpan = 4;
+            totalHeader.textContent = 'Total';
+            categoryRow.appendChild(totalHeader.cloneNode(true));
+            
+            // Append all rows to the header
+            elements.tableHeader.appendChild(categoryRow);
+            elements.tableHeader.appendChild(languageRow);
+            elements.tableHeader.appendChild(formatRow);
+            elements.tableHeader.appendChild(priceRow);
+        }
+
+        // Count columns needed for a category
+        function countColumnsForCategory(category) {
+            return category.languages.reduce((total, lang) => total + countColumnsForLanguage(lang), 0);
+        }
+
+        // Count columns needed for a language
+        function countColumnsForLanguage(language) {
+            return language.formats.length;
+        }
+
+        // Render the table body with people and their orders
+        function renderTableBody() {
+            elements.tableBody.innerHTML = '';
+            let grandTotal = 0;
+            let columnTotals = {};
+            
+            if (appState.data.people.length === 0) {
+                const emptyRow = document.createElement('tr');
+                const emptyCell = document.createElement('td');
+                emptyCell.className = 'py-8 text-center text-gray-500 italic';
+                emptyCell.colSpan = elements.tableHeader.querySelector('tr').cells.length;
+                emptyCell.textContent = 'Pas de commande';
+                emptyRow.appendChild(emptyCell);
+                elements.tableBody.appendChild(emptyRow);
+                return;
+            }
+
+            // Initialize column totals
+            appState.data.categories.forEach(category => {
+                category.languages.forEach(language => {
+                    language.formats.forEach(format => {
+                        const key = `${category.id}|${language.id}|${format.id}`;
+                        columnTotals[key] = 0;
+                    });
+                });
+            });
+
+            // Render people rows
+            appState.data.people.forEach(person => {
+                const row = document.createElement('tr');
+                row.dataset.personId = person.id;
+                row.className = 'border-b border-gray-200 hover:bg-gray-50';
+
+                // Combined checkbox and name cell
+                const nameCell = document.createElement('td');
+                nameCell.className = 'px-4 py-2 sticky left-0 bg-white z-10';
+                
+                const nameWrapper = document.createElement('div');
+                nameWrapper.className = 'flex items-center space-x-3';
+                
+                // Add checkbox to the name wrapper
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'person-checkbox';
+                checkbox.dataset.personId = person.id;
+                nameWrapper.appendChild(checkbox);
+                
+                // Add name link
+                const nameLink = document.createElement('a');
+                nameLink.href = '#';
+                nameLink.className = 'text-blue-600 hover:text-blue-800 font-medium';
+                nameLink.textContent = person.name;
+                nameLink.onclick = function(e) {
+                    e.preventDefault();
+                    openOrderEntryForPerson(person.id);
+                };
+                nameWrapper.appendChild(nameLink);
+                
+                // Add action buttons
+                const actionButtons = document.createElement('div');
+                actionButtons.className = 'flex items-center space-x-2 ml-auto';
+                actionButtons.innerHTML = `
+                    <button class="text-blue-600 hover:text-blue-800" onclick="editPerson('${person.id}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="text-red-600 hover:text-red-800" onclick="deletePerson('${person.id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+                nameWrapper.appendChild(actionButtons);
+                nameCell.appendChild(nameWrapper);
+                row.appendChild(nameCell);
+
+                // Initialize person total
+                let personTotal = 0;
+
+                // Order cells for each category/language/format
+                for (const category of appState.data.categories) {
+                    for (const language of category.languages) {
+                        for (const format of language.formats) {
+                            const key = `${category.id}|${language.id}|${format.id}`;
+                            const quantity = person.orders?.[key] || 0;
+                            
+                            if (quantity > 0) {
+                                personTotal += quantity * format.price;
+                                columnTotals[key] += quantity;
+                            }
+                            
+                            const cell = document.createElement('td');
+                            const bgColorClass = categoryColors[category.id] || '';
+                            cell.className = `px-2 py-1 text-center ${bgColorClass}`;
+                            cell.dataset.columnKey = key;
+                            
+                            const input = document.createElement('input');
+                            input.type = 'number';
+                            input.min = '0';
+                            input.className = 'w-16 px-2 py-1 border border-gray-300 rounded text-center';
+                            input.value = quantity;
+                            
+                            cell.appendChild(input);
+                            row.appendChild(cell);
+                        }
+                    }
+                }
+
+                // Total amount cell
+                const totalCell = document.createElement('td');
+                totalCell.className = 'total-cell px-4 py-2 text-right font-medium border-l border-gray-200';
+                totalCell.textContent = `${personTotal.toLocaleString()} Ar`;
+                row.appendChild(totalCell);
+
+                elements.tableBody.appendChild(row);
+                grandTotal += personTotal;
+            });
+
+            // Add totals row
+            const totalsRow = document.createElement('tr');
+            totalsRow.className = 'bg-gray-100 font-bold border-t-2 border-gray-300';
+
+            // Add combined "TOTAL" label cell (replacing the previous two cells)
+            const totalLabelCell = document.createElement('td');
+            totalLabelCell.className = 'px-4 py-2 font-bold text-gray-800 sticky left-0 bg-gray-100 z-10';
+            totalLabelCell.textContent = 'TOTAL';
+            totalsRow.appendChild(totalLabelCell);
+
+            // Add column totals
+            appState.data.categories.forEach(category => {
+                category.languages.forEach(language => {
+                    language.formats.forEach(format => {
+                        const key = `${category.id}|${language.id}|${format.id}`;
+                        const totalCell = document.createElement('td');
+                        totalCell.className = 'px-2 py-2 text-center font-bold';
+                        totalCell.textContent = columnTotals[key];
+                        totalsRow.appendChild(totalCell);
+                    });
+                });
+            });
+
+            // Add grand total amount
+            const grandTotalCell = document.createElement('td');
+            grandTotalCell.className = 'px-4 py-2 text-right font-bold border-l border-gray-200';
+            grandTotalCell.textContent = `${grandTotal.toLocaleString()} Ar`;
+            totalsRow.appendChild(grandTotalCell);
+            
+            elements.tableBody.appendChild(totalsRow);
+
+            // Add event listener for quantity changes
+            elements.tableBody.addEventListener('change', handleQuantityChange);
+        }
+
+        // Delete a person
+        function deletePerson(personId) {
+            if (confirm('Are you sure you want to delete this person and all their orders?')) {
+                appState.data.people = appState.data.people.filter(p => p.id !== personId);
+                saveData();
+                renderTable();
+                showToast('Person deleted successfully');
+            }
+        }
+
+        // Add this new function to open the order entry modal for a specific person
+        function openOrderEntryForPerson(personId) {
+            const person = appState.data.people.find(p => p.id === personId);
+            if (!person) return;
+            
+            // Set the current person ID in the order entry state
+            orderEntryState.currentPersonId = personId;
+            
+            // Initialize temp orders with the person's existing orders
+            orderEntryState.tempOrders = { ...person.orders };
+            orderEntryState.originalOrders = { ...person.orders };
+            
+            // Update the modal header with the person's name
+            document.getElementById('orderPersonName').textContent = person.name;
+            document.getElementById('orderPersonId').textContent = `ID: ${personId}`;
+            
+            // Generate the categories accordion
+            generateCategoriesAccordion();
+            
+            // Update the total
+            updateOrderTotal();
+            
+            // Show the modal
+            document.getElementById('orderEntryModal').classList.remove('hidden');
+        }
+
+        // Hide order summary
+        function hideOrderSummary() {
+            elements.orderSummary.classList.add('hidden');
+            appState.selectedPerson = null;
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'success') {
+            elements.toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-md shadow-lg transform translate-y-10 opacity-0 transition-all duration-300 flex items-center ${type === 'error' ? 'bg-red-600' : 'bg-green-600'} text-white`;
+            elements.toastMessage.textContent = message;
+            elements.toast.classList.remove('hidden');
+            
+            // Animate in
+            setTimeout(() => {
+                elements.toast.classList.remove('translate-y-10', 'opacity-0');
+                elements.toast.classList.add('translate-y-0', 'opacity-100');
+            }, 10);
+            
+            // Auto-hide after 5 seconds
+            setTimeout(hideToast, 5000);
+        }
+
+        // Hide toast notification
+        function hideToast() {
+            elements.toast.classList.add('translate-y-10', 'opacity-0');
+            setTimeout(() => elements.toast.classList.add('hidden'), 300);
+        }
+
+        // Show loading overlay
+        function showLoading() {
+            elements.loadingOverlay.classList.remove('hidden');
+        }
+
+        // Hide loading overlay
+        function hideLoading() {
+            elements.loadingOverlay.classList.add('hidden');
+        }
+
+        // Fonction pour afficher les commandes sélectionnées
+        function displaySelectedOrders() {
+            const selectedOrdersSection = document.getElementById('selectedOrdersDisplay');
+            const selectedOrdersContent = document.getElementById('selectedOrdersContent');
+            const checkedBoxes = document.querySelectorAll('.person-checkbox:checked');
+            
+            if (checkedBoxes.length === 0) {
+                showToast('Veuillez sélectionner au moins une personne', 'warning');
+                return;
+            }
+            
+            let ordersHTML = '';
+            let grandTotal = 0;
+            
+            checkedBoxes.forEach(checkbox => {
+                const personId = checkbox.dataset.personId;
+                const person = appState.data.people.find(p => p.id === personId);
+                if (!person) return;
+                
+                let personTotal = 0;
+                
+                ordersHTML += `
+                    <div class="mb-8 pb-6 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold mb-4">Nom: ${person.name}</h3>
+                        ${person.id ? `<p class="text-sm text-gray-600 mb-4">ID: ${person.id}</p>` : ''}
+                        <h4 class="font-medium mb-2">Commande:</h4>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 mb-4">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Catégorie</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Format</th>
+                                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Quantité</th>
+                                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Prix unitaire</th>
+                                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                `;
+                
+                // Parcourir les commandes de la personne
+                for (const [key, quantity] of Object.entries(person.orders || {})) {
+                    if (quantity > 0) {
+                        const [categoryId, languageId, formatId] = key.split('|');
+                        const category = appState.data.categories.find(c => c.id === categoryId);
+                        if (!category) continue;
+                        
+                        const language = category.languages.find(l => l.id === languageId);
+                        if (!language) continue;
+                        
+                        const format = language.formats.find(f => f.id === formatId);
+                        if (!format) continue;
+                        
+                        const itemTotal = quantity * format.price;
+                        personTotal += itemTotal;
+                        
+                        ordersHTML += `
+                            <tr>
+                                <td class="px-4 py-2">${category.name} - ${language.name}</td>
+                                <td class="px-4 py-2">${format.name || '-'}</td>
+                                <td class="px-4 py-2 text-right">${quantity}</td>
+                                <td class="px-4 py-2 text-right">${format.price.toLocaleString()} Ar</td>
+                                <td class="px-4 py-2 text-right">${itemTotal.toLocaleString()} Ar</td>
+                            </tr>
+                        `;
+                    }
+                }
+                
+                grandTotal += personTotal;
+                
+                ordersHTML += `
+                                </tbody>
+                                <tfoot class="bg-gray-50">
+                                    <tr>
+                                        <td colspan="4" class="px-4 py-2 text-right font-medium">Total pour ${person.name}:</td>
+                                        <td class="px-4 py-2 text-right font-bold">${personTotal.toLocaleString()} Ar</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            // Ajouter le grand total
+            ordersHTML += `
+                <div class="mt-6 pt-6 border-t-2 border-gray-200">
+                    <div class="flex justify-end items-center">
+                        <span class="text-xl font-bold mr-4">Total général:</span>
+                        <span class="text-xl font-bold text-blue-600">${grandTotal.toLocaleString()} Ar</span>
+                    </div>
+                </div>
+            `;
+            
+            selectedOrdersContent.innerHTML = ordersHTML;
+            selectedOrdersSection.classList.remove('hidden');
+        }
+
+        // Ajouter les event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Bouton pour afficher les commandes sélectionnées
+            document.getElementById('showSelectedOrdersBtn').addEventListener('click', displaySelectedOrders);
+            
+            // Bouton pour fermer l'affichage des commandes
+            document.getElementById('closeSelectedOrders').addEventListener('click', () => {
+                document.getElementById('selectedOrdersDisplay').classList.add('hidden');
+            });
+            
+            // Bouton pour imprimer
+            document.getElementById('printSelectedOrders').addEventListener('click', () => {
+                window.print();
+            });
+        });
+
+        // Ouvrir le modal de saisie des commandes
+        // function openOrderEntry() {
+        //     orderEntryState.tempOrders = {}; // Réinitialiser les commandes temporaires
+        //     orderEntryState.originalOrders = {};
+
+        //     // Mettre à jour l'en-tête du modal
+        //     document.getElementById('orderPersonName').textContent = 'Nouvelle Commande';
+        //     document.getElementById('orderPersonId').textContent = '';
+
+        //     // Générer l'accordéon des catégories
+        //     generateCategoriesAccordion();
+
+        //     // Mettre à jour le total
+        //     updateOrderTotal();
+
+        //     // Afficher le modal
+        //     document.getElementById('orderEntryModal').classList.remove('hidden');
+        // }
+        // Update the openOrderEntry function for new orders
+function openOrderEntry() {
+    // Reset the order entry state
+    orderEntryState.currentPersonId = null;
+    orderEntryState.tempOrders = {};
+    orderEntryState.originalOrders = {};
+    
+    // Update the modal header
+    document.getElementById('orderPersonName').textContent = 'Nouvelle Commande';
+    document.getElementById('orderPersonId').textContent = '';
+    
+    // Generate the categories accordion
+    generateCategoriesAccordion();
+    
+    // Update the total
+    updateOrderTotal();
+    
+    // Show the modal
+    document.getElementById('orderEntryModal').classList.remove('hidden');
+}
+
+        function generateCategoriesAccordion() {
+    const accordion = document.getElementById('categoriesAccordion');
+    accordion.innerHTML = '';
+    
+    appState.data.categories.forEach(category => {
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = 'category-accordion mb-4 border rounded-lg overflow-hidden';
+        categoryDiv.setAttribute('data-category-id', category.id);
+        
+        // Add category color class if defined
+        if (categoryColors && categoryColors[category.id]) {
+            categoryDiv.classList.add(categoryColors[category.id]);
+        }
+        
+        // Create category summary
+        const categorySummary = createCategorySummary(category);
+        
+        // Create category header
+        const categoryHeader = document.createElement('div');
+        categoryHeader.className = 'category-header p-4 cursor-pointer flex justify-between items-center';
+        categoryHeader.innerHTML = `
+            <div class="flex items-center gap-2 flex-grow">
+                <h3 class="font-semibold text-gray-800">${category.name}</h3>
+                <div class="category-summary">${categorySummary}</div>
+            </div>
+            <i class="fas fa-chevron-down"></i>
+        `;
+        
+        categoryHeader.addEventListener('click', () => {
+            const content = categoryHeader.nextElementSibling;
+            content.classList.toggle('hidden');
+            const icon = categoryHeader.querySelector('i');
+            icon.classList.toggle('fa-chevron-down');
+            icon.classList.toggle('fa-chevron-up');
+        });
+        
+        // Create category content
+        const categoryContent = document.createElement('div');
+        categoryContent.className = 'category-content p-4 border-t hidden';
+        
+        // Create items for each language and format
+        category.languages.forEach(language => {
+            language.formats.forEach(format => {
+                const orderKey = `${category.id}|${language.id}|${format.id}`;
+                const quantity = orderEntryState.tempOrders[orderKey] || 0;
+                
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'flex items-center justify-between mb-3 p-2 border rounded';
+                
+                // Format name display
+                let formatDisplay = language.name;
+                if (format.name) {
+                    formatDisplay += ` (${format.name})`;
+                }
+                
+                itemDiv.innerHTML = `
+                    <div>
+                        <span class="font-medium">${formatDisplay}</span>
+                        <span class="text-gray-600 text-sm ml-2">${format.price.toLocaleString()} Ar</span>
+                    </div>
+                    <div class="flex items-center">
+                        <button type="button" class="quantity-btn minus bg-gray-200 px-3 py-1 rounded-l">-</button>
+                        <input type="number" class="quantity-input w-16 text-center py-1 border-t border-b" 
+                               value="${quantity}" min="0" data-order-key="${orderKey}" data-price="${format.price}">
+                        <button type="button" class="quantity-btn plus bg-gray-200 px-3 py-1 rounded-r">+</button>
+                    </div>
+                `;
+                
+                // Add event listeners for quantity buttons
+                const minusBtn = itemDiv.querySelector('.minus');
+                const plusBtn = itemDiv.querySelector('.plus');
+                const input = itemDiv.querySelector('.quantity-input');
+                
+                minusBtn.addEventListener('click', () => {
+                    const currentValue = parseInt(input.value) || 0;
+                    if (currentValue > 0) {
+                        input.value = currentValue - 1;
+                        updateTempOrder(orderKey, currentValue - 1);
+                        updateCategorySummaries();
+                    }
+                });
+                
+                plusBtn.addEventListener('click', () => {
+                    const currentValue = parseInt(input.value) || 0;
+                    input.value = currentValue + 1;
+                    updateTempOrder(orderKey, currentValue + 1);
+                    updateCategorySummaries();
+                });
+                
+                input.addEventListener('change', () => {
+                    const value = parseInt(input.value) || 0;
+                    input.value = value; // Normalize the input
+                    updateTempOrder(orderKey, value);
+                    updateCategorySummaries();
+                });
+                
+                categoryContent.appendChild(itemDiv);
+            });
+        });
+        
+        categoryDiv.appendChild(categoryHeader);
+        categoryDiv.appendChild(categoryContent);
+        accordion.appendChild(categoryDiv);
+    });
+}
+
+// Function to create category summary
+function createCategorySummary(category) {
+    const summary = [];
+    let totalQuantity = 0;
+    
+    category.languages.forEach(language => {
+        language.formats.forEach(format => {
+            const orderKey = `${category.id}|${language.id}|${format.id}`;
+            const quantity = orderEntryState.tempOrders[orderKey] || 0;
+            if (quantity > 0) {
+                totalQuantity += quantity;
+                const formatName = format.name ? ` ${format.name}` : '';
+                summary.push(`${language.name}${formatName}: ${quantity}`);
+            }
+        });
+    });
+    
+    if (summary.length > 0) {
+        return `<span class="text-sm text-blue-600 ml-2">[${summary.join(' | ')}]</span>`;
+    }
+    return '';
+}
+
+// Update all category summaries
+function updateCategorySummaries() {
+    appState.data.categories.forEach(category => {
+        const categoryHeader = document.querySelector(`[data-category-id="${category.id}"] .category-summary`);
+        if (categoryHeader) {
+            const summary = [];
+            let totalQuantity = 0;
+            
+            category.languages.forEach(language => {
+                language.formats.forEach(format => {
+                    const orderKey = `${category.id}|${language.id}|${format.id}`;
+                    const quantity = orderEntryState.tempOrders[orderKey] || 0;
+                    if (quantity > 0) {
+                        totalQuantity += quantity;
+                        const formatName = format.name ? ` ${format.name}` : '';
+                        summary.push(`${language.name}${formatName}: ${quantity}`);
+                    }
+                });
+            });
+            
+            if (summary.length > 0) {
+                categoryHeader.innerHTML = `<span class="text-sm text-blue-600 ml-2">[${summary.join(' | ')}]</span>`;
+            } else {
+                categoryHeader.innerHTML = '';
+            }
+        }
+    });
+}
+
+// Function to update temporary orders
+function updateTempOrder(orderKey, quantity) {
+    if (quantity > 0) {
+        orderEntryState.tempOrders[orderKey] = quantity;
+    } else {
+        delete orderEntryState.tempOrders[orderKey];
+    }
+    updateOrderTotal();
+}
+
+// Update the openOrderEntryForPerson function to properly populate quantities
+function openOrderEntryForPerson(personId) {
+    const person = appState.data.people.find(p => p.id === personId);
+    if (!person) return;
+    
+    // Set the current person ID in the order entry state
+    orderEntryState.currentPersonId = personId;
+    
+    // Initialize temp orders with the person's existing orders
+    orderEntryState.tempOrders = {};
+    orderEntryState.originalOrders = {};
+    
+    // Copy the person's orders to avoid reference issues
+    if (person.orders) {
+        Object.entries(person.orders).forEach(([key, value]) => {
+            orderEntryState.tempOrders[key] = value;
+            orderEntryState.originalOrders[key] = value;
+        });
+    }
+    
+    // Update the modal header with the person's name
+    document.getElementById('orderPersonName').textContent = person.name;
+    document.getElementById('orderPersonId').textContent = `ID: ${personId}`;
+    
+    // Generate the categories accordion
+    generateCategoriesAccordion();
+    
+    // Update the total
+    updateOrderTotal();
+    
+    // Show the modal
+    document.getElementById('orderEntryModal').classList.remove('hidden');
+}
+
+        // Configuration des contrôles de quantité
+        function setupQuantityControls() {
+            const modal = document.getElementById('orderEntryModal');
+
+            // Gestionnaire pour les boutons + et -
+            modal.querySelectorAll('.quantity-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const key = e.target.dataset.key;
+                    const action = e.target.dataset.action;
+                    const delta = action === 'increase' ? 1 : -1;
+                    
+                    updateQuantity(key, delta);
+                    
+                    // Mettre à jour l'input correspondant
+                    const input = modal.querySelector(`.quantity-input[data-key="${key}"]`);
+                    if (input) {
+                        input.value = orderEntryState.tempOrders[key] || 0;
+                    }
+                });
+            });
+
+            // Gestionnaire pour les inputs
+            modal.querySelectorAll('.quantity-input').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const key = e.target.dataset.key;
+                    const value = parseInt(e.target.value) || 0;
+                    updateQuantity(key, null, value);
+                });
+            });
+        }
+
+        // Mettre à jour la quantité d'un article
+        function updateQuantity(orderKey, delta, value = null) {
+            let newQuantity;
+            if (value !== null) {
+                newQuantity = value;
+            } else {
+                newQuantity = (orderEntryState.tempOrders[orderKey] || 0) + delta;
+            }
+
+            if (newQuantity < 0) newQuantity = 0;
+            
+            if (newQuantity === 0) {
+                delete orderEntryState.tempOrders[orderKey];
+            } else {
+                orderEntryState.tempOrders[orderKey] = newQuantity;
+            }
+
+            // Mettre à jour le total et les résumés
+            updateOrderTotal();
+            updateCategorySummaries();
+        }
+// Export data to Excel
+function exportToExcel() {
+    showLoading();
+    
+    try {
+        const wb = XLSX.utils.book_new();
+        const ordersData = [];
+        
+        // Get headers from table
+        const headerData = [];
+        
+        // First row: Selection and Name columns
+        headerData.push(['Sélection', 'Nom']);
+        
+        // Add empty cells to match the category header span
+        appState.data.categories.forEach(category => {
+            const languageCount = category.languages.reduce((acc, lang) => 
+                acc + lang.formats.length, 0);
+            // Fill with empty cells for the category span
+            for (let i = 0; i < languageCount; i++) {
+                headerData[0].push(category.name);
+            }
+        });
+        headerData[0].push('Total'); // Add Total column
+        
+        // Second row: Language headers
+        const languageRow = ['', '']; // Empty cells for Selection and Name
+        appState.data.categories.forEach(category => {
+            category.languages.forEach(language => {
+                const formatCount = language.formats.length;
+                // Repeat language name for each format
+                for (let i = 0; i < formatCount; i++) {
+                    languageRow.push(language.name);
+                }
+            });
+        });
+        languageRow.push(''); // Empty cell for Total
+        headerData.push(languageRow);
+        
+        // Third row: Format headers
+        const formatRow = ['', '']; // Empty cells for Selection and Name
+        appState.data.categories.forEach(category => {
+            category.languages.forEach(language => {
+                language.formats.forEach(format => {
+                    formatRow.push(format.name || 'Standard');
+                });
+            });
+        });
+        formatRow.push(''); // Empty cell for Total
+        headerData.push(formatRow);
+        
+        // Add headers to ordersData
+        ordersData.push(...headerData);
+        
+        // Initialize column totals and price mapping
+        const columnTotals = {};
+        const columnPrices = {};
+        let grandTotal = 0;
+        
+        // Create price mapping for each product
+        appState.data.categories.forEach(category => {
+            category.languages.forEach(language => {
+                language.formats.forEach(format => {
+                    const orderKey = `${category.id}|${language.id}|${format.id}`;
+                    columnTotals[orderKey] = 0;
+                    columnPrices[orderKey] = format.price;
+                });
+            });
+        });
+        
+        // Add data rows
+        appState.data.people.forEach(person => {
+            const row = ['', person.name]; // Empty cell for Selection
+            let rowTotal = 0;
+            
+            // Add quantities for each category/language/format combination
+            appState.data.categories.forEach(category => {
+                category.languages.forEach(language => {
+                    language.formats.forEach(format => {
+                        const orderKey = `${category.id}|${language.id}|${format.id}`;
+                        const quantity = person.orders?.[orderKey] || 0;
+                        rowTotal += quantity * format.price;
+                        columnTotals[orderKey] += quantity;
+                        row.push(quantity);
+                    });
+                });
+            });
+            
+            row.push(rowTotal.toLocaleString() + ' Ar'); // Add row total with currency
+            grandTotal += rowTotal;
+            ordersData.push(row);
+        });
+        
+        // Add quantity totals row
+        const quantityTotalsRow = ['', 'Total Quantités'];
+        let columnIndex = 2; // Start after Selection and Name columns
+        
+        appState.data.categories.forEach(category => {
+            category.languages.forEach(language => {
+                language.formats.forEach(format => {
+                    const orderKey = `${category.id}|${language.id}|${format.id}`;
+                    quantityTotalsRow.push(columnTotals[orderKey]);
+                    columnIndex++;
+                });
+            });
+        });
+        quantityTotalsRow.push(''); // Empty cell for the total column
+        ordersData.push(quantityTotalsRow);
+        
+        // Add price totals row
+        const priceTotalsRow = ['', 'Total Prix'];
+        columnIndex = 2; // Reset column index
+        let totalPriceSum = 0;
+        
+        appState.data.categories.forEach(category => {
+            category.languages.forEach(language => {
+                language.formats.forEach(format => {
+                    const orderKey = `${category.id}|${language.id}|${format.id}`;
+                    const totalPrice = columnTotals[orderKey] * format.price;
+                    totalPriceSum += totalPrice;
+                    priceTotalsRow.push(totalPrice.toLocaleString() + ' Ar');
+                    columnIndex++;
+                });
+            });
+        });
+        priceTotalsRow.push(grandTotal.toLocaleString() + ' Ar'); // Grand total with currency
+        ordersData.push(priceTotalsRow);
+        
+        // Create worksheet
+        const ws = XLSX.utils.aoa_to_sheet(ordersData);
+        
+        // Set column widths
+        const colWidths = [];
+        ordersData[0].forEach((_, idx) => {
+            colWidths.push({ wch: idx === 1 ? 30 : 15 }); // Name column wider
+        });
+        ws['!cols'] = colWidths;
+        
+        // Merge cells for category headers
+        const merges = [];
+        let colIndex = 2; // Start after Selection and Name columns
+        appState.data.categories.forEach(category => {
+            const languageCount = category.languages.reduce((acc, lang) => 
+                acc + lang.formats.length, 0);
+            merges.push({
+                s: { r: 0, c: colIndex },
+                e: { r: 0, c: colIndex + languageCount - 1 }
+            });
+            colIndex += languageCount;
+        });
+        ws['!merges'] = merges;
+        
+        // Style the totals rows
+        const lastRowIndex = ordersData.length - 1;
+        const quantityRowIndex = lastRowIndex - 1;
+        
+        // Style for all cells in the totals rows
+        for (let col = 0; col < ordersData[0].length; col++) {
+            // Style quantity totals row
+            const qtyCell = XLSX.utils.encode_cell({ r: quantityRowIndex, c: col });
+            if (!ws[qtyCell]) ws[qtyCell] = {};
+            ws[qtyCell].s = {
+                font: { bold: true },
+                fill: { fgColor: { rgb: "E5E7EB" } },
+                alignment: { horizontal: "center" }
+            };
+            
+            // Style price totals row
+            const priceCell = XLSX.utils.encode_cell({ r: lastRowIndex, c: col });
+            if (!ws[priceCell]) ws[priceCell] = {};
+            ws[priceCell].s = {
+                font: { bold: true },
+                fill: { fgColor: { rgb: "D1FAE5" } }, // Light green for price row
+                alignment: { horizontal: "center" }
+            };
+        }
+        
+        // Add worksheet to workbook
+        XLSX.utils.book_append_sheet(wb, ws, "Commandes");
+        
+        // Generate Excel file
+        const fileName = `commandes_lesona_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        
+        showToast('Export Excel réussi');
+    } catch (error) {
+        console.error('Error exporting to Excel:', error);
+        showToast('Erreur lors de l\'export Excel', 'error');
+    }
+}
+
+    // Render mobile-friendly cards
+function renderMobileCards() {
+    const mobileViewContainer = document.getElementById('mobileCardView') || createMobileViewContainer();
+    mobileViewContainer.innerHTML = '';
+    
+    if (appState.data.people.length === 0) {
+        const emptyMessage = document.createElement('div');
+        emptyMessage.className = 'text-center py-8 text-gray-500 italic';
+        emptyMessage.textContent = 'No people added yet. Click "Add Person" to get started.';
+        mobileViewContainer.appendChild(emptyMessage);
+        return;
+    }
+    
+    // Create cards for each person
+    appState.data.people.forEach(person => {
+        const personCard = document.createElement('div');
+        personCard.className = 'person-card';
+        personCard.dataset.personId = person.id;
+        
+        // Person header with name, checkbox and total
+        const personHeader = document.createElement('div');
+        personHeader.className = 'person-header';
+        
+        const personName = document.createElement('div');
+        personName.className = 'person-name';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'person-checkbox';
+        checkbox.dataset.personId = person.id;
+        personName.appendChild(checkbox);
+        
+        // Make name clickable like in desktop view
+        const nameLink = document.createElement('a');
+        nameLink.href = '#';
+        nameLink.className = 'text-blue-600 hover:text-blue-800 font-medium';
+        nameLink.textContent = person.name;
+        nameLink.onclick = function(e) {
+            e.preventDefault();
+            openOrderEntryForPerson(person.id);
+        };
+        personName.appendChild(nameLink);
+        
+        personHeader.appendChild(personName);
+        
+        // Person actions
+        const personActions = document.createElement('div');
+        personActions.className = 'person-actions';
+        personActions.innerHTML = `
+            <button class="text-blue-600 hover:text-blue-800" onclick="editPerson('${person.id}')">
+                <i class="fas fa-edit"></i>
+            </button>
+            <button class="text-red-600 hover:text-red-800" onclick="deletePerson('${person.id}')">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        personHeader.appendChild(personActions);
+        
+        personCard.appendChild(personHeader);
+        
+        // Calculate person total
+        let personTotal = 0;
+        
+        // Group orders by category
+        const ordersByCategory = {};
+        
+        // Process all orders
+        for (const [key, quantity] of Object.entries(person.orders || {})) {
+            if (quantity > 0) {
+                const [categoryId, languageId, formatId] = key.split('|');
+                const category = appState.data.categories.find(c => c.id === categoryId);
+                if (!category) continue;
+                
+                const language = category.languages.find(l => l.id === languageId);
+                if (!language) continue;
+                
+                const format = language.formats.find(f => f.id === formatId);
+                if (!format) continue;
+                
+                const itemTotal = quantity * format.price;
+                personTotal += itemTotal;
+                
+                if (!ordersByCategory[category.name]) {
+                    ordersByCategory[category.name] = [];
+                }
+                
+                ordersByCategory[category.name].push({
+                    language: language.name,
+                    format: format.name || 'Standard',
+                    quantity,
+                    price: format.price,
+                    total: itemTotal
+                });
+            }
+        }
+        
+        // Add person total
+        const personTotalDiv = document.createElement('div');
+        personTotalDiv.className = 'person-total';
+        personTotalDiv.textContent = `${personTotal.toLocaleString()} Ar`;
+        personHeader.appendChild(personTotalDiv);
+        
+        // Add order items grouped by category
+        const orderItems = document.createElement('div');
+        orderItems.className = 'order-items';
+        
+        for (const [categoryName, items] of Object.entries(ordersByCategory)) {
+            const categoryDiv = document.createElement('div');
+            categoryDiv.className = 'order-category';
+            
+            const categoryNameDiv = document.createElement('div');
+            categoryNameDiv.className = 'category-name';
+            categoryNameDiv.textContent = categoryName;
+            categoryDiv.appendChild(categoryNameDiv);
+            
+            items.forEach(item => {
+                const orderItem = document.createElement('div');
+                orderItem.className = 'order-item';
+                
+                const itemDetails = document.createElement('div');
+                itemDetails.className = 'item-details';
+                
+                const itemLanguage = document.createElement('div');
+                itemLanguage.className = 'item-language';
+                itemLanguage.textContent = item.language;
+                itemDetails.appendChild(itemLanguage);
+                
+                if (item.format !== 'Standard') {
+                    const itemFormat = document.createElement('div');
+                    itemFormat.className = 'item-format';
+                    itemFormat.textContent = item.format;
+                    itemDetails.appendChild(itemFormat);
+                }
+                
+                orderItem.appendChild(itemDetails);
+                
+                const itemQuantity = document.createElement('div');
+                itemQuantity.className = 'item-quantity';
+                itemQuantity.textContent = `${item.quantity} × ${item.price.toLocaleString()} Ar`;
+                orderItem.appendChild(itemQuantity);
+                
+                categoryDiv.appendChild(orderItem);
+            });
+            
+            orderItems.appendChild(categoryDiv);
+        }
+        
+        personCard.appendChild(orderItems);
+        mobileViewContainer.appendChild(personCard);
+    });
+    
+    // Add totals card
+    const totalsCard = document.createElement('div');
+    totalsCard.className = 'totals-card';
+    
+    const totalsHeader = document.createElement('div');
+    totalsHeader.className = 'totals-header';
+    totalsHeader.innerHTML = `
+        <div>GRAND TOTAL</div>
+        <div>${calculateGrandTotal().toLocaleString()} Ar</div>
+    `;
+    totalsCard.appendChild(totalsHeader);
+    
+    mobileViewContainer.appendChild(totalsCard);
+}
+// Helper function to create the mobile view container if it doesn't exist
+function createMobileViewContainer() {
+    const container = document.createElement('div');
+    container.id = 'mobileCardView';
+    container.className = 'mobile-card-view';
+    
+    // Insert after the table
+    const tableContainer = document.querySelector('.responsive-table');
+    tableContainer.parentNode.insertBefore(container, tableContainer.nextSibling);
+    
+    return container;
+}
+
+// Helper function to calculate grand total
+function calculateGrandTotal() {
+    let grandTotal = 0;
+    
+    appState.data.people.forEach(person => {
+        for (const [key, quantity] of Object.entries(person.orders || {})) {
+            if (quantity > 0) {
+                const [categoryId, languageId, formatId] = key.split('|');
+                const category = appState.data.categories.find(c => c.id === categoryId);
+                if (!category) continue;
+                
+                const language = category.languages.find(l => l.id === languageId);
+                if (!language) continue;
+                
+                const format = language.formats.find(f => f.id === formatId);
+                if (!format) continue;
+                
+                grandTotal += quantity * format.price;
+            }
+        }
+    });
+    
+    return grandTotal;
+}
+
+// Add event listener for the Excel export button
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
+});
+
+// Add event listener for the Excel export button
+document.addEventListener('DOMContentLoaded', () => {
+    // Add this to your existing event listeners
+    document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
+});
+
+        // Update the order total
+function updateOrderTotal() {
+    let total = 0;
+    
+    Object.entries(orderEntryState.tempOrders).forEach(([orderKey, quantity]) => {
+        const [categoryId, languageId, formatId] = orderKey.split('|');
+        const category = appState.data.categories.find(c => c.id === categoryId);
+        if (category) {
+            const language = category.languages.find(l => l.id === languageId);
+            if (language) {
+                const format = language.formats.find(f => f.id === formatId);
+                if (format) {
+                    total += quantity * format.price;
+                }
+            }
+        }
+    });
+    
+    // Use orderTotalRecap instead of orderTotal
+    document.getElementById('orderTotalRecap').textContent = `Total: ${total.toLocaleString()} Ar`;
+}
+
+        // Initialiser les gestionnaires d'événements
+        document.addEventListener('DOMContentLoaded', () => {
+            // Gestionnaire pour le bouton Annuler
+            document.getElementById('cancelOrderEntry').addEventListener('click', () => {
+                document.getElementById('orderEntryModal').classList.add('hidden');
+                orderEntryState.tempOrders = {};
+                orderEntryState.currentPersonId = null;
+            });
+
+            // Gestionnaire pour le bouton Valider
+            document.getElementById('confirmOrderEntry').addEventListener('click', () => {
+                // Vérifier s'il y a des articles dans la commande
+                if (Object.keys(orderEntryState.tempOrders).length === 0) {
+                    showToast('Veuillez sélectionner au moins un article', 'error');
+                    return;
+                }
+
+                // Si nous modifions une commande existante
+                if (orderEntryState.currentPersonId) {
+                    const person = appState.data.people.find(p => p.id === orderEntryState.currentPersonId);
+                    if (person) {
+                        person.orders = { ...orderEntryState.tempOrders };
+                    }
+                } else {
+                    // Créer une nouvelle personne avec la commande
+                    const newPerson = {
+                        id: generateUniqueId(),
+                        name: prompt('Entrez le nom de la personne:', ''),
+                        orders: { ...orderEntryState.tempOrders }
+                    };
+
+                    // Vérifier si un nom a été entré
+                    if (!newPerson.name) {
+                        showToast('Le nom de la personne est requis', 'error');
+                        return;
+                    }
+
+                    // Ajouter la nouvelle personne à l'état de l'application
+                    appState.data.people.push(newPerson);
+                }
+
+                // Sauvegarder les modifications
+                saveData();
+                
+                // Mettre à jour l'affichage
+                renderTable();
+
+                // Fermer le modal
+                document.getElementById('orderEntryModal').classList.add('hidden');
+
+                // Réinitialiser l'état
+                orderEntryState.tempOrders = {};
+                orderEntryState.currentPersonId = null;
+
+                // Afficher une confirmation
+                showToast('Commande enregistrée avec succès');
+            });
+        });
+
+        // Update the confirmOrderEntry event listener
+        function setupOrderValidation() {
+            const confirmButton = document.getElementById('confirmOrderEntry');
+            const cancelButton = document.getElementById('cancelOrderEntry');
+            
+            confirmButton.addEventListener('click', () => {
+                // Check if there are items in the order
+                if (Object.keys(orderEntryState.tempOrders).length === 0) {
+                    showToast('Veuillez sélectionner au moins un article', 'error');
+                    return;
+                }
+                
+                // If we're editing an existing person's order
+                if (orderEntryState.currentPersonId) {
+                    const person = appState.data.people.find(p => p.id === orderEntryState.currentPersonId);
+                    if (person) {
+                        person.orders = { ...orderEntryState.tempOrders };
+                        showToast(`Commande de ${person.name} mise à jour avec succès`);
+                    }
+                } else {
+                    // Create a new person with the order
+                    const personName = prompt('Entrez le nom de la personne:', '');
+                    
+                    // Check if a name was entered
+                    if (!personName || personName.trim() === '') {
+                        showToast('Le nom de la personne est requis', 'error');
+                        return;
+                    }
+                    
+                    const newPerson = {
+                        id: generateUniqueId(),
+                        name: personName.trim(),
+                        orders: { ...orderEntryState.tempOrders }
+                    };
+                    
+                    // Add the new person to the application state
+                    appState.data.people.push(newPerson);
+                    showToast(`Commande pour ${personName} ajoutée avec succès`);
+                }
+                
+                // Update the display
+                renderTable();
+                
+                // Save data
+                saveData();
+                
+                // Close the modal
+                document.getElementById('orderEntryModal').classList.add('hidden');
+                
+                // Reset the order entry state
+                orderEntryState.currentPersonId = null;
+                orderEntryState.tempOrders = {};
+                orderEntryState.originalOrders = {};
+            });
+            
+            cancelButton.addEventListener('click', () => {
+                // Close the modal without saving changes
+                document.getElementById('orderEntryModal').classList.add('hidden');
+                
+                // Reset the order entry state
+                orderEntryState.currentPersonId = null;
+                orderEntryState.tempOrders = {};
+                orderEntryState.originalOrders = {};
+            });
+        }
+
+        // Fonction utilitaire pour générer un ID unique
+        function generateUniqueId() {
+            return 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Mettre à jour tous les résumés de catégories
+        function updateCategorySummaries() {
+    appState.data.categories.forEach(category => {
+        const categoryHeader = document.querySelector(`[data-category-id="${category.id}"] .category-summary`);
+        if (categoryHeader) {
+            const summary = [];
+            let totalQuantity = 0;
+            
+            category.languages.forEach(language => {
+                language.formats.forEach(format => {
+                    const orderKey = `${category.id}|${language.id}|${format.id}`;
+                    const quantity = orderEntryState.tempOrders[orderKey] || 0;
+                    if (quantity > 0) {
+                        totalQuantity += quantity;
+                        const formatName = format.name ? ` ${format.name}` : '';
+                        summary.push(`${language.name}${formatName}: ${quantity}`);
+                    }
+                });
+            });
+
+            if (summary.length > 0) {
+                categoryHeader.innerHTML = `
+                    <span class="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full ml-3">
+                        ${summary.join(' | ')}
+                        <span class="ml-2 font-bold">(Total: ${totalQuantity})</span>
+                    </span>`;
+            } else {
+                categoryHeader.innerHTML = '';
+            }
+        }
+    });
+}
+    </script>
+</body>
+</html>
