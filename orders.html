@@ -765,7 +765,13 @@
                             { id: 'en', name: 'en', formats: [{ id: 'gm', name: '', price: 6000 }] }
                         ]
                     },
-                    { id: 'zt', name: 'Zatovo', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] }, { id: 'en', name: 'en', formats: [{ id: 'gm', name: '', price: 6000 }] }] },
+                    {
+                        id: 'zt', name: 'Zatovo', languages: [
+                            { id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] },
+                            { id: 'fr', name: 'fr', formats: [{ id: 'gm', name: '', price: 6000 }] },
+                            { id: 'en', name: 'en', formats: [{ id: 'gm', name: '', price: 6000 }] }  // Add this line if you want English
+                        ]
+                    },
                     { id: 'tza', name: 'T. za', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] }] },
                     { id: 'ak', name: 'Ankizy', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] }] },
                     { id: 'zm', name: 'Z. mino', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] }] },
@@ -778,9 +784,7 @@
                     { id: 'tt', name: 'tatitra', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 2300 }] }] }
                 ],
                 people: [
-                    { id: "p1", name: "Andry Rajoelina", orders: { "lb|gs|gm": 2, "mf|gs|pm": 1, "tzo|gs|gm": 3, "ak|gs|gm": 1, "zt|gs|gm": 1, "tza|gs|gm": 1, "zm|gs|gm": 1, "zb|gs|gm": 1, "zk|gs|gm": 1, "fand_zk|gs|gm": 1, "llmf_gm|gs|gm": 1, "llmf_pm|gs|gm": 1, "tt|gs|gm": 1 } },
-                    { id: "p2", name: "Mialy Rajoelina", orders: { "tzo|fr|gm": 1, "lb|en|gm": 3, "mf|gs|gm": 2 } },
-                    { id: "p3", name: "Jean Dupont", orders: { "lb|gs|pm": 5 } }
+
                 ]
             };
             appState.data.categories.forEach(cat => {
