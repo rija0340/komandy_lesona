@@ -7,6 +7,7 @@
     <title>Lesson/Publication Order Management System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         /* Custom CSS for enhancements */
         .sticky-header {
@@ -56,16 +57,14 @@
             }
         }
 
-        /* Responsive table adjustments */
         @media (max-width: 768px) {
-            .responsive-table {
+            .responsive-table-container {
                 display: block;
                 overflow-x: auto;
                 white-space: nowrap;
             }
         }
 
-        /* Modal animations */
         .modal-enter {
             opacity: 0;
             transform: scale(0.95);
@@ -88,14 +87,12 @@
             transition: opacity 200ms, transform 200ms;
         }
 
-        /* Table base styles */
         .responsive-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 13px;
         }
 
-        /* Header cells */
         .responsive-table th {
             padding: 4px 6px;
             text-align: center;
@@ -103,15 +100,12 @@
             white-space: nowrap;
         }
 
-        /* Data cells */
         .responsive-table td {
             padding: 3px 4px;
             border: 1px solid #e2e8f0;
             text-align: center;
         }
 
-        /* Visual hierarchy for different levels */
-        /* Category headers */
         .responsive-table tr:first-child th {
             background-color: #edf2f7;
             border-bottom: 2px solid #cbd5e0;
@@ -119,30 +113,30 @@
             font-weight: 600;
         }
 
-        /* Add alternating row colors */
-        .responsive-table tr:nth-child(even) {
+        .responsive-table tr:nth-child(even):not(.totals-summary-row) {
             background-color: #f9fafb;
         }
 
-        /* Highlight totals row */
+        .responsive-table tr:hover:not(.totals-summary-row) {
+            background-color: #f0f9ff;
+        }
+
+
         .total-cell {
             font-weight: 600;
             background-color: #f3f4f6;
         }
 
-        /* Make headers more distinct */
         .responsive-table th {
             font-weight: 600;
             letter-spacing: 0.025em;
             font-size: 0.7rem;
         }
 
-        /* Improve number readability */
         .numeric-cell {
             font-family: 'Monaco', 'Consolas', monospace;
         }
 
-        /* Optimize spacing */
         .responsive-table td {
             padding: 2px 4px;
         }
@@ -162,14 +156,34 @@
                 left: 0;
                 top: 0;
                 width: 100%;
+                max-height: none !important;
+                overflow: visible !important;
             }
+
+            #selectedOrdersDisplay .modal-header-sticky,
+            #selectedOrdersDisplay #selectedOrdersSearchContainer
+
+            /* Hide search for print */
+                {
+                position: static !important;
+            }
+
+            #selectedOrdersContent {
+                max-height: none !important;
+                overflow-y: visible !important;
+            }
+
 
             #closeSelectedOrders,
-            #printSelectedOrders {
-                display: none;
+            #printSelectedOrders,
+            #exportSelectedToPngBtn,
+            #selectedOrdersSearchInput
+
+            /* Hide search input on print */
+                {
+                display: none !important;
             }
 
-            /* Styles supplémentaires pour l'impression */
             table {
                 border-collapse: collapse;
                 width: 100%;
@@ -187,7 +201,6 @@
             }
         }
 
-        /* Styles pour le modal de saisie des commandes */
         .modal-header-sticky {
             position: sticky;
             top: 0;
@@ -196,12 +209,10 @@
             border-bottom: 1px solid #e5e7eb;
         }
 
-        /* Animation pour l'accordéon */
         .category-content {
             transition: all 0.3s ease-in-out;
         }
 
-        /* Styles pour les inputs numériques */
         input[type="number"] {
             -moz-appearance: textfield;
         }
@@ -212,7 +223,6 @@
             margin: 0;
         }
 
-        /* Styles pour les boutons de quantité */
         .quantity-btn {
             transition: all 0.2s ease-in-out;
         }
@@ -221,21 +231,28 @@
             background-color: #e5e7eb;
         }
 
-        /* Style pour le total en position sticky */
-        #orderTotalRecap {
+        #orderTotalRecapContainer {
             position: sticky;
             top: 0;
             background: white;
             z-index: 20;
-            padding: 1rem;
+            padding: 0.5rem 1rem;
             border-bottom: 1px solid #e5e7eb;
         }
 
-        /* Mobile card view for tables */
+        #orderModalSearchContainer {
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 15;
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+
         @media (max-width: 768px) {
-            .responsive-table table {
+            .responsive-table-container table {
                 display: none;
-                /* Hide the table on mobile */
             }
 
             .mobile-card-view {
@@ -343,97 +360,92 @@
         @media (min-width: 769px) {
             .mobile-card-view {
                 display: none;
-                /* Hide cards on desktop */
             }
+        }
+
+        .search-highlight {
+            background-color: yellow;
+            font-weight: bold;
         }
     </style>
 </head>
 
-<body class="bg-gray-50">
-    <!-- Loading Overlay -->
+<body class="bg-gray-50 font-sans">
     <div id="loadingOverlay" class="loading-overlay hidden">
         <div class="spinner"></div>
     </div>
 
-    <!-- Main Container -->
-    <div class="mx-2 px-2 py-2">
-        <!-- Header -->
-        <header class="mb-8">
+    <div class="mx-auto px-2 sm:px-4 py-4 max-w-full">
+        <header class="mb-6">
             <h1 class="text-3xl font-bold text-gray-800">Komandin'ny Lesona S.S</h1>
         </header>
 
-        <!-- Control Panel -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <div class="flex flex-wrap justify-between items-center gap-4">
-                <div class="flex items-center space-x-4">
+        <div class="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
+            <div class="flex flex-wrap justify-between items-center gap-3">
+                <div class="flex flex-wrap items-center space-x-2 sm:space-x-4">
                     <button id="addPersonBtn"
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center">
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 sm:px-4 rounded-md flex items-center text-sm sm:text-base">
                         <i class="fas fa-user-plus mr-2"></i> Ajouter
                     </button>
                     <button id="saveDataBtn"
-                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md flex items-center">
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 sm:px-4 rounded-md flex items-center text-sm sm:text-base">
                         <i class="fas fa-save mr-2"></i> Enregistrer
                     </button>
                 </div>
-                <div class="flex items-center space-x-4">
+                <div class="flex flex-wrap items-center space-x-2 sm:space-x-4">
                     <button id="exportDataBtn"
-                        class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md flex items-center">
+                        class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 sm:px-4 rounded-md flex items-center text-sm sm:text-base">
                         <i class="fas fa-file-export mr-2"></i> JSON
                     </button>
                     <button id="importDataBtn"
-                        class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md flex items-center">
+                        class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-2 sm:px-4 rounded-md flex items-center text-sm sm:text-base">
                         <i class="fas fa-file-import mr-2"></i> Import
                     </button>
                     <input type="file" id="fileInput" class="hidden" accept=".json">
                     <button id="exportExcelBtn"
-                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center">
+                        class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 sm:px-4 rounded-md flex items-center text-sm sm:text-base">
                         <i class="fas fa-file-excel mr-2"></i> Excel
                     </button>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <button id="showSelectedOrdersBtn"
-                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md flex items-center">
-                        <i class="fas fa-eye mr-2"></i> Voir sélection
+                <div class="flex flex-wrap items-center space-x-2 sm:space-x-4">
+                    <button
+                        class="bg-sky-600 hover:bg-sky-700 text-white px-3 py-2 sm:px-4 rounded-md flex items-center text-sm sm:text-base"
+                        onclick="openOrderEntry()"> <i class="fas fa-plus-circle mr-2"></i> Nv. Commande
                     </button>
-                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center"
-                        onclick="openOrderEntry()">
-                        <i class="fas fa-plus-circle mr-2"></i> Nouvelle commande
+                    <button id="showSelectedOrdersBtn"
+                        class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 sm:px-4 rounded-md flex items-center text-sm sm:text-base">
+                        <i class="fas fa-check-double mr-2"></i> Voir Sélection
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Order Summary -->
-        <div id="orderSummary" class="bg-white rounded-lg shadow-md p-6 mb-8 hidden">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold text-gray-800">Order Summary</h2>
-                <button id="closeSummaryBtn" class="text-gray-500 hover:text-gray-700">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div id="summaryContent" class="overflow-auto max-h-96"></div>
-        </div>
-
-        <!-- Main Order Table -->
         <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <div class="p-4 border-b border-gray-200">
+            <div class="p-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-3">
                 <h2 class="text-xl font-semibold text-gray-800">Liste Komandy</h2>
+                <div class="relative w-full sm:w-auto">
+                    <input type="text" id="mainTableSearchInput" placeholder="Chercher par nom..."
+                        class="px-3 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full sm:w-64 text-sm">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-search text-gray-400"></i>
+                    </div>
+                </div>
             </div>
-            <div class="responsive-table">
-                <table id="orderTable" class="w-full border-collapse">
+            <div class="responsive-table-container">
+                <table id="orderTable" class="responsive-table w-full border-collapse">
                     <thead id="tableHeader" class="sticky-header">
-                        <!-- Dynamic headers will be inserted here -->
                     </thead>
                     <tbody id="tableBody">
-                        <!-- Dynamic content will be inserted here -->
                     </tbody>
                 </table>
+            </div>
+            <div id="mobileCardView" class="mobile-card-view md:hidden p-2">
             </div>
         </div>
     </div>
 
-    <!-- Add Category Modal -->
-    <div id="categoryModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div id="categoryModal"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden modal-enter">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div class="p-6">
                 <div class="flex justify-between items-center mb-4">
@@ -442,53 +454,47 @@
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
-
                 <form id="categoryForm" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label for="categoryId" class="block text-sm font-medium text-gray-700 mb-1">Category
+                            <label for="categoryIdInput" class="block text-sm font-medium text-gray-700 mb-1">Category
                                 ID</label>
-                            <input type="text" id="categoryId" name="categoryId"
+                            <input type="text" id="categoryIdInput" name="categoryId"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                                 required>
                             <p class="text-xs text-gray-500 mt-1">Unique identifier (e.g., 'lb' for lehibe)</p>
                         </div>
                         <div>
-                            <label for="categoryName" class="block text-sm font-medium text-gray-700 mb-1">Category
+                            <label for="categoryNameInput" class="block text-sm font-medium text-gray-700 mb-1">Category
                                 Name</label>
-                            <input type="text" id="categoryName" name="categoryName"
+                            <input type="text" id="categoryNameInput" name="categoryName"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                                 required>
                         </div>
                     </div>
-
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Languages</label>
                         <div id="languagesContainer" class="space-y-3">
-                            <!-- Language fields will be added here -->
                         </div>
                         <button type="button" id="addLanguageBtn"
-                            class="mt-2 text-sm text-blue-600 hover:text-blue-800 flex items-center">
-                            <i class="fas fa-plus-circle mr-1"></i> Add Language
+                            class="mt-3 text-sm text-blue-600 hover:text-blue-800 flex items-center px-3 py-1.5 border border-blue-500 rounded-md hover:bg-blue-50 transition-colors">
+                            <i class="fas fa-plus-circle mr-1.5"></i> Add Language
                         </button>
                     </div>
-
-                    <div class="flex justify-end space-x-3 pt-4">
+                    <div class="flex justify-end space-x-3 pt-4 border-t mt-6">
                         <button type="button" id="cancelCategoryBtn"
-                            class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100">
-                            Cancel
-                        </button>
-                        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
-                            Save Category
-                        </button>
+                            class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors">Cancel</button>
+                        <button type="submit"
+                            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">Save
+                            Category</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Add Person Modal -->
-    <div id="personModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div id="personModal"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden modal-enter">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
             <div class="p-6">
                 <div class="flex justify-between items-center mb-4">
@@ -497,128 +503,132 @@
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
-
                 <form id="personForm" class="space-y-4">
                     <div>
-                        <label for="personName" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                        <input type="text" id="personName" name="personName"
+                        <label for="personNameInput" class="block text-sm font-medium text-gray-700 mb-1">Full
+                            Name</label>
+                        <input type="text" id="personNameInput" name="personName"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required>
                     </div>
-
                     <div>
-                        <label for="personId" class="block text-sm font-medium text-gray-700 mb-1">ID/Reference</label>
-                        <input type="text" id="personId" name="personId"
+                        <label for="personIdInput"
+                            class="block text-sm font-medium text-gray-700 mb-1">ID/Reference</label>
+                        <input type="text" id="personIdInput" name="personId"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <p class="text-xs text-gray-500 mt-1">Optional identifier for the person</p>
                     </div>
-
-                    <div class="flex justify-end space-x-3 pt-4">
+                    <div class="flex justify-end space-x-3 pt-4 border-t mt-6">
                         <button type="button" id="cancelPersonBtn"
-                            class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100">
-                            Cancel
-                        </button>
-                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                            Add Person
-                        </button>
+                            class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors">Cancel</button>
+                        <button type="submit"
+                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">Add
+                            Person</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Ajouter cette section avant le footer -->
-    <section id="selectedOrdersDisplay" class="bg-white rounded-lg shadow-md p-6 mt-8 hidden">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-semibold text-gray-800">Commandes sélectionnées</h2>
-            <div class="flex gap-2">
-                <button id="closeSelectedOrders"
-                    class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md flex items-center">
-                    <i class="fas fa-times mr-2"></i> Fermer
-                </button>
-                <button id="printSelectedOrders"
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center">
-                    <i class="fas fa-print mr-2"></i> Imprimer
-                </button>
+    <section id="selectedOrdersDisplay"
+        class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden modal-enter">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div class="p-3 sm:p-4 border-b modal-header-sticky">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-2">
+                    <h2 class="text-lg sm:text-xl font-semibold text-gray-800">Commandes Sélectionnées</h2>
+                    <div class="flex items-center gap-2">
+                        <button id="exportSelectedToPngBtn"
+                            class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md flex items-center text-xs sm:text-sm">
+                            <i class="fas fa-image mr-1 sm:mr-2"></i> PNG
+                        </button>
+                        <button id="printSelectedOrders"
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md flex items-center text-xs sm:text-sm">
+                            <i class="fas fa-print mr-1 sm:mr-2"></i> Imprimer
+                        </button>
+                        <button id="closeSelectedOrders"
+                            class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded-md flex items-center text-xs sm:text-sm">
+                            <i class="fas fa-times mr-1 sm:mr-2"></i> Fermer
+                        </button>
+                    </div>
+                </div>
+                <div id="selectedOrdersSearchContainer" class="mt-2 sm:mt-3 relative">
+                    <input type="text" id="selectedOrdersSearchInput" placeholder="Chercher dans la sélection..."
+                        class="w-full px-3 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-search text-gray-400"></i>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div id="selectedOrdersContent" class="prose max-w-none">
-            <!-- Le contenu des commandes sélectionnées sera inséré ici -->
+            <div id="selectedOrdersContent" class="p-4 sm:p-6 overflow-y-auto prose max-w-none flex-grow">
+            </div>
         </div>
     </section>
 
-    <!-- Notification Toast -->
     <div id="toast"
-        class="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-md shadow-lg transform translate-y-10 opacity-0 transition-all duration-300 flex items-center hidden">
+        class="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-md shadow-lg transform translate-y-10 opacity-0 transition-all duration-300 flex items-center hidden z-[1001]">
         <span id="toastMessage"></span>
         <button id="closeToast" class="ml-4">
             <i class="fas fa-times"></i>
         </button>
     </div>
 
-    <!-- Modal de saisie alternative des commandes -->
-    <div id="orderEntryModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div id="orderEntryModal"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden modal-enter">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-            <!-- En-tête du modal avec le récapitulatif -->
-            <div class="bg-gray-100 p-4 border-b sticky top-0 z-10">
-                <div class="flex justify-between items-center">
+            <div class="bg-gray-100 p-3 border-b sticky top-0 z-10 modal-header-sticky">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-2">
                     <div>
-                        <h3 class="text-xl font-semibold text-gray-800" id="orderPersonName">Commande pour: </h3>
-                        <p class="text-sm text-gray-600" id="orderPersonId"></p>
+                        <h3 class="text-lg sm:text-xl font-semibold text-gray-800" id="orderPersonNameDisplay">Commande
+                            pour: </h3>
+                        <p class="text-xs sm:text-sm text-gray-600" id="orderPersonIdDisplay"></p>
                     </div>
-                    <div class="text-right">
-                        <div class="text-lg font-bold text-blue-600" id="orderTotalRecap">Total: 0 Ar</div>
-                        <div class="flex gap-2 mt-2">
-                            <button id="cancelOrderEntry"
-                                class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
-                                Annuler
-                            </button>
-                            <button id="confirmOrderEntry"
-                                class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                                Valider la commande
-                            </button>
-                        </div>
+                    <div class="flex items-center gap-2 sm:gap-3">
+                        <button id="cancelOrderEntry"
+                            class="px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm">
+                            Annuler
+                        </button>
+                        <button id="confirmOrderEntry"
+                            class="px-3 py-1.5 sm:px-4 sm:py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm">
+                            Valider
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Corps du modal avec l'accordéon -->
-            <div class="overflow-y-auto p-4">
-                <div id="categoriesAccordion" class="space-y-4">
-                    <!-- Template pour chaque catégorie -->
-                    <div class="border rounded-lg overflow-hidden mb-2">
-                        <div class="bg-gray-50 p-4 cursor-pointer hover:bg-gray-100 flex items-center justify-between">
-                            <div class="flex items-center gap-2 flex-grow">
-                                <h4 class="font-medium text-gray-800">Nom de la catégorie</h4>
-                                <!-- Nouveau style pour le récapitulatif -->
-                                <div class="category-summary inline-flex items-center">
-                                    <span
-                                        class="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full ml-3"></span>
-                                </div>
-                            </div>
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                        <div class="category-content p-4 border-t hidden">
-                            <!-- Contenu de la catégorie -->
-                        </div>
-                    </div>
+            <div id="orderModalSearchContainer" class="p-3 border-b bg-white sticky top-[calc(3.5rem+1px)] z-10">
+                <input type="text" id="orderEntrySearchInput" placeholder="Chercher un article..."
+                    class="w-full px-3 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+                    style="top:0.75rem; left:0.75rem;">
+                    <i class="fas fa-search text-gray-400"></i>
+                </div>
+            </div>
+
+            <div id="orderTotalRecapContainer" class="text-right sticky top-[calc(3.5rem+1px+3.5rem+1px)] z-10">
+                <div class="text-lg font-bold text-blue-600" id="orderTotalRecap">Total: 0 Ar</div>
+            </div>
+
+
+            <div class="overflow-y-auto p-4 flex-grow">
+                <div id="categoriesAccordion" class="space-y-3">
                 </div>
             </div>
         </div>
     </div>
-    <!-- Footer -->
+
     <footer class="mt-12 bg-white rounded-lg shadow-md p-6">
         <div class="flex flex-col md:flex-row items-center justify-between">
             <div class="flex items-center mb-4 md:mb-0">
-                <img src="https://cdn-icons-png.flaticon.com/512/2702/2702134.png" alt="Book Icon"
-                    class="w-10 h-10 mr-3">
+                <img src="https://placehold.co/40x40/2702134/FFFFFF?text=LS" alt="App Icon"
+                    class="w-10 h-10 mr-3 rounded-full"
+                    onerror="this.onerror=null; this.src='https://placehold.co/40x40/cccccc/FFFFFF?text=Icon';">
                 <div>
-                    <h3 class="text-lg font-semibold text-gray-800">Gestion des komandy</h3>
-                    <p class="text-sm text-gray-600">Système de gestion des commandes lesona SS</p>
+                    <h3 class="text-lg font-semibold text-gray-800">Gestion Komandy Lesona</h3>
+                    <p class="text-sm text-gray-600">Système de gestion des commandes</p>
                 </div>
             </div>
             <div class="text-sm text-gray-500">
-                &copy; 2025 Tous droits réservés
+                &copy; <span id="currentYear">2025</span> Tous droits réservés
             </div>
         </div>
     </footer>
@@ -631,37 +641,34 @@
                 people: []
             },
             selectedPerson: null,
-            currentCell: null
+            currentCell: null,
+            uiState: {
+                mainTableSearch: '',
+                selectedOrdersSearch: '', // Added for "Voir Sélection" modal
+                orderEntrySearch: ''
+            }
         };
-        // Add this to the existing styles section
+
         const categoryColors = {
-            'lb': 'bg-blue-0',  // lehibe - light blue
-            'tzo': 'bg-green-50', // Tanora zokiny - light green  
-            'zt': 'bg-yellow-50', // Zatovo - light yellow
-            'tza': 'bg-purple-50', // T. za - light purple
-            'ak': 'bg-pink-50', // Ankizy - light pink
-            'zm': 'bg-orange-50', // Z. mino - light orange
-            'zb': 'bg-red-50', // Z. bodo - light red
-            'mf': 'bg-indigo-50', // Mofon'aina - light indigo
-            // 'fh': 'bg-gray-50', // fihirana - light gray
-            'llmf': 'bg-teal-50', // LL + MA - light teal
-            'llmf': 'bg-teal-50', // LL + MA - light teal
-            'tt': 'bg-amber-50' // tatitra - light amber
+            'lb': 'bg-blue-50', 'tzo': 'bg-green-50', 'zt': 'bg-yellow-50',
+            'tza': 'bg-purple-50', 'ak': 'bg-pink-50', 'zm': 'bg-orange-50',
+            'zb': 'bg-red-50', 'mf': 'bg-indigo-50', 'zk': 'bg-cyan-50',
+            'fand_zk': 'bg-lime-50', 'llmf_gm': 'bg-teal-50',
+            'llmf_pm': 'bg-emerald-50', 'tt': 'bg-amber-50'
         };
+
         // DOM Elements
         const elements = {
             orderTable: document.getElementById('orderTable'),
             tableHeader: document.getElementById('tableHeader'),
             tableBody: document.getElementById('tableBody'),
-            addCategoryBtn: document.getElementById('addCategoryBtn'),
             addPersonBtn: document.getElementById('addPersonBtn'),
             saveDataBtn: document.getElementById('saveDataBtn'),
             exportDataBtn: document.getElementById('exportDataBtn'),
             importDataBtn: document.getElementById('importDataBtn'),
             fileInput: document.getElementById('fileInput'),
-            orderSummary: document.getElementById('orderSummary'),
-            summaryContent: document.getElementById('summaryContent'),
-            closeSummaryBtn: document.getElementById('closeSummaryBtn'),
+            exportExcelBtn: document.getElementById('exportExcelBtn'),
+            showSelectedOrdersBtn: document.getElementById('showSelectedOrdersBtn'),
             categoryModal: document.getElementById('categoryModal'),
             closeCategoryModal: document.getElementById('closeCategoryModal'),
             cancelCategoryBtn: document.getElementById('cancelCategoryBtn'),
@@ -672,41 +679,62 @@
             closePersonModal: document.getElementById('closePersonModal'),
             cancelPersonBtn: document.getElementById('cancelPersonBtn'),
             personForm: document.getElementById('personForm'),
-            personName: document.getElementById('personName'),
-            categoryId: document.getElementById('categoryId'),
-            categoryName: document.getElementById('categoryName'),
-            personId: document.getElementById('personId'),
+            personNameInput: document.getElementById('personNameInput'),
+            categoryIdInput: document.getElementById('categoryIdInput'),
+            categoryNameInput: document.getElementById('categoryNameInput'),
+            personIdInput: document.getElementById('personIdInput'),
             toast: document.getElementById('toast'),
             toastMessage: document.getElementById('toastMessage'),
             closeToast: document.getElementById('closeToast'),
-            loadingOverlay: document.getElementById('loadingOverlay')
+            loadingOverlay: document.getElementById('loadingOverlay'),
+            selectedOrdersDisplay: document.getElementById('selectedOrdersDisplay'),
+            selectedOrdersContent: document.getElementById('selectedOrdersContent'),
+            selectedOrdersSearchInput: document.getElementById('selectedOrdersSearchInput'), // Added
+            closeSelectedOrders: document.getElementById('closeSelectedOrders'),
+            printSelectedOrders: document.getElementById('printSelectedOrders'),
+            exportSelectedToPngBtn: document.getElementById('exportSelectedToPngBtn'),
+            orderEntryModal: document.getElementById('orderEntryModal'),
+            orderPersonNameDisplay: document.getElementById('orderPersonNameDisplay'),
+            orderPersonIdDisplay: document.getElementById('orderPersonIdDisplay'),
+            orderTotalRecap: document.getElementById('orderTotalRecap'),
+            orderTotalRecapContainer: document.getElementById('orderTotalRecapContainer'),
+            categoriesAccordion: document.getElementById('categoriesAccordion'),
+            cancelOrderEntry: document.getElementById('cancelOrderEntry'),
+            confirmOrderEntry: document.getElementById('confirmOrderEntry'),
+            mobileCardView: document.getElementById('mobileCardView'),
+            mainTableSearchInput: document.getElementById('mainTableSearchInput'),
+            orderEntrySearchInput: document.getElementById('orderEntrySearchInput'),
+            currentYear: document.getElementById('currentYear')
         };
 
-        // État local pour le modal de saisie des commandes
         const orderEntryState = {
             currentPersonId: null,
             tempOrders: {},
             originalOrders: {}
         };
 
-        // Initialize the application
         document.addEventListener('DOMContentLoaded', () => {
             loadData();
             setupEventListeners();
+            setupOrderValidation();
+            if (elements.currentYear) elements.currentYear.textContent = new Date().getFullYear();
         });
 
-        // Load data from localStorage or initialize with sample data
         function loadData() {
             showLoading();
-
-            // Simulate loading delay for better UX
             setTimeout(() => {
                 const savedData = localStorage.getItem('orderManagementData');
-
                 if (savedData) {
                     try {
-                        appState.data = JSON.parse(savedData);
-                        showToast('Données chargées avec succès');
+                        const parsedData = JSON.parse(savedData);
+                        if (parsedData && typeof parsedData === 'object' && Array.isArray(parsedData.categories) && Array.isArray(parsedData.people)) {
+                            appState.data = parsedData;
+                            showToast('Données chargées avec succès');
+                        } else {
+                            console.warn('Saved data structure is invalid. Initializing with sample data.');
+                            initializeSampleData();
+                            showToast('Données sauvegardées invalides. Données d\'exemple utilisées.', 'warning');
+                        }
                     } catch (error) {
                         console.error('Erreur lors du chargement des données:', error);
                         initializeSampleData();
@@ -716,247 +744,57 @@
                     initializeSampleData();
                     showToast('Initialisé avec des données d\'exemple');
                 }
-
                 renderTable();
                 hideLoading();
             }, 500);
         }
 
-        // Initialize with sample data if no saved data exists
         function initializeSampleData() {
             appState.data = {
                 categories: [
                     {
-                        id: 'lb',
-                        name: 'lehibe',
-                        languages: [
-                            {
-                                id: 'gs',
-                                name: 'gs',
-                                formats: [
-                                    { id: 'gm', name: 'GM', price: 3300 },
-                                    { id: 'pm', name: 'PM', price: 2700 }
-                                ]
-                            },
-                            // {
-                            //     id: 'fr',
-                            //     name: 'fr',
-                            //     formats: [
-                            //         { id: '', name: '', price: 6000 }
-                            //     ]
-                            // },
-                            {
-                                id: 'en',
-                                name: 'en',
-                                formats: [
-                                    { id: '', name: '', price: 6000 }
-                                ]
-                            }
+                        id: 'lb', name: 'lehibe', languages: [
+                            { id: 'gs', name: 'gs', formats: [{ id: 'gm', name: 'GM', price: 3300 }, { id: 'pm', name: 'PM', price: 2700 }] },
+                            { id: 'en', name: 'en', formats: [{ id: 'gm', name: '', price: 6000 }] }
                         ]
                     },
                     {
-                        id: 'tzo',
-                        name: 'Tanora zokiny',
-                        languages: [
-                            {
-                                id: 'gs',
-                                name: 'gs',
-                                formats: [
-                                    { id: '', name: '', price: 3300 }
-                                ]
-                            },
-                            {
-                                id: 'fr',
-                                name: 'fr',
-                                formats: [
-                                    { id: '', name: '', price: 6000 }
-                                ]
-                            },
-                            {
-                                id: 'en',
-                                name: 'en',
-                                formats: [
-                                    { id: '', name: '', price: 6000 }
-                                ]
-                            }
+                        id: 'tzo', name: 'Tanora zokiny', languages: [
+                            { id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] },
+                            { id: 'fr', name: 'fr', formats: [{ id: 'gm', name: '', price: 6000 }] },
+                            { id: 'en', name: 'en', formats: [{ id: 'gm', name: '', price: 6000 }] }
                         ]
                     },
-                    {
-                        id: 'zt',
-                        name: 'Zatovo',
-                        languages: [
-                            {
-                                id: 'gs',
-                                name: 'gs',
-                                formats: [
-                                    { id: '', name: '', price: 3300 }
-                                ]
-                            },
-                            {
-                                id: 'en',
-                                name: 'en',
-                                formats: [
-                                    { id: '', name: '', price: 6000 }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        id: 'tza',
-                        name: 'T. za',
-                        languages: [
-                            {
-                                id: 'gs',
-                                name: 'gs',
-                                formats: [
-                                    { id: '', name: '', price: 3300 }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        id: 'ak',
-                        name: 'Ankizy',
-                        languages: [
-                            {
-                                id: 'gs',
-                                name: 'gs',
-                                formats: [
-                                    { id: '', name: '', price: 3300 }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        id: 'zm',
-                        name: 'Z. mino',
-                        languages: [
-                            {
-                                id: 'gs',
-                                name: 'gs',
-                                formats: [
-                                    { id: '', name: '', price: 3300 }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        id: 'zb',
-                        name: 'Z. bodo',
-                        languages: [
-                            {
-                                id: 'gs',
-                                name: 'gs',
-                                formats: [
-                                    { id: '', name: '', price: 3300 }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        id: 'zk',
-                        name: 'Z. kely',
-                        languages: [
-                            {
-                                id: 'gs',
-                                name: 'gs',
-                                formats: [
-                                    { id: '', name: '', price: 3300 }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        id: 'fand_zk',
-                        name: 'Fand Z.kely',
-                        languages: [
-                            {
-                                id: 'gs',
-                                name: 'gs',
-                                formats: [
-                                    { id: '', name: '', price: 3700 }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        id: 'mf',
-                        name: 'Mofon\'aina',
-                        languages: [
-                            {
-                                id: 'gs',
-                                name: 'gs',
-                                formats: [
-                                    { id: 'gm', name: 'GM', price: 3300 },
-                                    { id: 'pm', name: 'PM', price: 2700 }
-                                ]
-                            }
-                        ]
-                    },
-                    // {
-                    //     id: 'fh',
-                    //     name: 'fihirana',
-                    //     languages: [
-                    //         {
-                    //             id: 'gs',
-                    //             name: 'gs',
-                    //             formats: [
-                    //                 { id: '', name: '', price: 9000 }
-                    //             ]
-                    //         }
-                    //     ]
-                    // },
-                    {
-                        id: 'llmf_gm',  // Changed ID to be unique
-                        name: 'LL + MA(GM)',
-                        languages: [
-                            {
-                                id: 'gs',
-                                name: 'gs',
-                                formats: [
-                                    { id: '', name: '', price: 6500 }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        id: 'llmf_pm',  // Changed ID to be unique
-                        name: 'LL + MA(PM)',
-                        languages: [
-                            {
-                                id: 'gs',
-                                name: 'gs',
-                                formats: [
-                                    { id: '', name: '', price: 5300 }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        id: 'tt',
-                        name: 'tatitra',
-                        languages: [
-                            {
-                                id: 'gs',
-                                name: 'gs',
-                                formats: [
-                                    { id: '', name: '', price: 2300 }
-                                ]
-                            }
-                        ]
-                    }
+                    { id: 'zt', name: 'Zatovo', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] }, { id: 'en', name: 'en', formats: [{ id: 'gm', name: '', price: 6000 }] }] },
+                    { id: 'tza', name: 'T. za', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] }] },
+                    { id: 'ak', name: 'Ankizy', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] }] },
+                    { id: 'zm', name: 'Z. mino', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] }] },
+                    { id: 'zb', name: 'Z. bodo', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] }] },
+                    { id: 'zk', name: 'Z. kely', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] }] },
+                    { id: 'fand_zk', name: 'Fand Z.kely', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3700 }] }] },
+                    { id: 'mf', name: 'Mofon\'aina', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: 'GM', price: 3300 }, { id: 'pm', name: 'PM', price: 2700 }] }] },
+                    { id: 'llmf_gm', name: 'LL + MA(GM)', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 6500 }] }] },
+                    { id: 'llmf_pm', name: 'LL + MA(PM)', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'pm', name: '', price: 5300 }] }] },
+                    { id: 'tt', name: 'tatitra', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 2300 }] }] }
                 ],
                 people: [
-                    // { id: "p1", name: "John Doe", orders: {} },
-                    // { id: "p2", name: "Jane Smith", orders: {} }
+                    { id: "p1", name: "Andry Rajoelina", orders: { "lb|gs|gm": 2, "mf|gs|pm": 1, "tzo|gs|gm": 3, "ak|gs|gm": 1, "zt|gs|gm": 1, "tza|gs|gm": 1, "zm|gs|gm": 1, "zb|gs|gm": 1, "zk|gs|gm": 1, "fand_zk|gs|gm": 1, "llmf_gm|gs|gm": 1, "llmf_pm|gs|gm": 1, "tt|gs|gm": 1 } },
+                    { id: "p2", name: "Mialy Rajoelina", orders: { "tzo|fr|gm": 1, "lb|en|gm": 3, "mf|gs|gm": 2 } },
+                    { id: "p3", name: "Jean Dupont", orders: { "lb|gs|pm": 5 } }
                 ]
             };
+            appState.data.categories.forEach(cat => {
+                cat.languages.forEach(lang => {
+                    lang.formats.forEach(format => {
+                        if (!format.id) format.id = 'std';
+                        if (!format.name) format.name = 'Std';
+                    });
+                });
+            });
         }
 
-        // Save data to localStorage
         function saveData() {
             showLoading();
-
             try {
                 localStorage.setItem('orderManagementData', JSON.stringify(appState.data));
                 showToast('Données enregistrées avec succès');
@@ -964,101 +802,134 @@
                 console.error('Erreur lors de l\'enregistrement des données:', error);
                 showToast('Erreur d\'enregistrement des données', 'error');
             }
-
             hideLoading();
         }
 
-        // Export data as JSON file
         function exportData() {
             showLoading();
-
             try {
                 const dataStr = JSON.stringify(appState.data, null, 2);
                 const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-
                 const exportFileDefaultName = `order_data_${new Date().toISOString().slice(0, 10)}.json`;
-
                 const linkElement = document.createElement('a');
                 linkElement.setAttribute('href', dataUri);
                 linkElement.setAttribute('download', exportFileDefaultName);
                 linkElement.click();
-
                 showToast('Données exportées avec succès');
             } catch (error) {
                 console.error('Erreur lors de l\'exportation des données:', error);
                 showToast('Erreur lors de l\'exportation des données', 'error');
             }
-
             hideLoading();
         }
 
-        // Import data from JSON file
         function importData() {
             elements.fileInput.click();
         }
 
-        // Setup all event listeners
         function setupEventListeners() {
-            // Button click events
-            if (elements.addCategoryBtn) {
-                elements.addCategoryBtn.addEventListener('click', showCategoryModal);
-            }
             elements.addPersonBtn.addEventListener('click', showPersonModal);
             elements.saveDataBtn.addEventListener('click', saveData);
             elements.exportDataBtn.addEventListener('click', exportData);
             elements.importDataBtn.addEventListener('click', importData);
-            elements.closeSummaryBtn.addEventListener('click', hideOrderSummary);
+            elements.exportExcelBtn.addEventListener('click', exportToExcel);
+            elements.showSelectedOrdersBtn.addEventListener('click', () => displaySelectedOrders(true)); // Pass true to reset search
 
-            // Modal close events
             elements.closeCategoryModal.addEventListener('click', hideCategoryModal);
-            elements.cancelCategoryBtn.addEventListener('click', hideCategoryModal);
+            if (elements.cancelCategoryBtn) elements.cancelCategoryBtn.addEventListener('click', hideCategoryModal);
             elements.closePersonModal.addEventListener('click', hidePersonModal);
-            elements.cancelPersonBtn.addEventListener('click', hidePersonModal);
+            if (elements.cancelPersonBtn) elements.cancelPersonBtn.addEventListener('click', hidePersonModal);
 
-            // Form submit events
             elements.categoryForm.addEventListener('submit', handleCategorySubmit);
             elements.personForm.addEventListener('submit', handlePersonSubmit);
 
-            // File input change event
             elements.fileInput.addEventListener('change', handleFileImport);
-
-            // Toast close event
             elements.closeToast.addEventListener('click', hideToast);
+            if (elements.addLanguageBtn) elements.addLanguageBtn.addEventListener('click', () => addLanguageField());
 
-            // Add language button
-            elements.addLanguageBtn.addEventListener('click', addLanguageField);
+            if (elements.tableBody) {
+                elements.tableBody.addEventListener('focusin', handleCellFocus, true);
+                elements.tableBody.addEventListener('focusout', handleCellBlur, true);
+                elements.tableBody.addEventListener('input', handleQuantityChangeInTable);
+            }
 
-            // Table cell events (delegated)
-            elements.tableBody.addEventListener('focusin', handleCellFocus, true);
-            elements.tableBody.addEventListener('focusout', handleCellBlur, true);
-            elements.tableBody.addEventListener('input', handleQuantityChange);
+            elements.closeSelectedOrders.addEventListener('click', () => {
+                hideModal(elements.selectedOrdersDisplay);
+            });
+            elements.printSelectedOrders.addEventListener('click', () => {
+                window.print();
+            });
+            if (elements.exportSelectedToPngBtn) {
+                elements.exportSelectedToPngBtn.addEventListener('click', exportSelectedOrdersToPng);
+            }
+            if (elements.selectedOrdersSearchInput) { // Event listener for new search input
+                elements.selectedOrdersSearchInput.addEventListener('input', (e) => {
+                    appState.uiState.selectedOrdersSearch = e.target.value.toLowerCase();
+                    displaySelectedOrders(false); // Re-render with filter, don't reset checkboxes
+                });
+            }
+
+            if (elements.mainTableSearchInput) {
+                elements.mainTableSearchInput.addEventListener('input', (e) => {
+                    appState.uiState.mainTableSearch = e.target.value.toLowerCase();
+                    renderTableBody();
+                    renderMobileCards();
+                });
+            }
+            if (elements.orderEntrySearchInput) {
+                elements.orderEntrySearchInput.addEventListener('input', (e) => {
+                    appState.uiState.orderEntrySearch = e.target.value.toLowerCase();
+                    filterOrderEntryItems();
+                });
+            }
         }
 
-        // Show category modal
+        function showModal(modalElement) {
+            modalElement.classList.remove('hidden', 'modal-exit', 'modal-exit-active');
+            modalElement.classList.add('modal-enter');
+            requestAnimationFrame(() => {
+                modalElement.classList.add('modal-enter-active');
+                modalElement.classList.remove('modal-enter');
+            });
+        }
+
+        function hideModal(modalElement, onHiddenCallback) {
+            modalElement.classList.remove('modal-enter-active');
+            modalElement.classList.add('modal-exit');
+            requestAnimationFrame(() => {
+                modalElement.classList.add('modal-exit-active');
+                modalElement.classList.remove('modal-exit');
+            });
+            setTimeout(() => {
+                modalElement.classList.add('hidden');
+                modalElement.classList.remove('modal-exit-active');
+                if (onHiddenCallback) onHiddenCallback();
+            }, 200);
+        }
+
+
         function showCategoryModal() {
-            elements.categoryModal.classList.remove('hidden');
+            showModal(elements.categoryModal);
             elements.languagesContainer.innerHTML = '';
-            elements.categoryForm.reset();
-            addLanguageField(); // Add one language field by default
+            addLanguageField();
+            if (elements.categoryIdInput) elements.categoryIdInput.value = '';
+            if (elements.categoryNameInput) elements.categoryNameInput.value = '';
+
         }
 
-        // Hide category modal
         function hideCategoryModal() {
-            elements.categoryModal.classList.add('hidden');
+            hideModal(elements.categoryModal);
         }
 
-        // Show person modal
         function showPersonModal() {
-            elements.personModal.classList.remove('hidden');
+            showModal(elements.personModal);
             elements.personForm.reset();
         }
 
-        // Hide person modal
         function hidePersonModal() {
-            elements.personModal.classList.add('hidden');
+            hideModal(elements.personModal);
         }
 
-        // Add a new language field to the category form
         function addLanguageField(languageData = null) {
             const languageId = languageData ? languageData.id : '';
             const languageName = languageData ? languageData.name : '';
@@ -1069,24 +940,24 @@
             languageDiv.innerHTML = `
                 <div class="flex justify-between items-center mb-2">
                     <h4 class="text-sm font-medium text-gray-700">Language</h4>
-                    <button type="button" class="text-red-500 hover:text-red-700 remove-language">
+                    <button type="button" class="text-red-500 hover:text-red-700 remove-language p-1 rounded-full">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Language ID</label>
-                        <input type="text" class="language-id w-full px-2 py-1 text-sm border border-gray-300 rounded-md" value="${languageId}" required>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Language ID (e.g., gs, fr)</label>
+                        <input type="text" class="language-id w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" value="${languageId}" required>
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Language Name</label>
-                        <input type="text" class="language-name w-full px-2 py-1 text-sm border border-gray-300 rounded-md" value="${languageName}" required>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Language Name (e.g., Gasy, Français)</label>
+                        <input type="text" class="language-name w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" value="${languageName}" required>
                     </div>
                 </div>
                 <div class="mt-3">
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Formats</label>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Formats (e.g., GM, PM, Std)</label>
                     <div class="formats-container space-y-2 mb-2"></div>
-                    <button type="button" class="add-format text-xs text-blue-600 hover:text-blue-800 flex items-center">
+                    <button type="button" class="add-format text-xs text-blue-600 hover:text-blue-800 flex items-center px-2 py-1 border border-blue-500 rounded hover:bg-blue-50">
                         <i class="fas fa-plus-circle mr-1"></i> Add Format
                     </button>
                 </div>
@@ -1094,29 +965,23 @@
 
             elements.languagesContainer.appendChild(languageDiv);
 
-            // Add event listeners for the new language
             const removeBtn = languageDiv.querySelector('.remove-language');
             removeBtn.addEventListener('click', () => languageDiv.remove());
 
             const addFormatBtn = languageDiv.querySelector('.add-format');
             addFormatBtn.addEventListener('click', () => addFormatField(languageDiv.querySelector('.formats-container')));
 
-            // Add format fields if provided
             if (languageData && languageData.formats) {
                 const formatsContainer = languageDiv.querySelector('.formats-container');
-                languageData.formats.forEach(format => {
-                    addFormatField(formatsContainer, format);
-                });
+                languageData.formats.forEach(format => addFormatField(formatsContainer, format));
             } else {
-                // Add one format field by default
                 addFormatField(languageDiv.querySelector('.formats-container'));
             }
         }
 
-        // Add a new format field to a language
         function addFormatField(container, formatData = null) {
-            const formatId = formatData ? formatData.id : '';
-            const formatName = formatData ? formatData.name : '';
+            const formatId = formatData ? formatData.id : 'std';
+            const formatName = formatData ? formatData.name : 'Std';
             const formatPrice = formatData ? formatData.price : '';
 
             const formatDiv = document.createElement('div');
@@ -1125,164 +990,171 @@
             formatDiv.innerHTML = `
                 <div class="flex justify-between items-center mb-1">
                     <h5 class="text-xs font-medium text-gray-600">Format</h5>
-                    <button type="button" class="text-red-500 hover:text-red-700 remove-format">
+                    <button type="button" class="text-red-500 hover:text-red-700 remove-format p-0.5 rounded-full">
                         <i class="fas fa-times text-xs"></i>
                     </button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Format ID</label>
-                        <input type="text" class="format-id w-full px-2 py-1 text-xs border border-gray-300 rounded-md" value="${formatId}">
+                        <label class="block text-xs font-medium text-gray-600 mb-0.5">Format ID (e.g., gm, pm, std)</label>
+                        <input type="text" class="format-id w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" value="${formatId}">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Format Name</label>
-                        <input type="text" class="format-name w-full px-2 py-1 text-xs border border-gray-300 rounded-md" value="${formatName}">
+                        <label class="block text-xs font-medium text-gray-600 mb-0.5">Format Name (e.g., Grand, Petit, Standard)</label>
+                        <input type="text" class="format-name w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" value="${formatName}">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Price</label>
-                        <input type="number" class="format-price w-full px-2 py-1 text-xs border border-gray-300 rounded-md" value="${formatPrice}" required>
+                        <label class="block text-xs font-medium text-gray-600 mb-0.5">Price (Ar)</label>
+                        <input type="number" class="format-price w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" value="${formatPrice}" required min="0">
                     </div>
                 </div>
             `;
-
             container.appendChild(formatDiv);
-
-            // Add event listener for the remove button
             const removeBtn = formatDiv.querySelector('.remove-format');
             removeBtn.addEventListener('click', () => formatDiv.remove());
         }
 
-        // Handle category form submission
+
         function handleCategorySubmit(e) {
             e.preventDefault();
+            const categoryId = elements.categoryIdInput.value.trim();
+            const categoryName = elements.categoryNameInput.value.trim();
 
-            const categoryId = elements.categoryId.value.trim();
-            const categoryName = elements.categoryName.value.trim();
-
-            // Validate category ID and name
             if (!categoryId || !categoryName) {
-                showToast('Category ID and Name are required', 'error');
-                return;
+                showToast('Category ID and Name are required', 'error'); return;
             }
-
-            // Check if category ID already exists
             if (appState.data.categories.some(cat => cat.id === categoryId)) {
-                showToast('Category ID already exists', 'error');
-                return;
+                showToast('Category ID already exists', 'error'); return;
             }
 
-            // Collect languages data
             const languages = [];
-            const languageDivs = elements.languagesContainer.querySelectorAll('.border-gray-200');
-
+            const languageDivs = elements.languagesContainer.querySelectorAll('.border.border-gray-200.rounded-md.p-3.bg-gray-50');
             if (languageDivs.length === 0) {
-                showToast('At least one language is required', 'error');
-                return;
+                showToast('At least one language is required', 'error'); return;
             }
 
             for (const langDiv of languageDivs) {
                 const languageId = langDiv.querySelector('.language-id').value.trim();
                 const languageName = langDiv.querySelector('.language-name').value.trim();
-
                 if (!languageId || !languageName) {
-                    showToast('Language ID and Name are required for all languages', 'error');
-                    return;
+                    showToast('Language ID and Name are required for all languages', 'error'); return;
                 }
 
-                // Collect formats data
                 const formats = [];
-                const formatDivs = langDiv.querySelectorAll('.formats-container > .border-gray-200');
-
+                const formatDivs = langDiv.querySelectorAll('.formats-container > .border.border-gray-200.rounded-md.p-2.bg-white');
                 if (formatDivs.length === 0) {
-                    showToast('At least one format is required for each language', 'error');
-                    return;
+                    showToast('At least one format is required for each language', 'error'); return;
                 }
 
                 for (const formatDiv of formatDivs) {
-                    const formatId = formatDiv.querySelector('.format-id').value.trim();
-                    const formatName = formatDiv.querySelector('.format-name').value.trim();
+                    let formatId = formatDiv.querySelector('.format-id').value.trim();
+                    let formatName = formatDiv.querySelector('.format-name').value.trim();
                     const formatPrice = formatDiv.querySelector('.format-price').value.trim();
 
-                    if (!formatPrice) {
-                        showToast('Price is required for all formats', 'error');
-                        return;
+                    if (!formatId && !formatName) {
+                        formatId = 'std';
+                        formatName = 'Std';
+                    } else if (!formatId) {
+                        formatId = formatName.toLowerCase().replace(/\s+/g, '') || 'std';
+                    } else if (!formatName) {
+                        formatName = formatId.toUpperCase();
                     }
 
-                    formats.push({
-                        id: formatId,
-                        name: formatName,
-                        price: Number(formatPrice)
-                    });
+                    if (!formatPrice || Number(formatPrice) < 0) {
+                        showToast('Valid Price (>= 0) is required for all formats', 'error'); return;
+                    }
+                    formats.push({ id: formatId, name: formatName, price: Number(formatPrice) });
                 }
-
-                languages.push({
-                    id: languageId,
-                    name: languageName,
-                    formats: formats
-                });
+                languages.push({ id: languageId, name: languageName, formats: formats });
             }
 
-            // Add the new category
-            appState.data.categories.push({
-                id: categoryId,
-                name: categoryName,
-                languages: languages
-            });
-
-            // Save and refresh
+            appState.data.categories.push({ id: categoryId, name: categoryName, languages: languages });
             saveData();
             renderTable();
             hideCategoryModal();
-
             showToast('Category added successfully');
         }
 
-        // Handle person form submission
         function handlePersonSubmit(e) {
             e.preventDefault();
-
-            const personName = elements.personName.value.trim();
-            const personId = elements.personId.value.trim();
+            const personName = elements.personNameInput.value.trim();
+            const personId = elements.personIdInput.value.trim();
 
             if (!personName) {
-                showToast('Person name is required', 'error');
+                showToast('Person name is required', 'error'); return;
+            }
+            const finalPersonId = personId || `person_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+            if (appState.data.people.some(p => p.id === finalPersonId)) {
+                showToast('Person ID already exists. Please use a unique ID or leave it blank for auto-generation.', 'error');
                 return;
             }
 
-            // Generate a unique ID if not provided
-            const finalPersonId = personId || `person_${Date.now()}`;
-
-            // Add the new person
-            appState.data.people.push({
-                id: finalPersonId,
-                name: personName,
-                orders: {}
-            });
-
-            // Save and refresh
+            appState.data.people.push({ id: finalPersonId, name: personName, orders: {} });
             saveData();
             renderTable();
             hidePersonModal();
-
             showToast('Person added successfully');
         }
 
-        // Handle file import
+        // function handleFileImport(e) {
+        //     const file = e.target.files[0];
+        //     if (!file) return;
+        //     const reader = new FileReader();
+        //     reader.onload = (event) => {
+        //         try {
+        //             const importedData = JSON.parse(event.target.result);
+        //             if (!importedData.categories || !importedData.people || !Array.isArray(importedData.categories) || !Array.isArray(importedData.people)) {
+        //                 throw new Error('Structure de données invalide');
+        //             }
+        //             importedData.categories.forEach(cat => {
+        //                 cat.languages.forEach(lang => {
+        //                     lang.formats.forEach(format => {
+        //                         if (!format.id) format.id = 'std';
+        //                         if (!format.name) format.name = 'Std';
+        //                     });
+        //                 });
+        //             });
+        //             appState.data = importedData;
+        //             saveData();
+        //             renderTable();
+        //             showToast('Données importées avec succès');
+        //         } catch (error) {
+        //             console.error('Erreur lors de l\'importation des données:', error);
+        //             showToast('Erreur d\'importation. Format de fichier invalide.', 'error');
+        //         }
+        //         elements.fileInput.value = '';
+        //     };
+        //     reader.readAsText(file);
+        // }
+
         function handleFileImport(e) {
             const file = e.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = (event) => {
                 try {
                     const importedData = JSON.parse(event.target.result);
-
-                    // Validate the imported data structure
-                    if (!importedData.categories || !importedData.people) {
+                    if (!validateImportedData(importedData)) {
                         throw new Error('Structure de données invalide');
                     }
 
-                    appState.data = importedData;
+                    // Normalize the data
+                    importedData.categories.forEach(cat => {
+                        cat.languages.forEach(lang => {
+                            lang.formats.forEach(format => {
+                                format.id = format.id || 'std';
+                                format.name = format.name || 'Std';
+                                format.price = Number(format.price);
+                            });
+                        });
+                    });
+
+                    // Clear existing state and update
+                    appState.data = {
+                        categories: [...importedData.categories],
+                        people: [...importedData.people]
+                    };
+
                     saveData();
                     renderTable();
                     showToast('Données importées avec succès');
@@ -1290,55 +1162,59 @@
                     console.error('Erreur lors de l\'importation des données:', error);
                     showToast('Erreur d\'importation. Format de fichier invalide.', 'error');
                 }
-
-                // Reset file input
                 elements.fileInput.value = '';
             };
-
             reader.readAsText(file);
         }
 
-        // Handle cell focus
+        function validateImportedData(data) {
+            // Validate categories structure
+            if (!data.categories.every(cat =>
+                cat.id && cat.name && Array.isArray(cat.languages) &&
+                cat.languages.every(lang =>
+                    lang.id && lang.name && Array.isArray(lang.formats) &&
+                    lang.formats.every(format =>
+                        typeof format.price === 'number'
+                    )
+                )
+            )) return false;
+
+            // Validate people structure
+            if (!data.people.every(person =>
+                person.id && person.name &&
+                (!person.orders || typeof person.orders === 'object')
+            )) return false;
+
+            return true;
+        }
+
+
+
         function handleCellFocus(e) {
             if (e.target.tagName === 'INPUT') {
                 const cell = e.target.closest('td');
                 if (!cell) return;
-
-                // Highlight the row and column
                 const row = cell.parentElement;
                 const colIndex = cell.cellIndex;
-
-                // Remove previous highlights
                 document.querySelectorAll('.highlight-row').forEach(el => el.classList.remove('highlight-row'));
                 document.querySelectorAll('.highlight-col').forEach(el => el.classList.remove('highlight-col'));
-
-                // Highlight current row
                 row.classList.add('highlight-row');
-
-                // Highlight all cells in the same column
                 const allRows = elements.tableBody.querySelectorAll('tr');
                 allRows.forEach(r => {
-                    if (r.cells[colIndex]) {
-                        r.cells[colIndex].classList.add('highlight-col');
-                    }
+                    if (r.cells[colIndex]) r.cells[colIndex].classList.add('highlight-col');
                 });
-
-                // Store the current cell
                 appState.currentCell = cell;
             }
         }
 
-        // Handle cell blur
         function handleCellBlur() {
-            // Remove highlights after a delay to allow click events to process
             setTimeout(() => {
                 document.querySelectorAll('.highlight-row').forEach(el => el.classList.remove('highlight-row'));
                 document.querySelectorAll('.highlight-col').forEach(el => el.classList.remove('highlight-col'));
             }, 100);
         }
 
-        // Handle quantity input change
-        function handleQuantityChange(e) {
+        function handleQuantityChangeInTable(e) {
             if (e.target.tagName === 'INPUT' && e.target.type === 'number') {
                 const cell = e.target.closest('td');
                 if (!cell) return;
@@ -1348,1360 +1224,1167 @@
                 const columnKey = cell.dataset.columnKey;
                 const quantity = parseInt(e.target.value) || 0;
 
-                // Update the order in the data model
                 const person = appState.data.people.find(p => p.id === personId);
                 if (person) {
                     if (!person.orders) person.orders = {};
-                    person.orders[columnKey] = quantity;
+                    if (quantity > 0) {
+                        person.orders[columnKey] = quantity;
+                    } else {
+                        delete person.orders[columnKey];
+                    }
+                    updatePersonTotalInTable(personId);
+                    renderMobileCards();
+                    saveData();
                 }
-
-                // Update the person's total
-                updatePersonTotal(personId);
-
-                // Auto-save
-                saveData();
             }
         }
 
-        // Update the total for a specific person
-        function updatePersonTotal(personId) {
+
+        function updatePersonTotalInTable(personId) {
             const person = appState.data.people.find(p => p.id === personId);
             if (!person) return;
 
             let total = 0;
-
-            // Calculate total based on orders
             for (const [key, quantity] of Object.entries(person.orders || {})) {
                 if (quantity > 0) {
-                    const [categoryId, languageId, formatId] = key.split('|');
+                    const [categoryId, languageId, formatId = 'std'] = key.split('|');
                     const category = appState.data.categories.find(c => c.id === categoryId);
                     if (!category) continue;
-
                     const language = category.languages.find(l => l.id === languageId);
                     if (!language) continue;
-
                     const format = language.formats.find(f => f.id === formatId);
-                    if (!format) continue;
-
+                    if (!format || typeof format.price !== 'number') continue;
                     total += quantity * format.price;
                 }
             }
 
-            // Update the total cell
             const totalCell = elements.tableBody.querySelector(`tr[data-person-id="${personId}"] .total-cell`);
             if (totalCell) {
-                totalCell.textContent = total.toLocaleString();
+                totalCell.textContent = `${total.toLocaleString()} Ar`;
             }
+            renderTotalsRow();
         }
 
-        // Render the entire table
+
         function renderTable() {
-            renderTableHeader();
-            renderTableBody();
-            renderMobileCards(); // Add this line to render mobile cards
-        }
-
-        // Render the table header with categories, languages, and formats
-        function renderTableHeader() {
-            elements.tableHeader.innerHTML = '';
-
-            if (appState.data.categories.length === 0) {
+            if (!elements.tableHeader || !elements.tableBody) {
+                console.error("Table header or body not found. Aborting render.");
                 return;
             }
+            renderTableHeader();
+            renderTableBody();
+            renderMobileCards();
+        }
 
-            // Create header rows
+        function renderTableHeader() {
+            elements.tableHeader.innerHTML = '';
+            if (appState.data.categories.length === 0) return;
+
             const categoryRow = document.createElement('tr');
             const languageRow = document.createElement('tr');
             const formatRow = document.createElement('tr');
             const priceRow = document.createElement('tr');
 
-            // Add combined person header
             const nameHeader = document.createElement('th');
-            nameHeader.className = 'sticky left-0 bg-gray-100 border-r border-gray-200 px-4 py-2 text-left z-10';
+            nameHeader.className = 'sticky left-0 bg-gray-100 border-r border-gray-200 px-2 py-2 text-left z-10 text-xs';
             nameHeader.rowSpan = 4;
-            nameHeader.textContent = 'Person';
+            nameHeader.innerHTML = `<div class="flex items-center">
+                                    <input type="checkbox" id="selectAllCheckbox" class="mr-2 h-3.5 w-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"> Personne
+                                  </div>`;
             categoryRow.appendChild(nameHeader);
 
-            // Add headers for each category
-            for (const category of appState.data.categories) {
-                const colCount = countColumnsForCategory(category);
+            nameHeader.querySelector('#selectAllCheckbox').addEventListener('change', (e) => {
+                const isChecked = e.target.checked;
+                document.querySelectorAll('.person-checkbox').forEach(cb => {
+                    cb.checked = isChecked;
+                    const mobileCheckbox = elements.mobileCardView.querySelector(`.person-checkbox[data-person-id="${cb.dataset.personId}"]`);
+                    if (mobileCheckbox) mobileCheckbox.checked = isChecked;
+                });
+            });
 
-                // Category header
+
+            appState.data.categories.forEach(category => {
+                const colCount = countColumnsForCategory(category);
                 const categoryHeader = document.createElement('th');
-                categoryHeader.className = 'bg-gray-100 px-4 py-2 text-center border-b border-gray-200';
+                categoryHeader.className = `px-2 py-1 text-center border-b border-gray-200 text-xs ${categoryColors[category.id] || 'bg-gray-100'}`;
                 categoryHeader.colSpan = colCount;
                 categoryHeader.textContent = category.name;
                 categoryRow.appendChild(categoryHeader);
 
-                // Language headers
-                for (const language of category.languages) {
+                category.languages.forEach(language => {
                     const langColCount = countColumnsForLanguage(language);
-
                     const languageHeader = document.createElement('th');
-                    languageHeader.className = 'bg-gray-50 px-3 py-1 text-center border-b border-gray-200';
+                    languageHeader.className = `px-1.5 py-1 text-center border-b border-gray-200 text-xs ${categoryColors[category.id] ? categoryColors[category.id].replace('-50', '-100') : 'bg-gray-50'}`;
                     languageHeader.colSpan = langColCount;
                     languageHeader.textContent = language.name;
                     languageRow.appendChild(languageHeader);
 
-                    // Format headers
-                    for (const format of language.formats) {
+                    language.formats.forEach(format => {
                         const formatHeader = document.createElement('th');
-                        formatHeader.className = 'bg-white px-2 py-1 text-center border-b border-gray-200 text-sm';
-                        formatHeader.textContent = format.name || 'GM';
+                        formatHeader.className = 'bg-white px-1 py-1 text-center border-b border-gray-200 text-xs';
+                        formatHeader.textContent = format.name || 'Std';
                         formatRow.appendChild(formatHeader);
 
-                        // Price header
                         const priceHeader = document.createElement('th');
-                        priceHeader.className = 'bg-gray-50 px-2 py-1 text-center text-sm font-medium';
+                        priceHeader.className = 'bg-gray-50 px-1 py-1 text-center text-xs font-medium';
                         priceHeader.textContent = format.price.toLocaleString();
                         priceRow.appendChild(priceHeader);
-                    }
-                }
-            }
+                    });
+                });
+            });
 
-            // Total header
             const totalHeader = document.createElement('th');
-            totalHeader.className = 'bg-gray-100 px-4 py-2 text-center border-l border-gray-200';
+            totalHeader.className = 'bg-gray-100 px-2 py-2 text-center border-l border-gray-200 text-xs';
             totalHeader.rowSpan = 4;
             totalHeader.textContent = 'Total';
-            categoryRow.appendChild(totalHeader.cloneNode(true));
+            categoryRow.appendChild(totalHeader);
 
-            // Append all rows to the header
             elements.tableHeader.appendChild(categoryRow);
             elements.tableHeader.appendChild(languageRow);
             elements.tableHeader.appendChild(formatRow);
             elements.tableHeader.appendChild(priceRow);
         }
 
-        // Count columns needed for a category
         function countColumnsForCategory(category) {
             return category.languages.reduce((total, lang) => total + countColumnsForLanguage(lang), 0);
         }
 
-        // Count columns needed for a language
         function countColumnsForLanguage(language) {
-            return language.formats.length;
+            return language.formats.length > 0 ? language.formats.length : 1;
         }
 
-        // Render the table body with people and their orders
         function renderTableBody() {
             elements.tableBody.innerHTML = '';
-            let grandTotal = 0;
-            let columnTotals = {};
+            const searchTerm = appState.uiState.mainTableSearch;
+            const filteredPeople = appState.data.people.filter(person =>
+                person.name.toLowerCase().includes(searchTerm)
+            );
 
-            if (appState.data.people.length === 0) {
+            if (filteredPeople.length === 0) {
                 const emptyRow = document.createElement('tr');
                 const emptyCell = document.createElement('td');
                 emptyCell.className = 'py-8 text-center text-gray-500 italic';
-                emptyCell.colSpan = elements.tableHeader.querySelector('tr').cells.length;
-                emptyCell.textContent = 'Pas de commande';
+                let colspan = 1;
+                appState.data.categories.forEach(cat => {
+                    cat.languages.forEach(lang => {
+                        colspan += lang.formats.length > 0 ? lang.formats.length : 1;
+                    });
+                });
+                colspan += 1;
+                emptyCell.colSpan = colspan > 1 ? colspan : 5;
+                emptyCell.textContent = searchTerm ? 'Aucun résultat trouvé.' : 'Aucune personne ajoutée.';
                 emptyRow.appendChild(emptyCell);
                 elements.tableBody.appendChild(emptyRow);
+                renderTotalsRow(filteredPeople);
                 return;
             }
 
-            // Initialize column totals
-            appState.data.categories.forEach(category => {
-                category.languages.forEach(language => {
-                    language.formats.forEach(format => {
-                        const key = `${category.id}|${language.id}|${format.id}`;
-                        columnTotals[key] = 0;
-                    });
-                });
-            });
-
-            // Render people rows
-            appState.data.people.forEach(person => {
+            filteredPeople.forEach(person => {
                 const row = document.createElement('tr');
                 row.dataset.personId = person.id;
-                row.className = 'border-b border-gray-200 hover:bg-gray-50';
+                row.className = 'border-b border-gray-200 hover:bg-sky-50 transition-colors duration-150 group';
 
-                // Combined checkbox and name cell
                 const nameCell = document.createElement('td');
-                nameCell.className = 'px-4 py-2 sticky left-0 bg-white z-10';
+                nameCell.className = 'px-2 py-1.5 sticky left-0 bg-white group-hover:bg-sky-50 z-10 border-r';
 
                 const nameWrapper = document.createElement('div');
-                nameWrapper.className = 'flex items-center space-x-3';
+                nameWrapper.className = 'flex items-center space-x-1.5';
 
-                // Add checkbox to the name wrapper
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
-                checkbox.className = 'person-checkbox';
+                checkbox.className = 'person-checkbox h-3.5 w-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500';
                 checkbox.dataset.personId = person.id;
+
+                const mobileCheckboxState = elements.mobileCardView.querySelector(`.person-checkbox[data-person-id="${person.id}"]`)?.checked;
+                if (mobileCheckboxState !== undefined) checkbox.checked = mobileCheckboxState;
+
+                checkbox.addEventListener('change', (e) => {
+                    const mobileCheckbox = elements.mobileCardView.querySelector(`.person-checkbox[data-person-id="${person.id}"]`);
+                    if (mobileCheckbox) mobileCheckbox.checked = e.target.checked;
+                });
                 nameWrapper.appendChild(checkbox);
 
-                // Add name link
                 const nameLink = document.createElement('a');
                 nameLink.href = '#';
-                nameLink.className = 'text-blue-600 hover:text-blue-800 font-medium';
+                nameLink.className = 'text-blue-600 hover:text-blue-800 font-medium text-xs sm:text-sm whitespace-nowrap';
                 nameLink.textContent = person.name;
-                nameLink.onclick = function (e) {
-                    e.preventDefault();
-                    openOrderEntryForPerson(person.id);
-                };
+                nameLink.onclick = (e) => { e.preventDefault(); openOrderEntryForPerson(person.id); };
                 nameWrapper.appendChild(nameLink);
 
-                // Add action buttons
-                const actionButtons = document.createElement('div');
-                actionButtons.className = 'flex items-center space-x-2 ml-auto';
-                actionButtons.innerHTML = `
-                    <button class="text-blue-600 hover:text-blue-800" onclick="editPerson('${person.id}')">
-                        <i class="fas fa-edit"></i>
+                const actionButtonsContainer = document.createElement('div');
+                actionButtonsContainer.className = 'ml-auto flex items-center space-x-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200';
+
+                actionButtonsContainer.innerHTML = `
+                    <button class="text-gray-400 hover:text-blue-600 p-1 rounded-full focus:outline-none focus:ring-1 focus:ring-blue-500" onclick="editPerson('${person.id}')" title="Modifier ${person.name}">
+                        <i class="fas fa-edit fa-xs"></i>
                     </button>
-                    <button class="text-red-600 hover:text-red-800" onclick="deletePerson('${person.id}')">
-                        <i class="fas fa-trash"></i>
+                    <button class="text-gray-400 hover:text-red-600 p-1 rounded-full focus:outline-none focus:ring-1 focus:ring-red-500" onclick="deletePerson('${person.id}')" title="Supprimer ${person.name}">
+                        <i class="fas fa-trash fa-xs"></i>
                     </button>
                 `;
-                nameWrapper.appendChild(actionButtons);
+                nameWrapper.appendChild(actionButtonsContainer);
                 nameCell.appendChild(nameWrapper);
                 row.appendChild(nameCell);
 
-                // Initialize person total
                 let personTotal = 0;
-
-                // Order cells for each category/language/format
-                for (const category of appState.data.categories) {
-                    for (const language of category.languages) {
-                        for (const format of language.formats) {
-                            const key = `${category.id}|${language.id}|${format.id}`;
+                appState.data.categories.forEach(category => {
+                    category.languages.forEach(language => {
+                        if (language.formats.length === 0) {
+                            const cell = document.createElement('td');
+                            cell.className = `px-1 py-1 text-center text-xs text-gray-400 italic ${categoryColors[category.id] || ''}`;
+                            cell.textContent = '-';
+                            row.appendChild(cell);
+                            return;
+                        }
+                        language.formats.forEach(format => {
+                            const key = `${category.id}|${language.id}|${format.id || 'std'}`;
                             const quantity = person.orders?.[key] || 0;
-
-                            if (quantity > 0) {
+                            if (quantity > 0 && format.price) {
                                 personTotal += quantity * format.price;
-                                columnTotals[key] += quantity;
                             }
 
                             const cell = document.createElement('td');
                             const bgColorClass = categoryColors[category.id] || '';
-                            cell.className = `px-2 py-1 text-center ${bgColorClass}`;
+                            cell.className = `px-1 py-1 text-center ${bgColorClass}`;
                             cell.dataset.columnKey = key;
 
                             const input = document.createElement('input');
                             input.type = 'number';
                             input.min = '0';
-                            input.className = 'w-10 px-2 py-1 border border-gray-300 rounded text-center';
+                            input.className = 'w-10 h-6 px-1 py-0.5 border border-gray-300 rounded text-center text-xs focus:ring-blue-500 focus:border-blue-500 appearance-none';
                             input.value = quantity;
-
                             cell.appendChild(input);
                             row.appendChild(cell);
-                        }
-                    }
-                }
+                        });
+                    });
+                });
 
-                // Total amount cell
                 const totalCell = document.createElement('td');
-                totalCell.className = 'total-cell px-4 py-2 text-right font-medium border-l border-gray-200';
+                totalCell.className = 'total-cell px-2 py-1.5 text-right font-medium border-l border-gray-200 text-xs sm:text-sm';
                 totalCell.textContent = `${personTotal.toLocaleString()} Ar`;
                 row.appendChild(totalCell);
-
                 elements.tableBody.appendChild(row);
-                grandTotal += personTotal;
             });
+            renderTotalsRow(filteredPeople);
+        }
 
-            // Add totals row
+        function renderTotalsRow(peopleToConsider = appState.data.people) {
+            const existingTotalsRow = elements.tableBody.querySelector('.totals-summary-row');
+            if (existingTotalsRow) {
+                existingTotalsRow.remove();
+            }
+
             const totalsRow = document.createElement('tr');
-            totalsRow.className = 'bg-gray-100 font-bold border-t-2 border-gray-300';
+            totalsRow.className = 'totals-summary-row bg-gray-100 font-bold border-t-2 border-gray-300 sticky bottom-0 z-5';
 
-            // Add combined "TOTAL" label cell (replacing the previous two cells)
             const totalLabelCell = document.createElement('td');
-            totalLabelCell.className = 'px-4 py-2 font-bold text-gray-800 sticky left-0 bg-gray-100 z-10';
+            totalLabelCell.className = 'px-2 py-1.5 font-bold text-gray-800 sticky left-0 bg-gray-100 z-10 border-r text-xs';
             totalLabelCell.textContent = 'TOTAL';
             totalsRow.appendChild(totalLabelCell);
 
-            // Add column totals
+            let grandTotal = 0;
+            const columnTotals = {};
+
             appState.data.categories.forEach(category => {
                 category.languages.forEach(language => {
+                    if (language.formats.length === 0) {
+                        columnTotals[`${category.id}|${language.id}|no_format`] = 0;
+                        return;
+                    }
                     language.formats.forEach(format => {
-                        const key = `${category.id}|${language.id}|${format.id}`;
+                        const key = `${category.id}|${language.id}|${format.id || 'std'}`;
+                        columnTotals[key] = 0;
+                    });
+                });
+            });
+
+            peopleToConsider.forEach(person => {
+                let personTotalForRow = 0;
+                for (const [key, quantity] of Object.entries(person.orders || {})) {
+                    if (quantity > 0) {
+                        const [catId, langId, formId = 'std'] = key.split('|');
+                        const category = appState.data.categories.find(c => c.id === catId);
+                        const language = category?.languages.find(l => l.id === langId);
+                        const format = language?.formats.find(f => f.id === formId);
+                        if (format?.price) {
+                            columnTotals[key] = (columnTotals[key] || 0) + quantity;
+                            personTotalForRow += quantity * format.price;
+                        }
+                    }
+                }
+                grandTotal += personTotalForRow;
+            });
+
+
+            appState.data.categories.forEach(category => {
+                category.languages.forEach(language => {
+                    if (language.formats.length === 0) {
                         const totalCell = document.createElement('td');
-                        totalCell.className = 'px-2 py-2 text-center font-bold';
-                        totalCell.textContent = columnTotals[key];
+                        totalCell.className = 'px-1 py-1.5 text-center font-bold text-xs';
+                        totalCell.textContent = '0';
+                        totalsRow.appendChild(totalCell);
+                        return;
+                    }
+                    language.formats.forEach(format => {
+                        const key = `${category.id}|${language.id}|${format.id || 'std'}`;
+                        const totalCell = document.createElement('td');
+                        totalCell.className = 'px-1 py-1.5 text-center font-bold text-xs';
+                        totalCell.textContent = columnTotals[key] || 0;
                         totalsRow.appendChild(totalCell);
                     });
                 });
             });
 
-            // Add grand total amount
             const grandTotalCell = document.createElement('td');
-            grandTotalCell.className = 'px-4 py-2 text-right font-bold border-l border-gray-200';
+            grandTotalCell.className = 'px-2 py-1.5 text-right font-bold border-l border-gray-200 text-xs sm:text-sm';
             grandTotalCell.textContent = `${grandTotal.toLocaleString()} Ar`;
             totalsRow.appendChild(grandTotalCell);
 
             elements.tableBody.appendChild(totalsRow);
-
-            // Add event listener for quantity changes
-            elements.tableBody.addEventListener('change', handleQuantityChange);
         }
 
-        // Delete a person
+
         function deletePerson(personId) {
-            if (confirm('Are you sure you want to delete this person and all their orders?')) {
+            const personToDelete = appState.data.people.find(p => p.id === personId);
+            if (!personToDelete) return;
+
+            showCustomConfirm(`Supprimer "${personToDelete.name}" et toutes ses commandes ?`, () => {
                 appState.data.people = appState.data.people.filter(p => p.id !== personId);
                 saveData();
                 renderTable();
-                showToast('Person deleted successfully');
-            }
+                showToast('Personne supprimée avec succès');
+            });
         }
 
-        // Add this new function to open the order entry modal for a specific person
-        function openOrderEntryForPerson(personId) {
+        function editPerson(personId) {
             const person = appState.data.people.find(p => p.id === personId);
             if (!person) return;
-
-            // Set the current person ID in the order entry state
-            orderEntryState.currentPersonId = personId;
-
-            // Initialize temp orders with the person's existing orders
-            orderEntryState.tempOrders = { ...person.orders };
-            orderEntryState.originalOrders = { ...person.orders };
-
-            // Update the modal header with the person's name
-            document.getElementById('orderPersonName').textContent = person.name;
-            document.getElementById('orderPersonId').textContent = `ID: ${personId}`;
-
-            // Generate the categories accordion
-            generateCategoriesAccordion();
-
-            // Update the total
-            updateOrderTotal();
-
-            // Show the modal
-            document.getElementById('orderEntryModal').classList.remove('hidden');
+            openOrderEntryForPerson(personId);
+            showToast(`Modification des commandes pour ${person.name}. Le nom peut être changé via une nouvelle commande si besoin.`);
         }
 
-        // Hide order summary
-        function hideOrderSummary() {
-            elements.orderSummary.classList.add('hidden');
-            appState.selectedPerson = null;
-        }
 
-        // Show toast notification
         function showToast(message, type = 'success') {
-            elements.toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-md shadow-lg transform translate-y-10 opacity-0 transition-all duration-300 flex items-center ${type === 'error' ? 'bg-red-600' : 'bg-green-600'} text-white`;
+            elements.toast.className = `fixed bottom-4 right-4 px-4 py-2 sm:px-6 sm:py-3 rounded-md shadow-lg transform transition-all duration-300 flex items-center z-[1001] text-sm sm:text-base ${type === 'error' ? 'bg-red-600' : (type === 'warning' ? 'bg-yellow-500' : 'bg-green-600')} text-white`;
             elements.toastMessage.textContent = message;
-            elements.toast.classList.remove('hidden');
-
-            // Animate in
-            setTimeout(() => {
-                elements.toast.classList.remove('translate-y-10', 'opacity-0');
-                elements.toast.classList.add('translate-y-0', 'opacity-100');
-            }, 10);
-
-            // Auto-hide after 5 seconds
-            setTimeout(hideToast, 5000);
+            elements.toast.classList.remove('hidden', 'translate-y-10', 'opacity-0');
+            elements.toast.classList.add('translate-y-0', 'opacity-100');
+            setTimeout(hideToast, 4000);
         }
 
-        // Hide toast notification
         function hideToast() {
             elements.toast.classList.add('translate-y-10', 'opacity-0');
             setTimeout(() => elements.toast.classList.add('hidden'), 300);
         }
 
-        // Show loading overlay
         function showLoading() {
             elements.loadingOverlay.classList.remove('hidden');
         }
 
-        // Hide loading overlay
         function hideLoading() {
             elements.loadingOverlay.classList.add('hidden');
         }
 
-        // Fonction pour afficher les commandes sélectionnées
-        function displaySelectedOrders() {
-            const selectedOrdersSection = document.getElementById('selectedOrdersDisplay');
-            const selectedOrdersContent = document.getElementById('selectedOrdersContent');
-            const checkedBoxes = document.querySelectorAll('.person-checkbox:checked');
+        function displaySelectedOrders(resetSearch = true) { // Added resetSearch parameter
+            if (resetSearch && elements.selectedOrdersSearchInput) {
+                elements.selectedOrdersSearchInput.value = '';
+                appState.uiState.selectedOrdersSearch = '';
+            }
+            const searchTerm = appState.uiState.selectedOrdersSearch.toLowerCase();
 
-            if (checkedBoxes.length === 0) {
+            const checkedBoxes = document.querySelectorAll('.person-checkbox:checked');
+            if (checkedBoxes.length === 0 && !searchTerm) { // Only show warning if no search and no boxes
                 showToast('Veuillez sélectionner au moins une personne', 'warning');
+                elements.selectedOrdersContent.innerHTML = '<p class="text-gray-600 italic">Veuillez sélectionner au moins une personne pour voir les détails.</p>';
+                showModal(elements.selectedOrdersDisplay);
                 return;
             }
 
+            elements.selectedOrdersContent.innerHTML = '';
             let ordersHTML = '';
             let grandTotal = 0;
+            let foundMatches = false;
 
-            checkedBoxes.forEach(checkbox => {
-                const personId = checkbox.dataset.personId;
-                const person = appState.data.people.find(p => p.id === personId);
-                if (!person) return;
+            // Determine which people to display based on checkbox and search term
+            const peopleToDisplayIds = new Set();
+            appState.data.people.forEach(person => {
+                const checkbox = document.querySelector(`.person-checkbox[data-person-id="${person.id}"]`);
+                if (checkbox && checkbox.checked) {
+                    peopleToDisplayIds.add(person.id);
+                }
+            });
 
+
+            appState.data.people.forEach(person => {
+                if (!peopleToDisplayIds.has(person.id)) return; // Only process selected people
+
+                let personMatchesSearch = !searchTerm || person.name.toLowerCase().includes(searchTerm);
                 let personTotal = 0;
+                let itemsList = '';
+                let hasMatchingItems = false;
 
-                ordersHTML += `
-                    <div class="mb-8 pb-6 border-b border-gray-200">
-                        <h3 class="text-lg font-semibold mb-4">Nom: ${person.name}</h3>
-
-                        <h4 class="font-medium mb-2">Commande:</h4>
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200 mb-4">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Catégorie</th>
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Format</th>
-                                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Quantité</th>
-                                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Prix unitaire</th>
-                                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
-                `;
-
-                // Parcourir les commandes de la personne
                 for (const [key, quantity] of Object.entries(person.orders || {})) {
                     if (quantity > 0) {
-                        const [categoryId, languageId, formatId] = key.split('|');
+                        const [categoryId, languageId, formatId = 'std'] = key.split('|');
                         const category = appState.data.categories.find(c => c.id === categoryId);
                         if (!category) continue;
-
                         const language = category.languages.find(l => l.id === languageId);
                         if (!language) continue;
-
                         const format = language.formats.find(f => f.id === formatId);
-                        if (!format) continue;
+                        if (!format || typeof format.price !== 'number') continue;
 
-                        const itemTotal = quantity * format.price;
-                        personTotal += itemTotal;
+                        const itemDetailText = `${category.name} ${language.name} ${format.name || 'Std'}`.toLowerCase();
+                        const itemMatchesSearch = !searchTerm || itemDetailText.includes(searchTerm);
 
-                        ordersHTML += `
-                            <tr>
-                                <td class="px-4 py-2">${category.name} - ${language.name}</td>
-                                <td class="px-4 py-2">${format.name || '-'}</td>
-                                <td class="px-4 py-2 text-right">${quantity}</td>
-                                <td class="px-4 py-2 text-right">${format.price.toLocaleString()} Ar</td>
-                                <td class="px-4 py-2 text-right">${itemTotal.toLocaleString()} Ar</td>
-                            </tr>
-                        `;
+                        if (searchTerm && itemMatchesSearch) {
+                            hasMatchingItems = true; // This person has items matching the search
+                        }
+
+                        // Only add item to list if no search term OR person's name matches OR item matches
+                        if (!searchTerm || personMatchesSearch || itemMatchesSearch) {
+                            const itemTotal = quantity * format.price;
+                            personTotal += itemTotal;
+                            itemsList += `
+                                <tr class="${searchTerm && itemMatchesSearch && !personMatchesSearch ? 'bg-yellow-100' : ''}"> 
+                                    <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-700">${category.name} - ${language.name}</td>
+                                    <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-700">${format.name || 'Std'}</td>
+                                    <td class="px-3 py-2 text-xs text-gray-700 text-right">${quantity}</td>
+                                    <td class="px-3 py-2 text-xs text-gray-700 text-right">${format.price.toLocaleString()} Ar</td>
+                                    <td class="px-3 py-2 text-xs text-gray-700 text-right font-medium">${itemTotal.toLocaleString()} Ar</td>
+                                </tr>
+                            `;
+                        }
                     }
                 }
 
-                grandTotal += personTotal;
+                // Determine if this person should be displayed
+                if (!searchTerm || personMatchesSearch || hasMatchingItems) {
+                    if (itemsList || personMatchesSearch) { // Show person if their name matches or they have (matching) items
+                        foundMatches = true;
+                        grandTotal += personTotal;
+                        ordersHTML += `
+                            <div class="mb-6 pb-4 border-b border-gray-200">
+                                <h3 class="text-md font-semibold mb-1.5 text-gray-800">${person.name}</h3>
+                                ${itemsList ? `
+                                <div class="overflow-x-auto rounded-md shadow-sm border border-gray-200">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catégorie</th>
+                                                <th class="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Format</th>
+                                                <th class="px-3 py-1.5 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Qté</th>
+                                                <th class="px-3 py-1.5 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">P.U.</th>
+                                                <th class="px-3 py-1.5 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200">${itemsList}</tbody>
+                                        <tfoot class="bg-gray-50">
+                                            <tr>
+                                                <td colspan="4" class="px-3 py-1.5 text-right font-medium text-xs text-gray-600">Total pour ${person.name}:</td>
+                                                <td class="px-3 py-1.5 text-right font-bold text-xs text-gray-800">${personTotal.toLocaleString()} Ar</td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>` : '<p class="text-xs text-gray-500 italic">Aucun article correspondant à la recherche pour cette personne.</p>'}
+                            </div>`;
+                    }
+                }
+            });
 
+            if (!foundMatches) {
+                elements.selectedOrdersContent.innerHTML = `<p class="text-gray-600 italic">${searchTerm ? 'Aucune commande correspondante à votre recherche parmi la sélection.' : 'Aucune commande trouvée pour les personnes sélectionnées.'}</p>`;
+            } else {
                 ordersHTML += `
-                                </tbody>
-                                <tfoot class="bg-gray-50">
-                                    <tr>
-                                        <td colspan="4" class="px-4 py-2 text-right font-medium">Total pour ${person.name}:</td>
-                                        <td class="px-4 py-2 text-right font-bold">${personTotal.toLocaleString()} Ar</td>
-                                    </tr>
-                                </tfoot>
-                            </table>
+                    <div class="mt-4 pt-4 border-t-2 border-gray-300">
+                        <div class="flex justify-end items-center">
+                            <span class="text-lg font-bold mr-3 text-gray-800">Total général (filtré):</span>
+                            <span class="text-lg font-bold text-blue-600">${grandTotal.toLocaleString()} Ar</span>
                         </div>
-                    </div>
-                `;
-            });
-
-            // Ajouter le grand total
-            ordersHTML += `
-                <div class="mt-6 pt-6 border-t-2 border-gray-200">
-                    <div class="flex justify-end items-center">
-                        <span class="text-xl font-bold mr-4">Total général:</span>
-                        <span class="text-xl font-bold text-blue-600">${grandTotal.toLocaleString()} Ar</span>
-                    </div>
-                </div>
-            `;
-
-            selectedOrdersContent.innerHTML = ordersHTML;
-            selectedOrdersSection.classList.remove('hidden');
+                    </div>`;
+                elements.selectedOrdersContent.innerHTML = ordersHTML;
+            }
+            if (resetSearch || !elements.selectedOrdersDisplay.classList.contains('hidden')) { // Show modal if it's a fresh display or already open
+                showModal(elements.selectedOrdersDisplay);
+            }
         }
 
-        // Ajouter les event listeners
-        document.addEventListener('DOMContentLoaded', () => {
-            // Bouton pour afficher les commandes sélectionnées
-            document.getElementById('showSelectedOrdersBtn').addEventListener('click', displaySelectedOrders);
+        function exportSelectedOrdersToPng() {
+            const contentToCapture = elements.selectedOrdersDisplay.querySelector('#selectedOrdersContent');
+            if (!contentToCapture || contentToCapture.children.length === 0 || contentToCapture.innerText.includes("Aucune commande")) {
+                showToast("Erreur: Contenu des commandes sélectionnées non trouvé ou vide.", "error");
+                return;
+            }
+            showLoading();
 
-            // Bouton pour fermer l'affichage des commandes
-            document.getElementById('closeSelectedOrders').addEventListener('click', () => {
-                document.getElementById('selectedOrdersDisplay').classList.add('hidden');
+            const originalModalMaxHeight = elements.selectedOrdersDisplay.style.maxHeight;
+            const originalContentMaxHeight = contentToCapture.style.maxHeight;
+            const originalContentOverflowY = contentToCapture.style.overflowY;
+
+            elements.selectedOrdersDisplay.style.maxHeight = 'none';
+            contentToCapture.style.maxHeight = 'none';
+            contentToCapture.style.overflowY = 'visible';
+
+            html2canvas(contentToCapture, {
+                scale: 1.5,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                logging: false,
+                scrollX: 0,
+                scrollY: 0, // Changed from -window.scrollY as modal content is self-contained
+                windowWidth: contentToCapture.scrollWidth,
+                windowHeight: contentToCapture.scrollHeight
+            }).then(canvas => {
+                const image = canvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.href = image;
+                link.download = `commandes_selectionnees_${new Date().toISOString().slice(0, 10)}.png`;
+                link.click();
+                showToast("Commandes sélectionnées exportées en PNG!");
+            }).catch(err => {
+                console.error("Erreur d'exportation PNG (sélection):", err);
+                showToast("Erreur d'exportation PNG: " + err.message, "error");
+            }).finally(() => {
+                elements.selectedOrdersDisplay.style.maxHeight = originalModalMaxHeight;
+                contentToCapture.style.maxHeight = originalContentMaxHeight;
+                contentToCapture.style.overflowY = originalContentOverflowY;
+                hideLoading();
             });
+        }
 
-            // Bouton pour imprimer
-            document.getElementById('printSelectedOrders').addEventListener('click', () => {
-                window.print();
-            });
-        });
 
-        // Ouvrir le modal de saisie des commandes
-        // function openOrderEntry() {
-        //     orderEntryState.tempOrders = {}; // Réinitialiser les commandes temporaires
-        //     orderEntryState.originalOrders = {};
+        function openOrderEntry(personIdToEdit = null) {
+            appState.uiState.orderEntrySearch = '';
+            elements.orderEntrySearchInput.value = '';
 
-        //     // Mettre à jour l'en-tête du modal
-        //     document.getElementById('orderPersonName').textContent = 'Nouvelle Commande';
-        //     document.getElementById('orderPersonId').textContent = '';
+            if (personIdToEdit && typeof personIdToEdit === 'string') {
+                openOrderEntryForPerson(personIdToEdit);
+            } else {
+                orderEntryState.currentPersonId = null;
+                orderEntryState.tempOrders = {};
+                orderEntryState.originalOrders = {};
+                elements.orderPersonNameDisplay.textContent = 'Nouvelle Commande';
+                elements.orderPersonIdDisplay.textContent = 'Entrez un nom pour la personne ci-dessous.';
+                generateCategoriesAccordion();
+                updateOrderTotalInModal();
+                showModal(elements.orderEntryModal);
+            }
+        }
 
-        //     // Générer l'accordéon des catégories
-        //     generateCategoriesAccordion();
+        function openOrderEntryForPerson(personId) {
+            const person = appState.data.people.find(p => p.id === personId);
+            if (!person) return;
 
-        //     // Mettre à jour le total
-        //     updateOrderTotal();
+            appState.uiState.orderEntrySearch = '';
+            elements.orderEntrySearchInput.value = '';
 
-        //     // Afficher le modal
-        //     document.getElementById('orderEntryModal').classList.remove('hidden');
-        // }
-        // Update the openOrderEntry function for new orders
-        function openOrderEntry() {
-            // Reset the order entry state
-            orderEntryState.currentPersonId = null;
-            orderEntryState.tempOrders = {};
-            orderEntryState.originalOrders = {};
+            orderEntryState.currentPersonId = personId;
+            orderEntryState.tempOrders = JSON.parse(JSON.stringify(person.orders ? person.orders : {}));
+            orderEntryState.originalOrders = JSON.parse(JSON.stringify(person.orders ? person.orders : {}));
 
-            // Update the modal header
-            document.getElementById('orderPersonName').textContent = 'Nouvelle Commande';
-            document.getElementById('orderPersonId').textContent = '';
 
-            // Generate the categories accordion
+            elements.orderPersonNameDisplay.textContent = `Commande pour: ${person.name}`;
+            elements.orderPersonIdDisplay.textContent = `ID: ${personId}`;
+
             generateCategoriesAccordion();
-
-            // Update the total
-            updateOrderTotal();
-
-            // Show the modal
-            document.getElementById('orderEntryModal').classList.remove('hidden');
+            updateOrderTotalInModal();
+            showModal(elements.orderEntryModal);
         }
+
 
         function generateCategoriesAccordion() {
-            const accordion = document.getElementById('categoriesAccordion');
+            const accordion = elements.categoriesAccordion;
             accordion.innerHTML = '';
+            const searchTerm = appState.uiState.orderEntrySearch;
 
             appState.data.categories.forEach(category => {
                 const categoryDiv = document.createElement('div');
-                categoryDiv.className = 'category-accordion mb-4 border rounded-lg overflow-hidden';
+                categoryDiv.className = `category-accordion mb-2 border rounded-lg overflow-hidden shadow-sm ${categoryColors[category.id] || 'bg-gray-50'}`;
                 categoryDiv.setAttribute('data-category-id', category.id);
+                categoryDiv.style.display = 'block';
 
-                // Add category color class if defined
-                if (categoryColors && categoryColors[category.id]) {
-                    categoryDiv.classList.add(categoryColors[category.id]);
-                }
-
-                // Create category summary
-                const categorySummary = createCategorySummary(category);
-
-                // Create category header
                 const categoryHeader = document.createElement('div');
-                categoryHeader.className = 'category-header p-4 cursor-pointer flex justify-between items-center';
+                categoryHeader.className = 'category-header p-3 cursor-pointer flex justify-between items-center hover:bg-opacity-80 transition-colors';
                 categoryHeader.innerHTML = `
-            <div class="flex items-center gap-2 flex-grow">
-                <h3 class="font-semibold text-gray-800">${category.name}</h3>
-                <div class="category-summary">${categorySummary}</div>
-            </div>
-            <i class="fas fa-chevron-down"></i>
-        `;
+                    <div class="flex items-center gap-2 flex-grow">
+                        <h3 class="font-semibold text-gray-800 text-md">${category.name}</h3>
+                        <div class="category-summary-modal ml-2 text-xs"></div> </div>
+                    <i class="fas fa-chevron-down text-gray-600"></i>`;
+
+                const categoryContent = document.createElement('div');
+                categoryContent.className = 'category-content p-3 border-t bg-white hidden';
+
+                let categoryHasVisibleItems = false;
+
+                category.languages.forEach(language => {
+                    language.formats.forEach(format => {
+                        const orderKey = `${category.id}|${language.id}|${format.id || 'std'}`;
+                        const quantity = orderEntryState.tempOrders[orderKey] || 0;
+                        let formatDisplay = language.name;
+                        if (format.name && format.name.toLowerCase() !== 'std') formatDisplay += ` (${format.name})`;
+                        const itemSearchText = `${category.name} ${language.name} ${format.name || ''}`.toLowerCase();
+
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'flex items-center justify-between mb-1.5 p-1.5 border rounded-md hover:bg-gray-50';
+                        itemDiv.style.display = 'flex';
+
+                        if (searchTerm && !itemSearchText.includes(searchTerm)) {
+                            itemDiv.style.display = 'none';
+                        } else {
+                            categoryHasVisibleItems = true;
+                        }
+
+                        itemDiv.innerHTML = `
+                            <div class="flex-grow">
+                                <span class="font-medium text-sm">${formatDisplay}</span>
+                                <span class="text-gray-500 text-xs ml-2">${format.price.toLocaleString()} Ar</span>
+                            </div>
+                            <div class="flex items-center">
+                                <button type="button" class="quantity-btn minus bg-gray-200 hover:bg-gray-300 px-2 py-0.5 rounded-l text-sm h-7 w-7 flex items-center justify-center">-</button>
+                                <input type="number" class="quantity-input-modal w-10 text-center py-1 border-t border-b text-sm h-7 appearance-none" 
+                                       value="${quantity}" min="0" data-order-key="${orderKey}" data-price="${format.price}">
+                                <button type="button" class="quantity-btn plus bg-gray-200 hover:bg-gray-300 px-2 py-0.5 rounded-r text-sm h-7 w-7 flex items-center justify-center">+</button>
+                            </div>`;
+
+                        const minusBtn = itemDiv.querySelector('.minus');
+                        const plusBtn = itemDiv.querySelector('.plus');
+                        const input = itemDiv.querySelector('.quantity-input-modal');
+
+                        minusBtn.addEventListener('click', () => {
+                            let currentValue = parseInt(input.value) || 0;
+                            if (currentValue > 0) {
+                                input.value = --currentValue;
+                                updateTempOrderInModal(orderKey, currentValue, format.price);
+                            }
+                        });
+                        plusBtn.addEventListener('click', () => {
+                            let currentValue = parseInt(input.value) || 0;
+                            input.value = ++currentValue;
+                            updateTempOrderInModal(orderKey, currentValue, format.price);
+                        });
+                        input.addEventListener('change', () => {
+                            let value = parseInt(input.value) || 0;
+                            if (value < 0) value = 0;
+                            input.value = value;
+                            updateTempOrderInModal(orderKey, value, format.price);
+                        });
+                        categoryContent.appendChild(itemDiv);
+                    });
+                });
 
                 categoryHeader.addEventListener('click', () => {
-                    const content = categoryHeader.nextElementSibling;
-                    content.classList.toggle('hidden');
+                    categoryContent.classList.toggle('hidden');
                     const icon = categoryHeader.querySelector('i');
                     icon.classList.toggle('fa-chevron-down');
                     icon.classList.toggle('fa-chevron-up');
                 });
 
-                // Create category content
-                const categoryContent = document.createElement('div');
-                categoryContent.className = 'category-content p-4 border-t hidden';
-
-                // Create items for each language and format
-                category.languages.forEach(language => {
-                    language.formats.forEach(format => {
-                        const orderKey = `${category.id}|${language.id}|${format.id}`;
-                        const quantity = orderEntryState.tempOrders[orderKey] || 0;
-
-                        const itemDiv = document.createElement('div');
-                        itemDiv.className = 'flex items-center justify-between mb-3 p-2 border rounded';
-
-                        // Format name display
-                        let formatDisplay = language.name;
-                        if (format.name) {
-                            formatDisplay += ` (${format.name})`;
-                        }
-
-                        itemDiv.innerHTML = `
-                    <div>
-                        <span class="font-medium">${formatDisplay}</span>
-                        <span class="text-gray-600 text-sm ml-2">${format.price.toLocaleString()} Ar</span>
-                    </div>
-                    <div class="flex items-center">
-                        <button type="button" class="quantity-btn minus bg-gray-200 px-3 py-1 rounded-l">-</button>
-                        <input type="number" class="quantity-input w-16 text-center py-1 border-t border-b" 
-                               value="${quantity}" min="0" data-order-key="${orderKey}" data-price="${format.price}">
-                        <button type="button" class="quantity-btn plus bg-gray-200 px-3 py-1 rounded-r">+</button>
-                    </div>
-                `;
-
-                        // Add event listeners for quantity buttons
-                        const minusBtn = itemDiv.querySelector('.minus');
-                        const plusBtn = itemDiv.querySelector('.plus');
-                        const input = itemDiv.querySelector('.quantity-input');
-
-                        minusBtn.addEventListener('click', () => {
-                            const currentValue = parseInt(input.value) || 0;
-                            if (currentValue > 0) {
-                                input.value = currentValue - 1;
-                                updateTempOrder(orderKey, currentValue - 1);
-                                updateCategorySummaries();
-                            }
-                        });
-
-                        plusBtn.addEventListener('click', () => {
-                            const currentValue = parseInt(input.value) || 0;
-                            input.value = currentValue + 1;
-                            updateTempOrder(orderKey, currentValue + 1);
-                            updateCategorySummaries();
-                        });
-
-                        input.addEventListener('change', () => {
-                            const value = parseInt(input.value) || 0;
-                            input.value = value; // Normalize the input
-                            updateTempOrder(orderKey, value);
-                            updateCategorySummaries();
-                        });
-
-                        categoryContent.appendChild(itemDiv);
-                    });
-                });
-
                 categoryDiv.appendChild(categoryHeader);
                 categoryDiv.appendChild(categoryContent);
+
+                if (searchTerm && !categoryHasVisibleItems && !category.name.toLowerCase().includes(searchTerm)) {
+                    categoryDiv.style.display = 'none';
+                } else if (searchTerm && categoryHasVisibleItems && categoryContent.classList.contains('hidden')) {
+                    categoryContent.classList.remove('hidden');
+                    const icon = categoryHeader.querySelector('i');
+                    icon.classList.remove('fa-chevron-down');
+                    icon.classList.add('fa-chevron-up');
+                }
+
+
                 accordion.appendChild(categoryDiv);
             });
+            updateAllCategorySummariesInModal();
         }
 
-        // Function to create category summary
-        function createCategorySummary(category) {
-            const summary = [];
-            let totalQuantity = 0;
-
-            category.languages.forEach(language => {
-                language.formats.forEach(format => {
-                    const orderKey = `${category.id}|${language.id}|${format.id}`;
-                    const quantity = orderEntryState.tempOrders[orderKey] || 0;
-                    if (quantity > 0) {
-                        totalQuantity += quantity;
-                        const formatName = format.name ? ` ${format.name}` : '';
-                        summary.push(`${language.name}${formatName}: ${quantity}`);
-                    }
-                });
-            });
-
-            if (summary.length > 0) {
-                return `<span class="text-sm text-blue-600 ml-2">[${summary.join(' | ')}]</span>`;
-            }
-            return '';
+        function filterOrderEntryItems() {
+            generateCategoriesAccordion();
         }
 
-        // Update all category summaries
-        function updateCategorySummaries() {
-            appState.data.categories.forEach(category => {
-                const categoryHeader = document.querySelector(`[data-category-id="${category.id}"] .category-summary`);
-                if (categoryHeader) {
-                    const summary = [];
-                    let totalQuantity = 0;
 
-                    category.languages.forEach(language => {
-                        language.formats.forEach(format => {
-                            const orderKey = `${category.id}|${language.id}|${format.id}`;
-                            const quantity = orderEntryState.tempOrders[orderKey] || 0;
-                            if (quantity > 0) {
-                                totalQuantity += quantity;
-                                const formatName = format.name ? ` ${format.name}` : '';
-                                summary.push(`${language.name}${formatName}: ${quantity}`);
-                            }
-                        });
-                    });
-
-                    if (summary.length > 0) {
-                        categoryHeader.innerHTML = `<span class="text-sm text-blue-600 ml-2">[${summary.join(' | ')}]</span>`;
-                    } else {
-                        categoryHeader.innerHTML = '';
-                    }
-                }
-            });
-        }
-
-        // Function to update temporary orders
-        function updateTempOrder(orderKey, quantity) {
+        function updateTempOrderInModal(orderKey, quantity, price) {
             if (quantity > 0) {
                 orderEntryState.tempOrders[orderKey] = quantity;
             } else {
                 delete orderEntryState.tempOrders[orderKey];
             }
-            updateOrderTotal();
+            updateOrderTotalInModal();
+            updateAllCategorySummariesInModal();
         }
 
-        // Update the openOrderEntryForPerson function to properly populate quantities
-        function openOrderEntryForPerson(personId) {
-            const person = appState.data.people.find(p => p.id === personId);
-            if (!person) return;
-
-            // Set the current person ID in the order entry state
-            orderEntryState.currentPersonId = personId;
-
-            // Initialize temp orders with the person's existing orders
-            orderEntryState.tempOrders = {};
-            orderEntryState.originalOrders = {};
-
-            // Copy the person's orders to avoid reference issues
-            if (person.orders) {
-                Object.entries(person.orders).forEach(([key, value]) => {
-                    orderEntryState.tempOrders[key] = value;
-                    orderEntryState.originalOrders[key] = value;
-                });
-            }
-
-            // Update the modal header with the person's name
-            document.getElementById('orderPersonName').textContent = person.name;
-            document.getElementById('orderPersonId').textContent = `ID: ${personId}`;
-
-            // Generate the categories accordion
-            generateCategoriesAccordion();
-
-            // Update the total
-            updateOrderTotal();
-
-            // Show the modal
-            document.getElementById('orderEntryModal').classList.remove('hidden');
-        }
-
-        // Configuration des contrôles de quantité
-        function setupQuantityControls() {
-            const modal = document.getElementById('orderEntryModal');
-
-            // Gestionnaire pour les boutons + et -
-            modal.querySelectorAll('.quantity-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const key = e.target.dataset.key;
-                    const action = e.target.dataset.action;
-                    const delta = action === 'increase' ? 1 : -1;
-
-                    updateQuantity(key, delta);
-
-                    // Mettre à jour l'input correspondant
-                    const input = modal.querySelector(`.quantity-input[data-key="${key}"]`);
-                    if (input) {
-                        input.value = orderEntryState.tempOrders[key] || 0;
-                    }
-                });
-            });
-
-            // Gestionnaire pour les inputs
-            modal.querySelectorAll('.quantity-input').forEach(input => {
-                input.addEventListener('change', (e) => {
-                    const key = e.target.dataset.key;
-                    const value = parseInt(e.target.value) || 0;
-                    updateQuantity(key, null, value);
-                });
-            });
-        }
-
-        // Mettre à jour la quantité d'un article
-        function updateQuantity(orderKey, delta, value = null) {
-            let newQuantity;
-            if (value !== null) {
-                newQuantity = value;
-            } else {
-                newQuantity = (orderEntryState.tempOrders[orderKey] || 0) + delta;
-            }
-
-            if (newQuantity < 0) newQuantity = 0;
-
-            if (newQuantity === 0) {
-                delete orderEntryState.tempOrders[orderKey];
-            } else {
-                orderEntryState.tempOrders[orderKey] = newQuantity;
-            }
-
-            // Mettre à jour le total et les résumés
-            updateOrderTotal();
-            updateCategorySummaries();
-        }
-        // Export data to Excel
-        function exportToExcel() {
-            showLoading();
-
-            try {
-                const wb = XLSX.utils.book_new();
-                const ordersData = [];
-
-                // Get headers from table
-                const headerData = [];
-
-                // First row: Selection and Name columns
-                headerData.push(['Sélection', 'Nom']);
-
-                // Add empty cells to match the category header span
-                appState.data.categories.forEach(category => {
-                    const languageCount = category.languages.reduce((acc, lang) =>
-                        acc + lang.formats.length, 0);
-                    // Fill with empty cells for the category span
-                    for (let i = 0; i < languageCount; i++) {
-                        headerData[0].push(category.name);
-                    }
-                });
-                headerData[0].push('Total'); // Add Total column
-
-                // Second row: Language headers
-                const languageRow = ['', '']; // Empty cells for Selection and Name
-                appState.data.categories.forEach(category => {
-                    category.languages.forEach(language => {
-                        const formatCount = language.formats.length;
-                        // Repeat language name for each format
-                        for (let i = 0; i < formatCount; i++) {
-                            languageRow.push(language.name);
-                        }
-                    });
-                });
-                languageRow.push(''); // Empty cell for Total
-                headerData.push(languageRow);
-
-                // Third row: Format headers
-                const formatRow = ['', '']; // Empty cells for Selection and Name
-                appState.data.categories.forEach(category => {
-                    category.languages.forEach(language => {
-                        language.formats.forEach(format => {
-                            formatRow.push(format.name || 'Standard');
-                        });
-                    });
-                });
-                formatRow.push(''); // Empty cell for Total
-                headerData.push(formatRow);
-
-                // Add headers to ordersData
-                ordersData.push(...headerData);
-
-                // Initialize column totals and price mapping
-                const columnTotals = {};
-                const columnPrices = {};
-                let grandTotal = 0;
-
-                // Create price mapping for each product
-                appState.data.categories.forEach(category => {
-                    category.languages.forEach(language => {
-                        language.formats.forEach(format => {
-                            const orderKey = `${category.id}|${language.id}|${format.id}`;
-                            columnTotals[orderKey] = 0;
-                            columnPrices[orderKey] = format.price;
-                        });
-                    });
-                });
-
-                // Add data rows
-                appState.data.people.forEach(person => {
-                    const row = ['', person.name]; // Empty cell for Selection
-                    let rowTotal = 0;
-
-                    // Add quantities for each category/language/format combination
-                    appState.data.categories.forEach(category => {
-                        category.languages.forEach(language => {
-                            language.formats.forEach(format => {
-                                const orderKey = `${category.id}|${language.id}|${format.id}`;
-                                const quantity = person.orders?.[orderKey] || 0;
-                                rowTotal += quantity * format.price;
-                                columnTotals[orderKey] += quantity;
-                                row.push(quantity);
-                            });
-                        });
-                    });
-
-                    row.push(rowTotal.toLocaleString() + ' Ar'); // Add row total with currency
-                    grandTotal += rowTotal;
-                    ordersData.push(row);
-                });
-
-                // Add quantity totals row
-                const quantityTotalsRow = ['', 'Total Quantités'];
-                let columnIndex = 2; // Start after Selection and Name columns
-
-                appState.data.categories.forEach(category => {
-                    category.languages.forEach(language => {
-                        language.formats.forEach(format => {
-                            const orderKey = `${category.id}|${language.id}|${format.id}`;
-                            quantityTotalsRow.push(columnTotals[orderKey]);
-                            columnIndex++;
-                        });
-                    });
-                });
-                quantityTotalsRow.push(''); // Empty cell for the total column
-                ordersData.push(quantityTotalsRow);
-
-                // Add price totals row
-                const priceTotalsRow = ['', 'Total Prix'];
-                columnIndex = 2; // Reset column index
-                let totalPriceSum = 0;
-
-                appState.data.categories.forEach(category => {
-                    category.languages.forEach(language => {
-                        language.formats.forEach(format => {
-                            const orderKey = `${category.id}|${language.id}|${format.id}`;
-                            const totalPrice = columnTotals[orderKey] * format.price;
-                            totalPriceSum += totalPrice;
-                            priceTotalsRow.push(totalPrice.toLocaleString() + ' Ar');
-                            columnIndex++;
-                        });
-                    });
-                });
-                priceTotalsRow.push(grandTotal.toLocaleString() + ' Ar'); // Grand total with currency
-                ordersData.push(priceTotalsRow);
-
-                // Create worksheet
-                const ws = XLSX.utils.aoa_to_sheet(ordersData);
-
-                // Set column widths
-                const colWidths = [];
-                ordersData[0].forEach((_, idx) => {
-                    colWidths.push({ wch: idx === 1 ? 30 : 15 }); // Name column wider
-                });
-                ws['!cols'] = colWidths;
-
-                // Merge cells for category headers
-                const merges = [];
-                let colIndex = 2; // Start after Selection and Name columns
-                appState.data.categories.forEach(category => {
-                    const languageCount = category.languages.reduce((acc, lang) =>
-                        acc + lang.formats.length, 0);
-                    merges.push({
-                        s: { r: 0, c: colIndex },
-                        e: { r: 0, c: colIndex + languageCount - 1 }
-                    });
-                    colIndex += languageCount;
-                });
-                ws['!merges'] = merges;
-
-                // Style the totals rows
-                const lastRowIndex = ordersData.length - 1;
-                const quantityRowIndex = lastRowIndex - 1;
-
-                // Style for all cells in the totals rows
-                for (let col = 0; col < ordersData[0].length; col++) {
-                    // Style quantity totals row
-                    const qtyCell = XLSX.utils.encode_cell({ r: quantityRowIndex, c: col });
-                    if (!ws[qtyCell]) ws[qtyCell] = {};
-                    ws[qtyCell].s = {
-                        font: { bold: true },
-                        fill: { fgColor: { rgb: "E5E7EB" } },
-                        alignment: { horizontal: "center" }
-                    };
-
-                    // Style price totals row
-                    const priceCell = XLSX.utils.encode_cell({ r: lastRowIndex, c: col });
-                    if (!ws[priceCell]) ws[priceCell] = {};
-                    ws[priceCell].s = {
-                        font: { bold: true },
-                        fill: { fgColor: { rgb: "D1FAE5" } }, // Light green for price row
-                        alignment: { horizontal: "center" }
-                    };
-                }
-
-                // Add worksheet to workbook
-                XLSX.utils.book_append_sheet(wb, ws, "Commandes");
-
-                // Generate Excel file
-                const fileName = `commandes_lesona_${new Date().toISOString().slice(0, 10)}.xlsx`;
-                XLSX.writeFile(wb, fileName);
-
-                showToast('Export Excel réussi');
-            } catch (error) {
-                console.error('Error exporting to Excel:', error);
-                showToast('Erreur lors de l\'export Excel', 'error');
-            }
-        }
-
-        // Render mobile-friendly cards
-        function renderMobileCards() {
-            const mobileViewContainer = document.getElementById('mobileCardView') || createMobileViewContainer();
-            mobileViewContainer.innerHTML = '';
-
-            if (appState.data.people.length === 0) {
-                const emptyMessage = document.createElement('div');
-                emptyMessage.className = 'text-center py-8 text-gray-500 italic';
-                emptyMessage.textContent = 'No people added yet. Click "Add Person" to get started.';
-                mobileViewContainer.appendChild(emptyMessage);
-                return;
-            }
-
-            // Create cards for each person
-            appState.data.people.forEach(person => {
-                const personCard = document.createElement('div');
-                personCard.className = 'person-card';
-                personCard.dataset.personId = person.id;
-
-                // Person header with name, checkbox and total
-                const personHeader = document.createElement('div');
-                personHeader.className = 'person-header';
-
-                const personName = document.createElement('div');
-                personName.className = 'person-name';
-
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.className = 'person-checkbox';
-                checkbox.dataset.personId = person.id;
-                personName.appendChild(checkbox);
-
-                // Make name clickable like in desktop view
-                const nameLink = document.createElement('a');
-                nameLink.href = '#';
-                nameLink.className = 'text-blue-600 hover:text-blue-800 font-medium';
-                nameLink.textContent = person.name;
-                nameLink.onclick = function (e) {
-                    e.preventDefault();
-                    openOrderEntryForPerson(person.id);
-                };
-                personName.appendChild(nameLink);
-
-                personHeader.appendChild(personName);
-
-                // Person actions
-                const personActions = document.createElement('div');
-                personActions.className = 'person-actions';
-                personActions.innerHTML = `
-            <button class="text-blue-600 hover:text-blue-800" onclick="editPerson('${person.id}')">
-                <i class="fas fa-edit"></i>
-            </button>
-            <button class="text-red-600 hover:text-red-800" onclick="deletePerson('${person.id}')">
-                <i class="fas fa-trash"></i>
-            </button>
-        `;
-                personHeader.appendChild(personActions);
-
-                personCard.appendChild(personHeader);
-
-                // Calculate person total
-                let personTotal = 0;
-
-                // Group orders by category
-                const ordersByCategory = {};
-
-                // Process all orders
-                for (const [key, quantity] of Object.entries(person.orders || {})) {
-                    if (quantity > 0) {
-                        const [categoryId, languageId, formatId] = key.split('|');
-                        const category = appState.data.categories.find(c => c.id === categoryId);
-                        if (!category) continue;
-
-                        const language = category.languages.find(l => l.id === languageId);
-                        if (!language) continue;
-
-                        const format = language.formats.find(f => f.id === formatId);
-                        if (!format) continue;
-
-                        const itemTotal = quantity * format.price;
-                        personTotal += itemTotal;
-
-                        if (!ordersByCategory[category.name]) {
-                            ordersByCategory[category.name] = [];
-                        }
-
-                        ordersByCategory[category.name].push({
-                            language: language.name,
-                            format: format.name || 'Standard',
-                            quantity,
-                            price: format.price,
-                            total: itemTotal
-                        });
-                    }
-                }
-
-                // Add person total
-                const personTotalDiv = document.createElement('div');
-                personTotalDiv.className = 'person-total';
-                personTotalDiv.textContent = `${personTotal.toLocaleString()} Ar`;
-                personHeader.appendChild(personTotalDiv);
-
-                // Add order items grouped by category
-                const orderItems = document.createElement('div');
-                orderItems.className = 'order-items';
-
-                for (const [categoryName, items] of Object.entries(ordersByCategory)) {
-                    const categoryDiv = document.createElement('div');
-                    categoryDiv.className = 'order-category';
-
-                    const categoryNameDiv = document.createElement('div');
-                    categoryNameDiv.className = 'category-name';
-                    categoryNameDiv.textContent = categoryName;
-                    categoryDiv.appendChild(categoryNameDiv);
-
-                    items.forEach(item => {
-                        const orderItem = document.createElement('div');
-                        orderItem.className = 'order-item';
-
-                        const itemDetails = document.createElement('div');
-                        itemDetails.className = 'item-details';
-
-                        const itemLanguage = document.createElement('div');
-                        itemLanguage.className = 'item-language';
-                        itemLanguage.textContent = item.language;
-                        itemDetails.appendChild(itemLanguage);
-
-                        if (item.format !== 'Standard') {
-                            const itemFormat = document.createElement('div');
-                            itemFormat.className = 'item-format';
-                            itemFormat.textContent = item.format;
-                            itemDetails.appendChild(itemFormat);
-                        }
-
-                        orderItem.appendChild(itemDetails);
-
-                        const itemQuantity = document.createElement('div');
-                        itemQuantity.className = 'item-quantity';
-                        itemQuantity.textContent = `${item.quantity} × ${item.price.toLocaleString()} Ar`;
-                        orderItem.appendChild(itemQuantity);
-
-                        categoryDiv.appendChild(orderItem);
-                    });
-
-                    orderItems.appendChild(categoryDiv);
-                }
-
-                personCard.appendChild(orderItems);
-                mobileViewContainer.appendChild(personCard);
-            });
-
-            // Add totals card
-            const totalsCard = document.createElement('div');
-            totalsCard.className = 'totals-card';
-
-            const totalsHeader = document.createElement('div');
-            totalsHeader.className = 'totals-header';
-            totalsHeader.innerHTML = `
-        <div>GRAND TOTAL</div>
-        <div>${calculateGrandTotal().toLocaleString()} Ar</div>
-    `;
-            totalsCard.appendChild(totalsHeader);
-
-            mobileViewContainer.appendChild(totalsCard);
-        }
-        // Helper function to create the mobile view container if it doesn't exist
-        function createMobileViewContainer() {
-            const container = document.createElement('div');
-            container.id = 'mobileCardView';
-            container.className = 'mobile-card-view';
-
-            // Insert after the table
-            const tableContainer = document.querySelector('.responsive-table');
-            tableContainer.parentNode.insertBefore(container, tableContainer.nextSibling);
-
-            return container;
-        }
-
-        // Helper function to calculate grand total
-        function calculateGrandTotal() {
-            let grandTotal = 0;
-
-            appState.data.people.forEach(person => {
-                for (const [key, quantity] of Object.entries(person.orders || {})) {
-                    if (quantity > 0) {
-                        const [categoryId, languageId, formatId] = key.split('|');
-                        const category = appState.data.categories.find(c => c.id === categoryId);
-                        if (!category) continue;
-
-                        const language = category.languages.find(l => l.id === languageId);
-                        if (!language) continue;
-
-                        const format = language.formats.find(f => f.id === formatId);
-                        if (!format) continue;
-
-                        grandTotal += quantity * format.price;
-                    }
-                }
-            });
-
-            return grandTotal;
-        }
-
-        // Add event listener for the Excel export button
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
-        });
-
-        // Add event listener for the Excel export button
-        document.addEventListener('DOMContentLoaded', () => {
-            // Add this to your existing event listeners
-            document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
-        });
-
-        // Update the order total
-        function updateOrderTotal() {
+        function updateOrderTotalInModal() {
             let total = 0;
-
             Object.entries(orderEntryState.tempOrders).forEach(([orderKey, quantity]) => {
-                const [categoryId, languageId, formatId] = orderKey.split('|');
+                const [categoryId, languageId, formatId = 'std'] = orderKey.split('|');
                 const category = appState.data.categories.find(c => c.id === categoryId);
                 if (category) {
                     const language = category.languages.find(l => l.id === languageId);
                     if (language) {
                         const format = language.formats.find(f => f.id === formatId);
-                        if (format) {
+                        if (format && typeof format.price === 'number') {
                             total += quantity * format.price;
                         }
                     }
                 }
             });
-
-            // Use orderTotalRecap instead of orderTotal
-            document.getElementById('orderTotalRecap').textContent = `Total: ${total.toLocaleString()} Ar`;
+            elements.orderTotalRecap.textContent = `Total: ${total.toLocaleString()} Ar`;
         }
 
-        // Initialiser les gestionnaires d'événements
-        document.addEventListener('DOMContentLoaded', () => {
-            // Gestionnaire pour le bouton Annuler
-            document.getElementById('cancelOrderEntry').addEventListener('click', () => {
-                document.getElementById('orderEntryModal').classList.add('hidden');
-                orderEntryState.tempOrders = {};
-                orderEntryState.currentPersonId = null;
-            });
+        function updateAllCategorySummariesInModal() {
+            appState.data.categories.forEach(category => {
+                const categoryElement = elements.categoriesAccordion.querySelector(`.category-accordion[data-category-id="${category.id}"]`);
+                if (!categoryElement) return;
+                const summaryContainer = categoryElement.querySelector('.category-summary-modal');
+                if (!summaryContainer) return;
 
-            // Gestionnaire pour le bouton Valider
-            document.getElementById('confirmOrderEntry').addEventListener('click', () => {
-                // Vérifier s'il y a des articles dans la commande
-                if (Object.keys(orderEntryState.tempOrders).length === 0) {
-                    showToast('Veuillez sélectionner au moins un article', 'error');
-                    return;
-                }
+                const summaryParts = [];
+                let totalItemsInCategory = 0;
 
-                // Si nous modifions une commande existante
-                if (orderEntryState.currentPersonId) {
-                    const person = appState.data.people.find(p => p.id === orderEntryState.currentPersonId);
-                    if (person) {
-                        person.orders = { ...orderEntryState.tempOrders };
-                    }
+                category.languages.forEach(language => {
+                    language.formats.forEach(format => {
+                        const orderKey = `${category.id}|${language.id}|${format.id || 'std'}`;
+                        const quantity = orderEntryState.tempOrders[orderKey] || 0;
+                        if (quantity > 0) {
+                            totalItemsInCategory += quantity;
+                            const formatName = (format.name && format.name.toLowerCase() !== 'std') ? ` ${format.name}` : '';
+                            summaryParts.push(`${language.name}${formatName}: ${quantity}`);
+                        }
+                    });
+                });
+
+                if (summaryParts.length > 0) {
+                    summaryContainer.innerHTML = `<span class="bg-blue-100 text-blue-700 text-xs font-medium px-1.5 py-0.5 rounded-full">${summaryParts.join(', ')} (${totalItemsInCategory})</span>`;
                 } else {
-                    // Créer une nouvelle personne avec la commande
-                    const newPerson = {
-                        id: generateUniqueId(),
-                        name: prompt('Entrez le nom de la personne:', ''),
-                        orders: { ...orderEntryState.tempOrders }
-                    };
-
-                    // Vérifier si un nom a été entré
-                    if (!newPerson.name) {
-                        showToast('Le nom de la personne est requis', 'error');
-                        return;
-                    }
-
-                    // Ajouter la nouvelle personne à l'état de l'application
-                    appState.data.people.push(newPerson);
+                    summaryContainer.innerHTML = '';
                 }
-
-                // Sauvegarder les modifications
-                saveData();
-
-                // Mettre à jour l'affichage
-                renderTable();
-
-                // Fermer le modal
-                document.getElementById('orderEntryModal').classList.add('hidden');
-
-                // Réinitialiser l'état
-                orderEntryState.tempOrders = {};
-                orderEntryState.currentPersonId = null;
-
-                // Afficher une confirmation
-                showToast('Commande enregistrée avec succès');
             });
-        });
+        }
 
-        // Update the confirmOrderEntry event listener
+
         function setupOrderValidation() {
-            const confirmButton = document.getElementById('confirmOrderEntry');
-            const cancelButton = document.getElementById('cancelOrderEntry');
-
-            confirmButton.addEventListener('click', () => {
-                // Check if there are items in the order
-                if (Object.keys(orderEntryState.tempOrders).length === 0) {
-                    showToast('Veuillez sélectionner au moins un article', 'error');
+            elements.confirmOrderEntry.addEventListener('click', () => {
+                if (!orderEntryState.currentPersonId && Object.keys(orderEntryState.tempOrders).length === 0) {
+                    showToast('Veuillez ajouter des articles à la commande.', 'warning');
                     return;
                 }
 
-                // If we're editing an existing person's order
+
                 if (orderEntryState.currentPersonId) {
                     const person = appState.data.people.find(p => p.id === orderEntryState.currentPersonId);
                     if (person) {
-                        person.orders = { ...orderEntryState.tempOrders };
-                        showToast(`Commande de ${person.name} mise à jour avec succès`);
+                        person.orders = JSON.parse(JSON.stringify(orderEntryState.tempOrders));
+                        showToast(`Commande de ${person.name} mise à jour.`);
                     }
                 } else {
-                    // Create a new person with the order
-                    const personName = prompt('Entrez le nom de la personne:', '');
-
-                    // Check if a name was entered
+                    const personName = prompt('Entrez le nom de la personne pour cette nouvelle commande:', '');
                     if (!personName || personName.trim() === '') {
-                        showToast('Le nom de la personne est requis', 'error');
+                        showToast('Le nom de la personne est requis pour une nouvelle commande.', 'error');
                         return;
                     }
-
                     const newPerson = {
                         id: generateUniqueId(),
                         name: personName.trim(),
-                        orders: { ...orderEntryState.tempOrders }
+                        orders: JSON.parse(JSON.stringify(orderEntryState.tempOrders))
                     };
-
-                    // Add the new person to the application state
                     appState.data.people.push(newPerson);
-                    showToast(`Commande pour ${personName} ajoutée avec succès`);
+                    showToast(`Nouvelle commande pour ${personName} ajoutée.`);
                 }
-
-                // Update the display
-                renderTable();
-
-                // Save data
                 saveData();
+                renderTable();
+                hideModal(elements.orderEntryModal);
 
-                // Close the modal
-                document.getElementById('orderEntryModal').classList.add('hidden');
-
-                // Reset the order entry state
                 orderEntryState.currentPersonId = null;
                 orderEntryState.tempOrders = {};
                 orderEntryState.originalOrders = {};
             });
 
-            cancelButton.addEventListener('click', () => {
-                // Close the modal without saving changes
-                document.getElementById('orderEntryModal').classList.add('hidden');
+            elements.cancelOrderEntry.addEventListener('click', () => {
+                hideModal(elements.orderEntryModal);
 
-                // Reset the order entry state
                 orderEntryState.currentPersonId = null;
                 orderEntryState.tempOrders = {};
                 orderEntryState.originalOrders = {};
             });
         }
 
-        // Fonction utilitaire pour générer un ID unique
         function generateUniqueId() {
-            return 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            return 'p_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
         }
 
-        // Mettre à jour tous les résumés de catégories
-        function updateCategorySummaries() {
-            appState.data.categories.forEach(category => {
-                const categoryHeader = document.querySelector(`[data-category-id="${category.id}"] .category-summary`);
-                if (categoryHeader) {
-                    const summary = [];
-                    let totalQuantity = 0;
+        function exportToExcel() {
+            showLoading();
+            try {
+                const wb = XLSX.utils.book_new();
+                const ordersData = [];
+                const headerRows = [[], [], [], []];
 
+                headerRows[0].push('Personne'); headerRows[1].push(''); headerRows[2].push(''); headerRows[3].push('');
+
+                let currentCatCol = 1;
+                appState.data.categories.forEach(category => {
+                    const catColSpan = countColumnsForCategory(category);
+                    headerRows[0][currentCatCol] = category.name;
+                    for (let i = 1; i < catColSpan; i++) headerRows[0][currentCatCol + i] = "";
+
+                    let currentLangCol = currentCatCol;
                     category.languages.forEach(language => {
-                        language.formats.forEach(format => {
-                            const orderKey = `${category.id}|${language.id}|${format.id}`;
-                            const quantity = orderEntryState.tempOrders[orderKey] || 0;
-                            if (quantity > 0) {
-                                totalQuantity += quantity;
-                                const formatName = format.name ? ` ${format.name}` : '';
-                                summary.push(`${language.name}${formatName}: ${quantity}`);
+                        const langColSpan = countColumnsForLanguage(language);
+                        headerRows[1][currentLangCol] = language.name;
+                        for (let i = 1; i < langColSpan; i++) headerRows[1][currentLangCol + i] = "";
+
+                        let currentFormatCol = currentLangCol;
+                        if (language.formats.length === 0) {
+                            headerRows[2][currentFormatCol] = '-';
+                            headerRows[3][currentFormatCol] = '-';
+                            currentFormatCol++;
+                        } else {
+                            language.formats.forEach(format => {
+                                headerRows[2][currentFormatCol] = format.name || 'Std';
+                                headerRows[3][currentFormatCol] = format.price;
+                                currentFormatCol++;
+                            });
+                        }
+                        currentLangCol += langColSpan;
+                    });
+                    currentCatCol += catColSpan;
+                });
+
+                headerRows[0].push('Total Commande'); headerRows[1].push(''); headerRows[2].push(''); headerRows[3].push('');
+                ordersData.push(...headerRows);
+
+                const merges = [];
+                merges.push({ s: { r: 0, c: 0 }, e: { r: 3, c: 0 } });
+                merges.push({ s: { r: 0, c: headerRows[0].length - 1 }, e: { r: 3, c: headerRows[0].length - 1 } });
+
+                currentCatCol = 1;
+                appState.data.categories.forEach(category => {
+                    const catColSpan = countColumnsForCategory(category);
+                    if (catColSpan > 1) merges.push({ s: { r: 0, c: currentCatCol }, e: { r: 0, c: currentCatCol + catColSpan - 1 } });
+
+                    let currentLangCol = currentCatCol;
+                    category.languages.forEach(language => {
+                        const langColSpan = countColumnsForLanguage(language);
+                        if (langColSpan > 1) merges.push({ s: { r: 1, c: currentLangCol }, e: { r: 1, c: currentLangCol + langColSpan - 1 } });
+                        currentLangCol += langColSpan;
+                    });
+                    currentCatCol += catColSpan;
+                });
+
+                let grandTotalOverall = 0;
+                const columnQuantityTotals = {};
+                const columnPriceTotals = {};
+
+                appState.data.people.forEach(person => {
+                    const row = [person.name];
+                    let personTotal = 0;
+                    appState.data.categories.forEach(category => {
+                        category.languages.forEach(language => {
+                            if (language.formats.length === 0) {
+                                row.push(0);
+                                const key = `${category.id}|${language.id}|no_format_placeholder`;
+                                columnQuantityTotals[key] = (columnQuantityTotals[key] || 0);
+                                columnPriceTotals[key] = (columnPriceTotals[key] || 0);
+                                return;
                             }
+                            language.formats.forEach(format => {
+                                const key = `${category.id}|${language.id}|${format.id || 'std'}`;
+                                const quantity = person.orders?.[key] || 0;
+                                row.push(quantity);
+                                if (quantity > 0 && format.price) {
+                                    const itemTotal = quantity * format.price;
+                                    personTotal += itemTotal;
+                                    columnQuantityTotals[key] = (columnQuantityTotals[key] || 0) + quantity;
+                                    columnPriceTotals[key] = (columnPriceTotals[key] || 0) + itemTotal;
+                                } else {
+                                    columnQuantityTotals[key] = (columnQuantityTotals[key] || 0);
+                                    columnPriceTotals[key] = (columnPriceTotals[key] || 0);
+                                }
+                            });
                         });
                     });
+                    row.push(personTotal);
+                    grandTotalOverall += personTotal;
+                    ordersData.push(row);
+                });
 
-                    if (summary.length > 0) {
-                        categoryHeader.innerHTML = `
-                    <span class="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full ml-3">
-                        ${summary.join(' | ')}
-                        <span class="ml-2 font-bold">(Total: ${totalQuantity})</span>
-                    </span>`;
-                    } else {
-                        categoryHeader.innerHTML = '';
+                const quantityTotalsRow = ['TOTAL Quantités'];
+                const priceTotalsRow = ['TOTAL Prix (Ar)'];
+
+                appState.data.categories.forEach(c => c.languages.forEach(l => {
+                    if (l.formats.length === 0) {
+                        quantityTotalsRow.push(0);
+                        priceTotalsRow.push(0);
+                        return;
+                    }
+                    l.formats.forEach(f => {
+                        const key = `${c.id}|${l.id}|${f.id || 'std'}`;
+                        quantityTotalsRow.push(columnQuantityTotals[key] || 0);
+                        priceTotalsRow.push(columnPriceTotals[key] || 0);
+                    })
+                }));
+                quantityTotalsRow.push('');
+                priceTotalsRow.push(grandTotalOverall);
+
+                ordersData.push(quantityTotalsRow);
+                ordersData.push(priceTotalsRow);
+
+                const ws = XLSX.utils.aoa_to_sheet(ordersData);
+                ws['!merges'] = merges;
+
+                for (let R = 0; R < 4; ++R) {
+                    for (let C = 0; C < headerRows[R].length; ++C) {
+                        const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                        if (ws[cellAddress]) ws[cellAddress].s = { font: { bold: true }, alignment: { horizontal: "center", vertical: "center" }, fill: { fgColor: { rgb: "FFFDE7AA" } } };
+                    }
+                }
+                const dataStartRow = 4;
+                const totalQtyRowIndex = dataStartRow + appState.data.people.length;
+                const totalPriceRowIndex = totalQtyRowIndex + 1;
+
+                for (let R = dataStartRow; R <= totalPriceRowIndex; ++R) {
+                    for (let C = 0; C < ordersData[R].length; ++C) {
+                        const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                        if (!ws[cellAddress]) continue;
+
+                        if (R === totalQtyRowIndex || R === totalPriceRowIndex) {
+                            ws[cellAddress].s = { font: { bold: true }, fill: { fgColor: { rgb: "FFE0E0E0" } } };
+                        }
+
+                        if (C > 0 && typeof ws[cellAddress].v === 'number') {
+                            ws[cellAddress].t = 'n';
+                            if (R === totalPriceRowIndex || (C === ordersData[R].length - 1 && R < totalQtyRowIndex)) {
+                                ws[cellAddress].z = '#,##0 "Ar"';
+                            } else {
+                                ws[cellAddress].z = '#,##0';
+                            }
+                        }
+                    }
+                }
+
+
+                const colWidths = [{ wch: 25 }];
+                for (let i = 1; i < headerRows[3].length; i++) {
+                    colWidths.push({ wch: (headerRows[2][i]?.length || 5) + 2 });
+                }
+                colWidths.push({ wch: 15 });
+                ws['!cols'] = colWidths;
+
+                XLSX.utils.book_append_sheet(wb, ws, "Commandes Lesona");
+                const fileName = `commandes_lesona_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                showToast('Export Excel réussi');
+
+            } catch (error) {
+                console.error('Error exporting to Excel:', error);
+                showToast('Erreur lors de l\'export Excel: ' + error.message, 'error');
+            }
+            hideLoading();
+        }
+
+        function renderMobileCards() {
+            const mobileViewContainer = elements.mobileCardView || createMobileViewContainer();
+            mobileViewContainer.innerHTML = '';
+            const searchTerm = appState.uiState.mainTableSearch;
+            const filteredPeople = appState.data.people.filter(person =>
+                person.name.toLowerCase().includes(searchTerm)
+            );
+
+
+            if (filteredPeople.length === 0) {
+                mobileViewContainer.innerHTML = `<p class="text-center py-8 text-gray-500 italic">${searchTerm ? 'Aucun résultat trouvé.' : 'Aucune personne ajoutée.'}</p>`;
+                return;
+            }
+
+            filteredPeople.forEach(person => {
+                const personCard = document.createElement('div');
+                personCard.className = 'person-card bg-white rounded-lg shadow-md mb-4 p-3';
+                personCard.dataset.personId = person.id;
+
+                const personHeader = document.createElement('div');
+                personHeader.className = 'person-header flex justify-between items-center pb-2 mb-2 border-b';
+
+                const personNameDiv = document.createElement('div');
+                personNameDiv.className = 'person-name flex items-center';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'person-checkbox h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-2.5';
+                checkbox.dataset.personId = person.id;
+
+                const tableCheckboxState = elements.tableBody.querySelector(`.person-checkbox[data-person-id="${person.id}"]`)?.checked;
+                if (tableCheckboxState !== undefined) checkbox.checked = tableCheckboxState;
+
+                checkbox.addEventListener('change', (e) => {
+                    const tableCheckbox = elements.tableBody.querySelector(`.person-checkbox[data-person-id="${person.id}"]`);
+                    if (tableCheckbox) tableCheckbox.checked = e.target.checked;
+                });
+
+                personNameDiv.appendChild(checkbox);
+
+                const nameLink = document.createElement('a');
+                nameLink.href = '#';
+                nameLink.className = 'text-md font-semibold text-blue-600 hover:underline';
+                nameLink.textContent = person.name;
+                nameLink.onclick = (e) => { e.preventDefault(); openOrderEntryForPerson(person.id); };
+                personNameDiv.appendChild(nameLink);
+                personHeader.appendChild(personNameDiv);
+
+                const personActions = document.createElement('div');
+                personActions.className = 'person-actions flex items-center gap-1.5';
+                personActions.innerHTML = `
+                    <button class="text-gray-500 hover:text-blue-700 p-1 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded-full" onclick="editPerson('${person.id}')" title="Modifier">
+                        <i class="fas fa-edit fa-sm"></i>
+                    </button>
+                    <button class="text-gray-500 hover:text-red-700 p-1 focus:outline-none focus:ring-1 focus:ring-red-500 rounded-full" onclick="deletePerson('${person.id}')" title="Supprimer">
+                        <i class="fas fa-trash fa-sm"></i>
+                    </button>`;
+                personHeader.appendChild(personActions);
+                personCard.appendChild(personHeader);
+
+                let personTotal = 0;
+                const ordersByCategory = {};
+
+                for (const [key, quantity] of Object.entries(person.orders || {})) {
+                    if (quantity > 0) {
+                        const [categoryId, languageId, formatId = 'std'] = key.split('|');
+                        const category = appState.data.categories.find(c => c.id === categoryId);
+                        if (!category) continue;
+                        const language = category.languages.find(l => l.id === languageId);
+                        if (!language) continue;
+                        const format = language.formats.find(f => f.id === formatId);
+                        if (!format || typeof format.price !== 'number') continue;
+
+                        const itemTotal = quantity * format.price;
+                        personTotal += itemTotal;
+
+                        if (!ordersByCategory[category.name]) ordersByCategory[category.name] = [];
+                        ordersByCategory[category.name].push({
+                            language: language.name,
+                            format: format.name || 'Standard',
+                            quantity, price: format.price, total: itemTotal
+                        });
+                    }
+                }
+
+                const orderItemsContainer = document.createElement('div');
+                orderItemsContainer.className = 'order-items space-y-1.5';
+
+                if (Object.keys(ordersByCategory).length > 0) {
+                    for (const [categoryName, items] of Object.entries(ordersByCategory)) {
+                        const categoryDiv = document.createElement('div');
+                        categoryDiv.className = 'order-category mb-1.5';
+                        const categoryNameDiv = document.createElement('div');
+                        categoryNameDiv.className = 'category-name text-xs font-medium text-gray-700 mb-0.5';
+                        categoryNameDiv.textContent = categoryName;
+                        categoryDiv.appendChild(categoryNameDiv);
+
+                        items.forEach(item => {
+                            const orderItemDiv = document.createElement('div');
+                            orderItemDiv.className = 'order-item flex justify-between items-center text-xs py-0.5 border-b border-dashed border-gray-200';
+                            orderItemDiv.innerHTML = `
+                                <span class="item-details text-gray-600">${item.language}${item.format !== 'Standard' ? ` (${item.format})` : ''}</span>
+                                <span class="item-quantity text-gray-800">${item.quantity} × ${item.price.toLocaleString()} Ar</span>`;
+                            categoryDiv.appendChild(orderItemDiv);
+                        });
+                        orderItemsContainer.appendChild(categoryDiv);
+                    }
+                } else {
+                    orderItemsContainer.innerHTML = '<p class="text-xs text-gray-500 italic">Aucun article commandé.</p>';
+                }
+                personCard.appendChild(orderItemsContainer);
+
+                const personTotalDiv = document.createElement('div');
+                personTotalDiv.className = 'person-total-card text-right font-semibold text-sm text-gray-800 mt-2 pt-1.5 border-t';
+                personTotalDiv.textContent = `Total: ${personTotal.toLocaleString()} Ar`;
+                personCard.appendChild(personTotalDiv);
+
+                mobileViewContainer.appendChild(personCard);
+            });
+
+            const grandTotalCard = document.createElement('div');
+            grandTotalCard.className = 'totals-card bg-gray-100 rounded-lg shadow-md p-3 mt-4';
+            const grandTotalValue = calculateGrandTotal(filteredPeople);
+            grandTotalCard.innerHTML = `
+                <div class="totals-header flex justify-between items-center">
+                    <span class="text-md font-bold text-gray-800">TOTAL GÉNÉRAL:</span>
+                    <span class="text-md font-bold text-blue-600">${grandTotalValue.toLocaleString()} Ar</span>
+                </div>`;
+            mobileViewContainer.appendChild(grandTotalCard);
+        }
+
+        function createMobileViewContainer() {
+            let container = document.getElementById('mobileCardView');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'mobileCardView';
+                container.className = 'mobile-card-view md:hidden p-2';
+                const tableContainer = document.querySelector('.responsive-table-container');
+                if (tableContainer && tableContainer.parentNode) {
+                    tableContainer.parentNode.insertBefore(container, tableContainer.nextSibling);
+                } else {
+                    const mainDiv = document.querySelector('.mx-auto.px-2.sm\\:px-4.py-4.max-w-full div.bg-white.rounded-lg.shadow-md.overflow-hidden'); // Adjusted max-width here
+                    if (mainDiv) mainDiv.appendChild(container);
+                }
+            }
+            return container;
+        }
+
+        function calculateGrandTotal(peopleToConsider = appState.data.people) {
+            let grandTotal = 0;
+            peopleToConsider.forEach(person => {
+                for (const [key, quantity] of Object.entries(person.orders || {})) {
+                    if (quantity > 0) {
+                        const [categoryId, languageId, formatId = 'std'] = key.split('|');
+                        const category = appState.data.categories.find(c => c.id === categoryId);
+                        if (!category) continue;
+                        const language = category.languages.find(l => l.id === languageId);
+                        if (!language) continue;
+                        const format = language.formats.find(f => f.id === formatId);
+                        if (!format || typeof format.price !== 'number') continue;
+                        grandTotal += quantity * format.price;
                     }
                 }
             });
+            return grandTotal;
+        }
+
+        function showCustomConfirm(message, onConfirm, onCancel) {
+            const existingModal = document.getElementById('customConfirmModal');
+            if (existingModal) existingModal.remove();
+
+            const modalHTML = `
+                <div id="customConfirmModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[1002] modal-enter">
+                    <div class="bg-white rounded-lg shadow-xl p-5 sm:p-6 w-full max-w-xs sm:max-w-sm mx-4">
+                        <h3 class="text-md sm:text-lg font-medium text-gray-900 mb-4">${message}</h3>
+                        <div class="flex justify-end space-x-2 sm:space-x-3">
+                            <button id="customConfirmCancel" class="px-3 py-1.5 sm:px-4 sm:py-2 border border-gray-300 rounded-md text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                Annuler
+                            </button>
+                            <button id="customConfirmOk" class="px-3 py-1.5 sm:px-4 sm:py-2 border border-transparent rounded-md shadow-sm text-xs sm:text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                Confirmer
+                            </button>
+                        </div>
+                    </div>
+                </div> `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+            const confirmModalElement = document.getElementById('customConfirmModal');
+            showModal(confirmModalElement);
+
+            const confirmOkButton = document.getElementById('customConfirmOk');
+            const confirmCancelButton = document.getElementById('customConfirmCancel');
+
+            const closeConfirm = () => {
+                hideModal(confirmModalElement, () => confirmModalElement.remove());
+            };
+
+            confirmOkButton.onclick = () => {
+                closeConfirm();
+                if (onConfirm) onConfirm();
+            };
+            confirmCancelButton.onclick = () => {
+                closeConfirm();
+                if (onCancel) onCancel();
+            };
         }
     </script>
 </body>
