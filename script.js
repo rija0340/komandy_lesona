@@ -84,6 +84,19 @@ function ajouterJourAvecRoles() {
     afficherListes();
     mettreAJourSelects();
     
+    // Mettre à jour l'assistant en temps réel s'il est visible
+    if (document.getElementById('assistantPanel').style.display !== 'none') {
+        // Réinitialiser les conteneurs dans l'assistant pour inclure les nouveaux rôles
+        const containerRoles = document.getElementById('assistantRolesContainer');
+        containerRoles.innerHTML = ''; // Effacer le contenu actuel
+        
+        // Réinitialiser les filtres de l'assistant
+        initialiserFiltresAssistant();
+        
+        // Mettre à jour l'affichage de l'assistant
+        mettreAJourAssistant();
+    }
+    
     afficherMessage(`Jour "${nomJour}" ajouté avec ${rolesArray.length} rôle(s)`, 'success');
 }
 
@@ -124,6 +137,19 @@ function ajouterPersonne() {
     sauvegarderDonnees();
     afficherListes();
     mettreAJourSelects();
+    
+    // Mettre à jour l'assistant en temps réel s'il est visible
+    if (document.getElementById('assistantPanel').style.display !== 'none') {
+        // Réinitialiser le conteneur des personnes dans l'assistant pour inclure la nouvelle personne
+        const containerPersonnes = document.getElementById('assistantPersonnesContainer');
+        containerPersonnes.innerHTML = ''; // Effacer le contenu actuel
+        
+        // Réinitialiser les filtres de l'assistant
+        initialiserFiltresAssistant();
+        
+        // Mettre à jour l'affichage de l'assistant
+        mettreAJourAssistant();
+    }
     
     afficherMessage(`Personne "${nom}" ajoutée`, 'success');
 }
@@ -201,6 +227,19 @@ function supprimerRoleJour(jour, role) {
     chargerRolesJour();
     afficherListes();
     
+    // Mettre à jour l'assistant en temps réel s'il est visible
+    if (document.getElementById('assistantPanel').style.display !== 'none') {
+        // Réinitialiser le conteneur des rôles dans l'assistant pour refléter la suppression
+        const containerRoles = document.getElementById('assistantRolesContainer');
+        containerRoles.innerHTML = ''; // Effacer le contenu actuel
+        
+        // Réinitialiser les filtres de l'assistant
+        initialiserFiltresAssistant();
+        
+        // Mettre à jour l'affichage de l'assistant
+        mettreAJourAssistant();
+    }
+    
     afficherMessage(`Rôle "${role}" supprimé`, 'success');
 }
 
@@ -264,6 +303,12 @@ function modifierDisponibilite(nom, jour, ajouter) {
     
     sauvegarderDonnees();
     afficherListes();
+    
+    // Mettre à jour l'assistant en temps réel s'il est visible
+    if (document.getElementById('assistantPanel').style.display !== 'none') {
+        // Mettre à jour l'affichage de l'assistant pour refléter les nouvelles disponibilités
+        mettreAJourAssistant();
+    }
 }
 
 // ===== SUPPRESSION =====
@@ -282,6 +327,19 @@ function supprimerJour(jour) {
     afficherListes();
     mettreAJourSelects();
     
+    // Mettre à jour l'assistant en temps réel s'il est visible
+    if (document.getElementById('assistantPanel').style.display !== 'none') {
+        // Réinitialiser les conteneurs dans l'assistant pour refléter la suppression
+        const containerRoles = document.getElementById('assistantRolesContainer');
+        containerRoles.innerHTML = ''; // Effacer le contenu actuel
+        
+        // Réinitialiser les filtres de l'assistant
+        initialiserFiltresAssistant();
+        
+        // Mettre à jour l'affichage de l'assistant
+        mettreAJourAssistant();
+    }
+    
     afficherMessage(`Jour "${jour}" supprimé`, 'success');
 }
 
@@ -293,6 +351,19 @@ function supprimerPersonne(nom) {
     sauvegarderDonnees();
     afficherListes();
     mettreAJourSelects();
+    
+    // Mettre à jour l'assistant en temps réel s'il est visible
+    if (document.getElementById('assistantPanel').style.display !== 'none') {
+        // Réinitialiser le conteneur des personnes dans l'assistant pour refléter la suppression
+        const containerPersonnes = document.getElementById('assistantPersonnesContainer');
+        containerPersonnes.innerHTML = ''; // Effacer le contenu actuel
+        
+        // Réinitialiser les filtres de l'assistant
+        initialiserFiltresAssistant();
+        
+        // Mettre à jour l'affichage de l'assistant
+        mettreAJourAssistant();
+    }
     
     afficherMessage(`Personne "${nom}" supprimée`, 'success');
 }
@@ -441,19 +512,11 @@ function mettreAJourSelects() {
         selectPersonne.appendChild(option);
     });
     
-    // Select pour statistiques
-    const selectStats = document.getElementById('personneSelectionnee');
-    selectStats.innerHTML = '<option value="">-- Toutes les personnes --</option>';
-    personnes.forEach(personne => {
-        const option = document.createElement('option');
-        option.value = personne.nom;
-        option.textContent = personne.nom;
-        selectStats.appendChild(option);
-    });
+
 }
 
-function afficherMessage(message, type) {
-    const messageDiv = document.getElementById('messagePlanning');
+function afficherMessage(message, type, targetDiv = 'messagePlanning') {
+    const messageDiv = document.getElementById(targetDiv);
     messageDiv.className = `p-4 rounded-lg mb-4 ${
         type === 'success' ? 'bg-green-100 text-green-800 border border-green-300' :
         type === 'error' ? 'bg-red-100 text-red-800 border border-red-300' :
@@ -519,7 +582,7 @@ function genererPlanning() {
                     .filter(aff => aff.semaine === semaine && aff.jour === jour)
                     .map(aff => aff.personne);
                 
-                const personnesEligibles = personnesDisponibles.filter(p => 
+                let personnesEligibles = personnesDisponibles.filter(p => 
                     !personnesDejaAssignees.includes(p.nom)
                 );
                 
@@ -527,6 +590,16 @@ function genererPlanning() {
                     // Aucune personne disponible, laisser vide
                     erreurs.push(`Semaine ${semaine}, ${jour}, ${role}: Aucune personne disponible (contrainte respectée)`);
                     continue;
+                }
+                
+                // Règle de rotation: privilégier les personnes n'ayant pas encore fait ce rôle
+                const personnesSansRole = personnesEligibles.filter(p => {
+                    return !planning.some(aff => aff.personne === p.nom && aff.role === role);
+                });
+                
+                // Si des personnes n'ont pas encore fait ce rôle, les privilégier
+                if (personnesSansRole.length > 0) {
+                    personnesEligibles = personnesSansRole;
                 }
                 
                 if (modeEquite) {
@@ -573,21 +646,21 @@ function afficherTableauPlanning() {
     const table = document.getElementById('tableauPlanning');
     const nbSemaines = parseInt(document.getElementById('nbSemaines').value);
     
-    // Header: Jour | Rôle | Semaine 1 | Semaine 2 | ...
-    let headerHTML = '<tr><th class="border-r border-gray-300">Jour</th><th class="border-r border-gray-300">Rôle</th>';
+    // Header Desktop
+    let headerHTML = '<tr class="desktop-view"><th class="border-r border-gray-300">Jour</th><th class="border-r border-gray-300">Rôle</th>';
     for (let semaine = 1; semaine <= nbSemaines; semaine++) {
         headerHTML += `<th class="text-center">Semaine ${semaine}</th>`;
     }
     headerHTML += '</tr>';
     
-    // Body: Each row is a day-role combination
+    // Body Desktop
     let bodyHTML = '';
     jours.forEach((jour, jourIndex) => {
         roles[jour].forEach((role, roleIndex) => {
             const isFirstRole = roleIndex === 0;
             const rowspan = roles[jour].length;
             
-            bodyHTML += '<tr>';
+            bodyHTML += '<tr class="desktop-view">';
             
             // Day column (with rowspan for first role)
             if (isFirstRole) {
@@ -621,7 +694,747 @@ function afficherTableauPlanning() {
         });
     });
     
+    // Mobile view - group by week
+    for (let semaine = 1; semaine <= nbSemaines; semaine++) {
+        bodyHTML += `<tr class="mobile-view"><td colspan="3" class="week-header bg-gray-100 font-bold text-center py-3">Semaine ${semaine}</td></tr>`;
+        
+        jours.forEach(jour => {
+            roles[jour].forEach(role => {
+                const affectation = planning.find(a => 
+                    a.semaine === semaine && 
+                    a.jour === jour && 
+                    a.role === role
+                );
+                
+                const personne = affectation ? affectation.personne : '';
+                const displayText = personne || '<span class="empty-cell">Vide</span>';
+                const cellClass = personne ? 'editable-cell' : 'editable-cell empty-cell';
+                
+                bodyHTML += '<tr class="mobile-view">';
+                bodyHTML += `<td data-label="Jour" class="font-semibold">${jour}</td>`;
+                bodyHTML += `<td data-label="Rôle">${role}</td>`;
+                bodyHTML += `<td data-label="Personne" class="${cellClass}" 
+                    onclick="ouvrirAutocomplete(this, ${semaine}, '${jour}', '${role}')" 
+                    data-semaine="${semaine}" 
+                    data-jour="${jour}" 
+                    data-role="${role}" 
+                    data-personne="${personne}">${displayText}</td>`;
+                bodyHTML += '</tr>';
+            });
+        });
+    }
+    
     table.innerHTML = `<thead>${headerHTML}</thead><tbody>${bodyHTML}</tbody>`;
+    
+    // Mettre à jour l'assistant
+    mettreAJourAssistant();
+}
+
+// ===== ASSISTANT EN TEMPS RÉEL =====
+
+let roleActifSurligne = null;
+
+function mettreAJourAssistant() {
+    const panel = document.getElementById('assistantPanel');
+    const content = document.getElementById('assistantContent');
+    const analyseDiv = document.getElementById('assistantAnalyse');
+    
+    if (planning.length === 0) {
+        panel.style.display = 'none';
+        return;
+    }
+    
+    panel.style.display = 'block';
+    
+    // Initialiser les filtres (checkboxes)
+    initialiserFiltresAssistant();
+    
+    // Récupérer les filtres sélectionnés
+    const personnesFiltrees = Array.from(document.querySelectorAll('.assistant-filter-personne:checked')).map(cb => cb.value);
+    const rolesFiltres = Array.from(document.querySelectorAll('.assistant-filter-role:checked')).map(cb => cb.value);
+    const semainesFiltrees = Array.from(document.querySelectorAll('.assistant-filter-semaine:checked')).map(cb => parseInt(cb.value));
+    
+    // Récupérer l'état d'assignation sélectionné
+    const statutAssignation = document.querySelector('input[name="assistantStatut"]:checked').value;
+    
+    // Obtenir tous les rôles uniques dans l'ordre d'apparition (comme dans le tableau d'assignation)
+    const tousLesRoles = [];
+    jours.forEach(jour => {
+        roles[jour].forEach(role => {
+            if (rolesFiltres.includes(role) && !tousLesRoles.includes(role)) {
+                tousLesRoles.push(role);
+            }
+        });
+    });
+    const rolesArray = tousLesRoles;
+    
+    // Construire le tableau récapitulatif
+    let html = '<div class="overflow-x-auto">';
+    html += '<table class="w-full text-xs border-collapse">';
+    
+    // En-tête du tableau
+    html += '<thead><tr class="bg-gray-100">';
+    html += '<th class="border border-gray-300 p-1 text-left sticky left-0 bg-gray-100 z-10">Personne</th>';
+    rolesArray.forEach(role => {
+        html += `<th class="border border-gray-300 p-1 text-center">${role}</th>`;
+    });
+    html += '</tr></thead>';
+    
+    // Corps du tableau
+    html += '<tbody>';
+    personnes.filter(p => personnesFiltrees.includes(p.nom)).forEach(personne => {
+        html += '<tr class="hover:bg-gray-50">';
+        
+        // Colonne nom (cliquable pour surligner)
+        html += `<td class="border border-gray-300 p-1 font-semibold sticky left-0 bg-white cursor-pointer hover:bg-blue-50" 
+                     onclick="surlignerPersonne('${personne.nom}')" 
+                     title="${personne.disponibilites.join(', ')}" 
+                     data-label="Personne">${personne.nom}</td>`;
+        
+        // Colonnes rôles
+        rolesArray.forEach(role => {
+            // Vérifier si la personne est disponible pour ce rôle
+            let estDisponible = false;
+            let jourDispo = null;
+            jours.forEach(jour => {
+                if (roles[jour] && roles[jour].includes(role) && personne.disponibilites.includes(jour)) {
+                    estDisponible = true;
+                    jourDispo = jour;
+                }
+            });
+            
+            if (!estDisponible) {
+                // Non disponible
+                // Check if we should show unavailable cells based on status filter
+                if (statutAssignation === 'unassigned' || statutAssignation === 'all') {
+                    html += `<td class="border border-gray-300 p-1 text-center bg-gray-200 text-gray-500" data-label="${role}">—</td>`;
+                }
+            } else {
+                // Compter les assignations pour ce rôle (toutes semaines)
+                const nbAssignations = planning.filter(aff => 
+                    aff.personne === personne.nom && 
+                    aff.role === role &&
+                    semainesFiltrees.includes(aff.semaine)
+                ).length;
+                
+                if (nbAssignations > 0) {
+                    // Assigné - afficher le nombre en vert (cliquable pour surligner)
+                    if (statutAssignation === 'assigned' || statutAssignation === 'all') {
+                        html += `<td class="border border-gray-300 p-1 text-center bg-green-100 cursor-pointer hover:bg-green-200" 
+                                     onclick="surlignerRole('${personne.nom}', '${role}')" 
+                                     title="Assigné ${nbAssignations} fois"
+                                     data-label="${role}">
+                                    <span class="text-green-800 font-bold">✓ ${nbAssignations}</span>
+                                 </td>`;
+                    } else if (statutAssignation === 'unassigned') {
+                        // If showing only unassigned, don't display assigned cells
+                        html += `<td class="border border-gray-300 p-1 text-center bg-gray-50 text-gray-300" data-label="${role}">—</td>`;
+                    }
+                } else {
+                    // Non assigné - croix rouge
+                    if (statutAssignation === 'unassigned' || statutAssignation === 'all') {
+                        html += `<td class="border border-gray-300 p-1 text-center bg-red-50 cursor-pointer hover:bg-red-100" 
+                                     onclick="surlignerRole('${personne.nom}', '${role}')" 
+                                     title="Jamais assigné"
+                                     data-label="${role}">
+                                    <span class="text-red-600 font-bold">✗</span>
+                                 </td>`;
+                    } else if (statutAssignation === 'assigned') {
+                        // If showing only assigned, don't display unassigned cells
+                        html += `<td class="border border-gray-300 p-1 text-center bg-gray-50 text-gray-300" data-label="${role}">—</td>`;
+                    }
+                }
+            }
+        });
+        
+        html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    
+    content.innerHTML = html;
+    
+    // Générer l'analyse des rôles jamais assignés
+    genererAnalyseRolesNonAssignes(analyseDiv, personnesFiltrees, rolesFiltres, semainesFiltrees);
+}
+
+function genererAnalyseRolesNonAssignes(container, personnesFiltrees, rolesFiltres, semainesFiltrees) {
+    if (planning.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">Aucune analyse disponible</div>';
+        return;
+    }
+    
+    // Liste des rôles jamais assignés
+    const rolesNonAssignes = [];
+    
+    rolesFiltres.forEach(role => {
+        const estAssigne = planning.some(aff => 
+            aff.role === role && 
+            personnesFiltrees.includes(aff.personne) &&
+            semainesFiltrees.includes(aff.semaine)
+        );
+        
+        if (!estAssigne) {
+            rolesNonAssignes.push(role);
+        }
+    });
+    
+    let html = '<div class="text-sm mt-3">';
+    html += '<div class="font-semibold text-gray-700 mb-2">🔴 Rôles jamais assignés</div>';
+    
+    if (rolesNonAssignes.length > 0) {
+        html += '<ul class="text-xs text-gray-600 ml-4 list-disc">';
+        rolesNonAssignes.forEach(role => {
+            html += `<li>${role}</li>`;
+        });
+        html += '</ul>';
+    } else {
+        html += '<div class="text-xs text-gray-500 italic">Tous les rôles ont été assignés</div>';
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function initialiserFiltresAssistant() {
+    const containerPersonnes = document.getElementById('assistantPersonnesContainer');
+    const containerRoles = document.getElementById('assistantRolesContainer');
+    const containerSemaines = document.getElementById('assistantSemainesContainer');
+    
+    // Obtenir les sélections actuelles avant de réinitialiser
+    const selectedPersonnes = Array.from(document.querySelectorAll('.assistant-filter-personne:checked')).map(cb => cb.value);
+    const selectedRoles = Array.from(document.querySelectorAll('.assistant-filter-role:checked')).map(cb => cb.value);
+    const selectedSemaines = Array.from(document.querySelectorAll('.assistant-filter-semaine:checked')).map(cb => parseInt(cb.value));
+    
+    // Obtenir tous les rôles uniques
+    const tousLesRoles = new Set();
+    jours.forEach(jour => {
+        roles[jour].forEach(role => tousLesRoles.add(role));
+    });
+    
+    const nbSemaines = parseInt(document.getElementById('nbSemaines').value);
+    
+    // Remplir personnes - réinitialiser mais conserver les sélections existantes
+    containerPersonnes.innerHTML = '';
+    personnes.forEach(p => {
+        // Si aucune sélection n'existe (première fois), sélectionner par défaut
+        const shouldCheck = selectedPersonnes.length === 0 || selectedPersonnes.includes(p.nom);
+        const label = document.createElement('label');
+        label.className = 'flex items-center gap-1.5 mb-0.5 cursor-pointer';
+        label.innerHTML = `
+            <input type="checkbox" class="assistant-filter-personne cursor-pointer" value="${p.nom}" ${shouldCheck ? 'checked' : ''} onchange="mettreAJourAssistant(); verifierEtatTousCheckbox();">
+            <span>${p.nom}</span>
+        `;
+        containerPersonnes.appendChild(label);
+    });
+    
+    // Remplir rôles - réinitialiser mais conserver les sélections existantes
+    containerRoles.innerHTML = '';
+    Array.from(tousLesRoles).sort().forEach(role => {
+        // Si aucune sélection n'existe (première fois), sélectionner par défaut
+        const shouldCheck = selectedRoles.length === 0 || selectedRoles.includes(role);
+        const label = document.createElement('label');
+        label.className = 'flex items-center gap-1.5 mb-0.5 cursor-pointer';
+        label.innerHTML = `
+            <input type="checkbox" class="assistant-filter-role cursor-pointer" value="${role}" ${shouldCheck ? 'checked' : ''} onchange="mettreAJourAssistant(); verifierEtatTousCheckbox();">
+            <span>${role}</span>
+        `;
+        containerRoles.appendChild(label);
+    });
+    
+    // Remplir semaines - réinitialiser mais conserver les sélections existantes
+    containerSemaines.innerHTML = '';
+    for (let i = 1; i <= nbSemaines; i++) {
+        // Si aucune sélection n'existe (première fois), sélectionner par défaut
+        const shouldCheck = selectedSemaines.length === 0 || selectedSemaines.includes(i);
+        const label = document.createElement('label');
+        label.className = 'flex items-center gap-1.5 mb-0.5 cursor-pointer';
+        label.innerHTML = `
+            <input type="checkbox" class="assistant-filter-semaine cursor-pointer" value="${i}" ${shouldCheck ? 'checked' : ''} onchange="mettreAJourAssistant(); verifierEtatTousCheckbox();">
+            <span>S${i}</span>
+        `;
+        containerSemaines.appendChild(label);
+    }
+}
+
+function toggleAssistantPersonnes() {
+    const checked = document.getElementById('assistantAllPersonnes').checked;
+    document.querySelectorAll('.assistant-filter-personne').forEach(cb => {
+        cb.checked = checked;
+    });
+    mettreAJourAssistant();
+}
+
+function toggleAssistantRoles() {
+    const checked = document.getElementById('assistantAllRoles').checked;
+    document.querySelectorAll('.assistant-filter-role').forEach(cb => {
+        cb.checked = checked;
+    });
+    mettreAJourAssistant();
+}
+
+function toggleAssistantSemaines() {
+    const checked = document.getElementById('assistantAllSemaines').checked;
+    document.querySelectorAll('.assistant-filter-semaine').forEach(cb => {
+        cb.checked = checked;
+    });
+    mettreAJourAssistant();
+}
+
+// Fonction pour synchroniser l'état du checkbox "Tous" avec les checkboxes individuels
+function verifierEtatTousCheckbox() {
+    // Vérifier l'état des personnes
+    const personnesCheckboxes = document.querySelectorAll('.assistant-filter-personne');
+    const personnesChecked = document.querySelectorAll('.assistant-filter-personne:checked');
+    const tousPersonnes = document.getElementById('assistantAllPersonnes');
+    if (personnesCheckboxes.length > 0) {
+        tousPersonnes.checked = personnesChecked.length === personnesCheckboxes.length;
+    } else {
+        tousPersonnes.checked = false;
+    }
+    
+    // Vérifier l'état des rôles
+    const rolesCheckboxes = document.querySelectorAll('.assistant-filter-role');
+    const rolesChecked = document.querySelectorAll('.assistant-filter-role:checked');
+    const tousRoles = document.getElementById('assistantAllRoles');
+    if (rolesCheckboxes.length > 0) {
+        tousRoles.checked = rolesChecked.length === rolesCheckboxes.length;
+    } else {
+        tousRoles.checked = false;
+    }
+    
+    // Vérifier l'état des semaines
+    const semainesCheckboxes = document.querySelectorAll('.assistant-filter-semaine');
+    const semainesChecked = document.querySelectorAll('.assistant-filter-semaine:checked');
+    const tousSemaines = document.getElementById('assistantAllSemaines');
+    if (semainesCheckboxes.length > 0) {
+        tousSemaines.checked = semainesChecked.length === semainesCheckboxes.length;
+    } else {
+        tousSemaines.checked = false;
+    }
+}
+
+// Fonction appelée après chaque mise à jour de l'assistant pour synchroniser les "Tous" checkboxes
+function miseAJourApresAssistant() {
+    verifierEtatTousCheckbox();
+}
+
+function surlignerCellule(semaine, jour, role, personne) {
+    // Retirer tous les surlignages
+    document.querySelectorAll('.highlight-cell').forEach(cell => {
+        cell.classList.remove('highlight-cell');
+    });
+    
+    // Surligner la cellule spécifique
+    document.querySelectorAll('.editable-cell').forEach(cell => {
+        const cellSemaine = parseInt(cell.dataset.semaine);
+        const cellJour = cell.dataset.jour;
+        const cellRole = cell.dataset.role;
+        const cellPersonne = cell.dataset.personne;
+        
+        if (cellSemaine === semaine && cellJour === jour && cellRole === role && cellPersonne === personne) {
+            cell.classList.add('highlight-cell');
+            // Scroll vers la cellule
+            cell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+}
+
+function surlignerPersonne(nomPersonne) {
+    // Retirer tous les surlignages
+    document.querySelectorAll('.highlight-cell').forEach(cell => {
+        cell.classList.remove('highlight-cell');
+    });
+    
+    // Surligner toutes les cellules de cette personne selon les filtres actifs
+    const personnesFiltrees = Array.from(document.querySelectorAll('.assistant-filter-personne:checked')).map(cb => cb.value);
+    const rolesFiltres = Array.from(document.querySelectorAll('.assistant-filter-role:checked')).map(cb => cb.value);
+    const semainesFiltrees = Array.from(document.querySelectorAll('.assistant-filter-semaine:checked')).map(cb => parseInt(cb.value));
+    
+    document.querySelectorAll('.editable-cell').forEach(cell => {
+        const cellPersonne = cell.dataset.personne;
+        const cellSemaine = parseInt(cell.dataset.semaine);
+        const cellRole = cell.dataset.role;
+        
+        if (cellPersonne === nomPersonne && 
+            personnesFiltrees.includes(cellPersonne) &&
+            rolesFiltres.includes(cellRole) &&
+            semainesFiltrees.includes(cellSemaine)) {
+            cell.classList.add('highlight-cell');
+        }
+    });
+    
+    // Scroll vers la première cellule surlignnée
+    const firstHighlighted = document.querySelector('.highlight-cell');
+    if (firstHighlighted) {
+        firstHighlighted.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+function surlignerRole(personne, role) {
+    // Retirer tous les surlignages
+    document.querySelectorAll('.highlight-cell').forEach(cell => {
+        cell.classList.remove('highlight-cell');
+    });
+    
+    // Retirer active des pills
+    document.querySelectorAll('.role-pill.active').forEach(pill => {
+        pill.classList.remove('active');
+    });
+    
+    // Si on clique sur le même rôle, désactiver
+    if (roleActifSurligne && roleActifSurligne.personne === personne && roleActifSurligne.role === role) {
+        roleActifSurligne = null;
+        return;
+    }
+    
+    // Activer le nouveau rôle
+    roleActifSurligne = { personne, role };
+    
+    // Surligner les cellules correspondantes selon les filtres
+    const semainesFiltrees = Array.from(document.querySelectorAll('.assistant-filter-semaine:checked')).map(cb => parseInt(cb.value));
+    
+    document.querySelectorAll('.editable-cell').forEach(cell => {
+        const cellRole = cell.dataset.role;
+        const cellPersonne = cell.dataset.personne;
+        const cellSemaine = parseInt(cell.dataset.semaine);
+        
+        if (cellRole === role && cellPersonne === personne && semainesFiltrees.includes(cellSemaine)) {
+            cell.classList.add('highlight-cell');
+        }
+    });
+    
+    // Activer la pill cliquée
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
+    
+    // Scroll vers la première cellule surlignée
+    const firstHighlighted = document.querySelector('.highlight-cell');
+    if (firstHighlighted) {
+        firstHighlighted.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+function calculerStatsEquite(personnesFiltrees, rolesFiltres, semainesFiltrees) {
+    const stats = {};
+    
+    personnes.filter(p => personnesFiltrees.includes(p.nom)).forEach(personne => {
+        // Compter les opportunités (rôles disponibles * semaines filtrées)
+        let nbOpportunites = 0;
+        let nbRolesNonDisponibles = 0;
+        let rolesDisponibles = [];
+        
+        // Calculer les opportunités pour les rôles filtrés
+        rolesFiltres.forEach(role => {
+            let personneDispoRole = false;
+            jours.forEach(jour => {
+                if (roles[jour] && roles[jour].includes(role)) {
+                    if (personne.disponibilites.includes(jour)) {
+                        personneDispoRole = true;
+                        rolesDisponibles.push(role);
+                    }
+                }
+            });
+            
+            if (personneDispoRole) {
+                nbOpportunites += semainesFiltrees.length;
+            } else {
+                nbRolesNonDisponibles++;
+            }
+        });
+        
+        // Compter les assignations réelles
+        const assignations = planning.filter(aff => 
+            aff.personne === personne.nom &&
+            rolesFiltres.includes(aff.role) &&
+            semainesFiltrees.includes(aff.semaine)
+        );
+        
+        const nbAssignations = assignations.length;
+        
+        // Compter les rôles jamais assignés (même hors filtre)
+        const rolesAssignesGlobal = new Set(
+            planning.filter(aff => aff.personne === personne.nom).map(aff => aff.role)
+        );
+        
+        const rolesDisponiblesUniques = [...new Set(rolesDisponibles)];
+        const nbRolesNonAssignes = rolesDisponiblesUniques.filter(r => !rolesAssignesGlobal.has(r)).length;
+        
+        // Calculer le taux d'assignation
+        const tauxAssignation = nbOpportunites > 0 ? (nbAssignations / nbOpportunites) * 100 : 0;
+        
+        // Déterminer la couleur selon l'équité
+        let couleurEquite;
+        if (tauxAssignation < 40) {
+            couleurEquite = '#dc2626'; // Rouge - sous-utilisé
+        } else if (tauxAssignation < 60) {
+            couleurEquite = '#ea580c'; // Orange
+        } else if (tauxAssignation < 75) {
+            couleurEquite = '#16a34a'; // Vert - équilibré
+        } else if (tauxAssignation <= 90) {
+            couleurEquite = '#2563eb'; // Bleu
+        } else {
+            couleurEquite = '#7c2d12'; // Marron - sur-utilisé
+        }
+        
+        stats[personne.nom] = {
+            nbOpportunites,
+            nbAssignations,
+            tauxAssignation,
+            couleurEquite,
+            nbRolesNonAssignes,
+            nbRolesNonDisponibles
+        };
+    });
+    
+    return stats;
+}
+
+function genererAnalyseEquite(container, statsEquite) {
+    if (planning.length === 0 || Object.keys(statsEquite).length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">Aucune analyse disponible</div>';
+        return;
+    }
+    
+    let html = '<div class="text-sm space-y-3">';
+    
+    // Titre
+    html += '<div class="font-semibold text-gray-700 mb-2"><i class="fas fa-balance-scale mr-2"></i>Analyse d\'\u00e9quit\u00e9 avancée</div>';
+    
+    // Calculer les métriques globales
+    const tousLesTaux = Object.values(statsEquite).map(s => s.tauxAssignation);
+    const moyenneTaux = tousLesTaux.reduce((a, b) => a + b, 0) / tousLesTaux.length;
+    const ecartType = Math.sqrt(tousLesTaux.map(x => Math.pow(x - moyenneTaux, 2)).reduce((a, b) => a + b, 0) / tousLesTaux.length);
+    
+    const personnesSousUtilisees = Object.entries(statsEquite).filter(([_, s]) => s.tauxAssignation < 50);
+    const personnesSurUtilisees = Object.entries(statsEquite).filter(([_, s]) => s.tauxAssignation > 80);
+    const personnesAvecRolesNonAssignes = Object.entries(statsEquite).filter(([_, s]) => s.nbRolesNonAssignes > 0);
+    
+    // Métriques globales
+    html += '<div class="bg-blue-50 border border-blue-200 rounded p-2">';
+    html += '<div class="text-xs font-semibold text-blue-900 mb-1">📊 Métriques globales</div>';
+    html += `<div class="text-xs text-gray-700">`;
+    html += `Taux moyen: ${moyenneTaux.toFixed(1)}% | Écart-type: ${ecartType.toFixed(1)}%`;
+    html += `</div></div>`;
+    
+    // Alertes d'équité
+    if (personnesSousUtilisees.length > 0) {
+        html += '<div class="bg-red-50 border border-red-200 rounded p-2">';
+        html += '<div class="text-xs font-semibold text-red-900 mb-1">⚠️ Personnes sous-utilisées (< 50%)</div>';
+        html += '<ul class="text-xs text-gray-700 ml-4 space-y-0.5">';
+        personnesSousUtilisees.forEach(([nom, stats]) => {
+            html += `<li><span class="font-semibold cursor-pointer hover:text-blue-600" onclick="surlignerPersonne('${nom}')">${nom}</span>: ${stats.tauxAssignation.toFixed(0)}% (${stats.nbAssignations}/${stats.nbOpportunites})</li>`;
+        });
+        html += '</ul></div>';
+    }
+    
+    if (personnesSurUtilisees.length > 0) {
+        html += '<div class="bg-orange-50 border border-orange-200 rounded p-2">';
+        html += '<div class="text-xs font-semibold text-orange-900 mb-1">⚠️ Personnes sur-utilisées (> 80%)</div>';
+        html += '<ul class="text-xs text-gray-700 ml-4 space-y-0.5">';
+        personnesSurUtilisees.forEach(([nom, stats]) => {
+            html += `<li><span class="font-semibold cursor-pointer hover:text-blue-600" onclick="surlignerPersonne('${nom}')">${nom}</span>: ${stats.tauxAssignation.toFixed(0)}% (${stats.nbAssignations}/${stats.nbOpportunites})</li>`;
+        });
+        html += '</ul></div>';
+    }
+    
+    if (personnesAvecRolesNonAssignes.length > 0) {
+        html += '<div class="bg-yellow-50 border border-yellow-200 rounded p-2">';
+        html += '<div class="text-xs font-semibold text-yellow-900 mb-1">🔴 Rôles jamais assignés</div>';
+        html += '<ul class="text-xs text-gray-700 ml-4 space-y-0.5">';
+        personnesAvecRolesNonAssignes.forEach(([nom, stats]) => {
+            html += `<li><span class="font-semibold cursor-pointer hover:text-blue-600" onclick="surlignerPersonne('${nom}')">${nom}</span>: ${stats.nbRolesNonAssignes} rôle(s) disponible(s) non assigné(s)</li>`;
+        });
+        html += '</ul></div>';
+    }
+    
+    // Recommandations
+    if (ecartType > 20) {
+        html += '<div class="bg-purple-50 border border-purple-200 rounded p-2">';
+        html += '<div class="text-xs font-semibold text-purple-900 mb-1">💡 Recommandations</div>';
+        html += '<div class="text-xs text-gray-700">';
+        html += 'Écart-type élevé détecté. Considérez de rééquilibrer les assignations pour plus d\'\u00e9quité.';
+        html += '</div></div>';
+    } else {
+        html += '<div class="bg-green-50 border border-green-200 rounded p-2">';
+        html += '<div class="text-xs font-semibold text-green-900">✅ Planning équilibré</div>';
+        html += '</div>';
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function genererResumeRoles(container) {
+    // Calculer les rôles jamais assignés pour chaque personne
+    const rôlesJamaisAssignésParPersonne = {};
+
+    personnes.forEach(personne => {
+        // Récupérer tous les rôles disponibles pour cette personne
+        const rôlesDisponibles = new Set();
+        personne.disponibilites.forEach(jour => {
+            if (roles[jour]) {
+                roles[jour].forEach(role => rôlesDisponibles.add(role));
+            }
+        });
+        
+        // Récupérer les rôles déjà assignés à cette personne
+        const rôlesAssignés = new Set();
+        planning.forEach(aff => {
+            if (aff.personne === personne.nom) {
+                rôlesAssignés.add(aff.role);
+            }
+        });
+        
+        // Récupérer les rôles jamais assignés à cette personne
+        const rôlesJamaisAssignés = [];
+        rôlesDisponibles.forEach(role => {
+            if (!rôlesAssignés.has(role)) {
+                rôlesJamaisAssignés.push(role);
+            }
+        });
+        
+        // Enregistrer les données
+        rôlesJamaisAssignésParPersonne[personne.nom] = rôlesJamaisAssignés;
+    });
+    
+    // Section pour les rôles jamais assignés (disponibles mais non assignés) pour chaque personne
+    let html = '';
+    html += '<div class="text-sm font-semibold text-gray-700 mb-2">Rôles jamais assignés:</div>';
+    
+    let jamaisAssignésHtml = '';
+    let personnesAvecRolesJamaisAssignes = [];
+    
+    personnes.forEach(personne => {
+        const rôles = rôlesJamaisAssignésParPersonne[personne.nom];
+        if (rôles.length > 0) {
+            personnesAvecRolesJamaisAssignes.push({
+                nom: personne.nom,
+                nbRoles: rôles.length
+            });
+        }
+    });
+    
+    // Trier les personnes par nombre de rôles non assignés (décroissant)
+    personnesAvecRolesJamaisAssignes.sort((a, b) => b.nbRoles - a.nbRoles);
+    
+    personnesAvecRolesJamaisAssignes.forEach(personne => {
+        jamaisAssignésHtml += `
+            <div class="flex items-center mb-1">
+                <span class="font-semibold text-gray-800 cursor-pointer hover:text-blue-600" 
+                      onclick="surlignerPersonne('${personne.nom}')">
+                    ${personne.nom}:
+                </span>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 ml-1">
+                    ${personne.nbRoles} rôle(s) disponible(s) non assigné(s)
+                </span>
+            </div>
+        `;
+    });
+    
+    if (jamaisAssignésHtml) {
+        html += jamaisAssignésHtml;
+    } else {
+        html += '<div class="text-gray-500 italic">Aucun rôle non assigné</div>';
+    }
+    
+    container.innerHTML = html;
+}
+
+function genererAnalyseRepetitions(container) {
+    if (planning.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-500 py-4">Aucune analyse disponible</div>';
+        return;
+    }
+    
+    const nbSemaines = parseInt(document.getElementById('nbSemaines').value);
+    
+    // Détecter les répétitions verticales (même personne, même rôle, semaines consécutives)
+    const repetitionsVerticales = [];
+    
+    jours.forEach(jour => {
+        roles[jour].forEach(role => {
+            for (let sem = 1; sem < nbSemaines; sem++) {
+                const aff1 = planning.find(a => a.semaine === sem && a.jour === jour && a.role === role);
+                const aff2 = planning.find(a => a.semaine === sem + 1 && a.jour === jour && a.role === role);
+                
+                if (aff1 && aff2 && aff1.personne === aff2.personne) {
+                    repetitionsVerticales.push({
+                        personne: aff1.personne,
+                        jour,
+                        role,
+                        semaines: [sem, sem + 1]
+                    });
+                }
+            }
+        });
+    });
+    
+    // Détecter les répétitions horizontales (même personne, même jour, semaine donnée, plusieurs rôles)
+    const repetitionsHorizontales = [];
+    
+    for (let sem = 1; sem <= nbSemaines; sem++) {
+        jours.forEach(jour => {
+            const affectationsJour = planning.filter(a => a.semaine === sem && a.jour === jour);
+            const compteurs = {};
+            
+            affectationsJour.forEach(aff => {
+                compteurs[aff.personne] = (compteurs[aff.personne] || 0) + 1;
+            });
+            
+            Object.entries(compteurs).forEach(([personne, count]) => {
+                if (count > 1) {
+                    const rolesAssignes = affectationsJour
+                        .filter(a => a.personne === personne)
+                        .map(a => a.role);
+                    
+                    repetitionsHorizontales.push({
+                        personne,
+                        jour,
+                        semaine: sem,
+                        roles: rolesAssignes,
+                        count
+                    });
+                }
+            });
+        });
+    }
+    
+    // Générer l'HTML de l'analyse
+    let html = '<div class="text-sm">';
+    
+    html += '<div class="font-semibold text-gray-700 mb-2"><i class="fas fa-chart-line mr-2"></i>Analyse des répétitions</div>';
+    
+    if (repetitionsVerticales.length === 0 && repetitionsHorizontales.length === 0) {
+        html += '<div class="text-gray-600">✓ Aucune répétition détectée</div>';
+    } else {
+        if (repetitionsVerticales.length > 0) {
+            html += '<div class="mb-3">';
+            html += '<div class="text-xs font-semibold text-orange-600 mb-1">⚠ Répétitions verticales:</div>';
+            html += '<ul class="text-xs text-gray-700 space-y-1 ml-4">';
+            
+            repetitionsVerticales.forEach(rep => {
+                html += `<li>${rep.personne}: ${rep.role} (${rep.jour}) - semaines ${rep.semaines.join(', ')}</li>`;
+            });
+            
+            html += '</ul></div>';
+        }
+        
+        if (repetitionsHorizontales.length > 0) {
+            html += '<div class="mb-3">';
+            html += '<div class="text-xs font-semibold text-blue-600 mb-1">ℹ Répétitions horizontales:</div>';
+            html += '<ul class="text-xs text-gray-700 space-y-1 ml-4">';
+            
+            repetitionsHorizontales.forEach(rep => {
+                html += `<li>${rep.personne}: ${rep.count} rôles le ${rep.jour} (S${rep.semaine}) - ${rep.roles.join(', ')}</li>`;
+            });
+            
+            html += '</ul></div>';
+        }
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
 }
 
 // ===== STATISTIQUES AVANCÉES =====
@@ -1155,8 +1968,9 @@ function modifierAffectation(semaine, jour, role, nouvellePersonne, cell) {
         cell.classList.add('empty-cell');
     }
     
-    // Rafraîchir les statistiques
+    // Rafraîchir les statistiques et l'assistant
     rafraichirStats();
+    mettreAJourAssistant();
 }
 
 // Fermer le dropdown si on clique ailleurs
@@ -1166,3 +1980,257 @@ document.addEventListener('click', (e) => {
         dropdownActif = null;
     }
 });
+
+// ===== RÉINITIALISATION DU PLANNING =====
+
+function reinitialiserPlanning() {
+    if (!confirm('Voulez-vous vraiment réinitialiser le planning ? Toutes les affectations seront supprimées.')) {
+        return;
+    }
+    
+    planning = [];
+    
+    // Vider le tableau
+    const table = document.getElementById('tableauPlanning');
+    table.innerHTML = `
+        <thead class="desktop-view">
+            <tr>
+                <th>Semaine</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="desktop-view">
+                <td class="text-center text-gray-500 py-12">
+                    <i class="fas fa-calendar-times text-6xl mb-4 text-gray-300"></i>
+                    <p class="text-lg">Aucun planning généré. Cliquez sur "GÉNÉRER PLANNING"</p>
+                </td>
+            </tr>
+            <tr class="mobile-view">
+                <td class="text-center text-gray-500 py-12">
+                    <i class="fas fa-calendar-times text-6xl mb-4 text-gray-300"></i>
+                    <p class="text-lg">Aucun planning généré. Cliquez sur "GÉNÉRER PLANNING"</p>
+                </td>
+            </tr>
+        </tbody>
+    `;
+    
+    // Cacher l'assistant
+    document.getElementById('assistantPanel').style.display = 'none';
+    
+    afficherMessage('Planning réinitialisé', 'success');
+}
+
+// ===== IMPORT/EXPORT JSON =====
+
+function importerJSON() {
+    // Trigger file input click
+    document.getElementById('importFile').click();
+}
+
+function handleFileImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    if (!file.name.endsWith('.json')) {
+        afficherMessage('Veuillez sélectionner un fichier JSON valide', 'error');
+        event.target.value = ''; // Reset file input
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const jsonData = JSON.parse(e.target.result);
+            if (importerDonneesJSON(jsonData)) {
+                afficherMessage('Données importées avec succès !', 'success', 'messageConfigurer');
+                afficherListes();
+                mettreAJourSelects();
+            }
+        } catch (error) {
+            console.error('Erreur lors de l\'importation du JSON:', error);
+            afficherMessage(`Format JSON invalide: ${error.message}`, 'error', 'messageConfigurer');
+        }
+        // Reset file input after processing
+        event.target.value = '';
+    };
+    
+    reader.onerror = function() {
+        afficherMessage('Erreur lors de la lecture du fichier', 'error', 'messageConfigurer');
+        event.target.value = '';
+    };
+    
+    reader.readAsText(file);
+}
+
+function importerDonneesJSON(data) {
+    // Validation du JSON
+    if (!data.jours || !Array.isArray(data.jours)) {
+        afficherMessage('Structure JSON invalide: "jours" manquant ou non-array', 'error', 'messageConfigurer');
+        return false;
+    }
+    
+    if (!data.roles || typeof data.roles !== 'object') {
+        afficherMessage('Structure JSON invalide: "roles" manquant ou non-object', 'error', 'messageConfigurer');
+        return false;
+    }
+    
+    if (!data.personnes || !Array.isArray(data.personnes)) {
+        afficherMessage('Structure JSON invalide: "personnes" manquant ou non-array', 'error', 'messageConfigurer');
+        return false;
+    }
+    
+    // Validation supplémentaire: Vérifier que les rôles correspondent aux jours
+    for (const jour of data.jours) {
+        if (!data.roles[jour]) {
+            afficherMessage(`Aucun rôle défini pour le jour "${jour}"`, 'error', 'messageConfigurer');
+            return false;
+        }
+        
+        if (!Array.isArray(data.roles[jour])) {
+            afficherMessage(`Rôles pour "${jour}" n'est pas un tableau`, 'error', 'messageConfigurer');
+            return false;
+        }
+    }
+    
+    // Validation des personnes: vérifier que les disponibilités correspondent à des jours existants
+    for (const personne of data.personnes) {
+        if (!personne.nom) {
+            afficherMessage('Une personne n\'a pas de nom', 'error', 'messageConfigurer');
+            return false;
+        }
+        
+        if (!Array.isArray(personne.disponibilites)) {
+            afficherMessage(`Disponibilités de "${personne.nom}" n'est pas un tableau`, 'error', 'messageConfigurer');
+            return false;
+        }
+        
+        for (const dispo of personne.disponibilites) {
+            if (!data.jours.includes(dispo)) {
+                afficherMessage(`Le jour "${dispo}" pour la personne "${personne.nom}" n'existe pas`, 'error', 'messageConfigurer');
+                return false;
+            }
+        }
+    }
+    
+    // Copier les données depuis le JSON
+    jours = [...data.jours];
+    roles = JSON.parse(JSON.stringify(data.roles));
+    personnes = JSON.parse(JSON.stringify(data.personnes));
+    
+    // Sauvegarder les données
+    sauvegarderDonnees();
+    
+    return true;
+}
+
+function exporterJSON() {
+    const data = {
+        jours,
+        roles,
+        personnes
+    };
+    
+    const dataStr = JSON.stringify(data, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = 'planning_config.json';
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+}
+
+// ===== EXPORT/IMPORT PLANNING AVEC AFFECTATIONS =====
+
+function exporterPlanningJSON() {
+    if (planning.length === 0) {
+        afficherMessage('Aucun planning à exporter', 'error');
+        return;
+    }
+    
+    const data = {
+        config: {
+            jours,
+            roles,
+            personnes
+        },
+        planning: planning,
+        nbSemaines: parseInt(document.getElementById('nbSemaines').value),
+        dateExport: new Date().toISOString()
+    };
+    
+    const dataStr = JSON.stringify(data, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const date = new Date().toISOString().split('T')[0];
+    const exportFileDefaultName = `planning_complet_${date}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+    
+    afficherMessage('Planning exporté avec succès', 'success');
+}
+
+function importerPlanningJSON() {
+    document.getElementById('importPlanningFile').click();
+}
+
+function handlePlanningImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    if (!file.name.endsWith('.json')) {
+        afficherMessage('Veuillez sélectionner un fichier JSON valide', 'error');
+        event.target.value = '';
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            
+            // Valider la structure
+            if (!data.config || !data.planning || !data.nbSemaines) {
+                afficherMessage('Structure du fichier invalide', 'error');
+                return;
+            }
+            
+            // Importer la configuration
+            jours = [...data.config.jours];
+            roles = JSON.parse(JSON.stringify(data.config.roles));
+            personnes = JSON.parse(JSON.stringify(data.config.personnes));
+            
+            // Importer le planning
+            planning = [...data.planning];
+            
+            // Mettre à jour le nombre de semaines
+            document.getElementById('nbSemaines').value = data.nbSemaines;
+            
+            // Sauvegarder
+            sauvegarderDonnees();
+            
+            // Afficher
+            afficherListes();
+            mettreAJourSelects();
+            afficherTableauPlanning();
+            mettreAJourAssistant();
+            
+            afficherMessage('Planning importé avec succès', 'success');
+        } catch (error) {
+            console.error('Erreur import:', error);
+            afficherMessage(`Erreur lors de l'import: ${error.message}`, 'error');
+        }
+        event.target.value = '';
+    };
+    
+    reader.onerror = function() {
+        afficherMessage('Erreur lors de la lecture du fichier', 'error');
+        event.target.value = '';
+    };
+    
+    reader.readAsText(file);
+}
