@@ -12,13 +12,12 @@ class NotesApp {
     }
 
     init() {
-        this.initDarkMode();
         this.setupEventListeners();
         this.loadDefaultSettings();
         this.populateInitialData();
         this.showTab('settings');
         this.animateElements();
-        
+
         // Initialize Select2 for the filter if it's loaded
         if (typeof $ !== 'undefined' && $.fn.select2) {
             $('#filter-ministry').select2({
@@ -30,38 +29,26 @@ class NotesApp {
     }
 
     setupEventListeners() {
-        // Tab navigation for desktop
-        document.querySelectorAll('.tab-button:not(#mobile-menu-button)').forEach(button => {
+        // Tab navigation - Desktop
+        document.querySelectorAll('.tab-button').forEach(button => {
             button.addEventListener('click', (e) => {
                 const tab = e.target.id.replace('-tab', '');
                 this.showTab(tab);
-                
-                // Close mobile menu if open
-                document.getElementById('mobile-nav').classList.add('hidden');
             });
         });
 
-        // Mobile tab navigation
-        document.querySelectorAll('[id*="mobile-"][id$="-tab"]').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const tab = e.target.id.replace('mobile-', '').replace('-tab', '');
-                this.showTab(tab);
-                
-                // Close mobile menu after selection
-                document.getElementById('mobile-nav').classList.add('hidden');
+        // Tab navigation - Mobile dropdown
+        const mobileTabSelect = document.getElementById('mobile-tab-select');
+        if (mobileTabSelect) {
+            mobileTabSelect.addEventListener('change', (e) => {
+                this.showTab(e.target.value);
             });
-        });
-
-        // Mobile menu toggle
-        document.getElementById('mobile-menu-button').addEventListener('click', () => {
-            const mobileNav = document.getElementById('mobile-nav');
-            mobileNav.classList.toggle('hidden');
-        });
+        }
 
         // Settings functionality
         document.getElementById('add-member').addEventListener('click', () => this.addMember());
         document.getElementById('add-ministry').addEventListener('click', () => this.addMinistry());
-        
+
         // Step navigation
         document.getElementById('next-step1').addEventListener('click', () => this.nextStep());
         document.getElementById('prev-step2').addEventListener('click', () => this.prevStep());
@@ -77,16 +64,6 @@ class NotesApp {
         // Modal
         document.getElementById('close-modal').addEventListener('click', () => this.closeModal());
 
-        // Close mobile menu when clicking outside
-        document.addEventListener('click', (e) => {
-            const mobileNav = document.getElementById('mobile-nav');
-            const mobileMenuButton = document.getElementById('mobile-menu-button');
-            
-            if (!mobileNav.contains(e.target) && !mobileMenuButton.contains(e.target)) {
-                mobileNav.classList.add('hidden');
-            }
-        });
-
         // Year change for members
         document.getElementById('year-select').addEventListener('change', () => this.loadMembers());
 
@@ -94,114 +71,50 @@ class NotesApp {
         ['default-start-time', 'default-end-time', 'default-location'].forEach(id => {
             document.getElementById(id).addEventListener('change', () => this.saveSettings());
         });
-        
-        // Dark mode toggle
-        document.getElementById('dark-mode-toggle').addEventListener('click', () => this.toggleDarkMode());
-        document.getElementById('mobile-dark-mode-toggle').addEventListener('click', () => this.toggleDarkMode());
-        
-        // Search functionality
-        document.getElementById('global-search').addEventListener('input', (e) => this.handleSearch(e.target.value));
-        document.getElementById('mobile-search').addEventListener('input', (e) => this.handleSearch(e.target.value));
     }
 
-    toggleDarkMode() {
-        const html = document.documentElement;
-        const isDark = html.classList.contains('dark');
-        
-        if (isDark) {
-            html.classList.remove('dark');
-            localStorage.setItem('darkMode', 'false');
-        } else {
-            html.classList.add('dark');
-            localStorage.setItem('darkMode', 'true');
-        }
-        
-        // Update icons
-        this.updateDarkModeIcons(!isDark);
-    }
-    
-    updateDarkModeIcons(isDark) {
-        const sunIcons = document.querySelectorAll('#dark-mode-sun, #mobile-dark-mode-sun');
-        const moonIcons = document.querySelectorAll('#dark-mode-moon, #mobile-dark-mode-moon');
-        
-        if (isDark) {
-            sunIcons.forEach(icon => {
-                icon.classList.remove('hidden');
-            });
-            moonIcons.forEach(icon => {
-                icon.classList.add('hidden');
-            });
-        } else {
-            sunIcons.forEach(icon => {
-                icon.classList.add('hidden');
-            });
-            moonIcons.forEach(icon => {
-                icon.classList.remove('hidden');
-            });
-        }
-    }
-    
-    initDarkMode() {
-        const isDark = localStorage.getItem('darkMode') === 'true';
-        const html = document.documentElement;
-        
-        if (isDark) {
-            html.classList.add('dark');
-        } else {
-            html.classList.remove('dark');
-        }
-        
-        this.updateDarkModeIcons(isDark);
-    }
-    
-    handleSearch(query) {
-        if (!query.trim()) {
-            // If search is empty, show the normal view for the current tab
-            this.showTab(this.currentTab);
-            return;
-        }
-        
-        // Perform search across meetings, topics, and decisions
-        const results = this.performSearch(query.toLowerCase());
-        
-        // Show search results in the meetings section
-        this.showSearchResults(results);
-    }
-    
-    performSearch(query) {
+    searchMeetings(query) {
         const results = [];
+        query = query.toLowerCase().trim();
         
-        // Search through all meetings
         this.meetings.forEach(meeting => {
-            let matchFound = false;
             const matchingTopics = [];
+            let meetingMatchFound = false;
             
-            // Check meeting details
-            if (
-                meeting.location.toLowerCase().includes(query) ||
-                meeting.type.toLowerCase().includes(query)
-            ) {
-                matchFound = true;
-            }
-            
-            // Check topics in the meeting
-            meeting.topics.forEach(topic => {
-                if (
-                    topic.title.toLowerCase().includes(query) ||
-                    topic.description.toLowerCase().includes(query) ||
-                    topic.decision.toLowerCase().includes(query) ||
-                    (topic.ministries && topic.ministries.some(ministry => ministry.toLowerCase().includes(query)))
-                ) {
-                    matchingTopics.push(topic);
+            (meeting.topics || []).forEach(topic => {
+                let matchFound = false;
+                
+                if (topic.title && topic.title.toLowerCase().includes(query)) {
                     matchFound = true;
+                }
+                if (topic.description && topic.description.toLowerCase().includes(query)) {
+                    matchFound = true;
+                }
+                if (topic.decision && topic.decision.toLowerCase().includes(query)) {
+                    matchFound = true;
+                }
+                if (topic.ministries && topic.ministries.some(ministry => 
+                    ministry.toLowerCase().includes(query))) {
+                    matchFound = true;
+                }
+                
+                if (matchFound) {
+                    matchingTopics.push(topic);
+                    meetingMatchFound = true;
                 }
             });
             
-            // Add meeting to results if there's a match
-            if (matchFound) {
+            // Check if meeting location matches
+            if (meeting.location && meeting.location.toLowerCase().includes(query)) {
+                meetingMatchFound = true;
+                // Add all topics to matching topics if meeting location matches
+                matchingTopics.push(...meeting.topics || []);
+            }
+            
+            if (meetingMatchFound) {
                 results.push({
                     ...meeting,
-                    matchingTopics: matchingTopics.length > 0 ? matchingTopics : meeting.topics
+                    matchingTopics: matchingTopics.length > 0 ? matchingTopics : (meeting.topics || [])
                 });
             }
         });
@@ -351,28 +264,40 @@ class NotesApp {
     }
 
     showTab(tabName) {
-        // Update desktop tab buttons
-        document.querySelectorAll('.tab-button').forEach(button => {
-            button.classList.remove('tab-active');
-        });
-        document.getElementById(`${tabName}-tab`).classList.add('tab-active');
+        // Remember current scroll position to prevent jumping on mobile
+        const currentScrollPosition = window.scrollY || window.pageYOffset;
         
-        // Update mobile tab buttons
-        document.querySelectorAll('[id*="mobile-"][id$="-tab"]').forEach(button => {
-            button.classList.remove('tab-active');
+        // Update tab buttons (desktop)
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.classList.remove('active');
         });
-        document.getElementById(`mobile-${tabName}-tab`).classList.add('tab-active');
+        const tabButton = document.getElementById(`${tabName}-tab`);
+        if (tabButton) {
+            tabButton.classList.add('active');
+        }
+
+        // Update mobile dropdown
+        const mobileTabSelect = document.getElementById('mobile-tab-select');
+        if (mobileTabSelect) {
+            mobileTabSelect.value = tabName;
+        }
 
         // Show/hide sections
         document.querySelectorAll('.tab-content').forEach(section => {
-            section.classList.add('hidden');
+            section.style.display = 'none';
         });
-        document.getElementById(`${tabName}-section`).classList.remove('hidden');
+        const tabContent = document.getElementById(`tab-${tabName}`);
+        if (tabContent) {
+            tabContent.style.display = 'block';
+        }
 
         this.currentTab = tabName;
 
         // Load content based on tab
         switch(tabName) {
+            case 'settings':
+                // Settings tab doesn't require special loading
+                break;
             case 'meetings':
                 this.loadMeetings();
                 this.updateStatistics();
@@ -386,6 +311,11 @@ class NotesApp {
         }
 
         this.animateElements();
+        
+        // Restore scroll position after content changes to prevent mobile jumping
+        if (window.scrollY !== currentScrollPosition) {
+            window.scrollTo(0, currentScrollPosition);
+        }
     }
 
     animateElements() {
@@ -447,17 +377,17 @@ class NotesApp {
     loadMembers() {
         const year = document.getElementById('year-select').value;
         const container = document.getElementById('members-list');
-        
+
         container.innerHTML = '';
-        
+
         if (this.members[year]) {
             this.members[year].forEach(member => {
                 const memberDiv = document.createElement('div');
-                memberDiv.className = 'flex items-center justify-between p-3 bg-white rounded-lg border';
+                memberDiv.className = 'flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200';
                 memberDiv.innerHTML = `
-                    <span class="text-text text-sm">${member}</span>
-                    <button onclick="app.removeMember('${member}', '${year}')" 
-                            class="text-rose-500 hover:text-rose-700">
+                    <span class="text-gray-800 text-xs sm:text-sm">${member}</span>
+                    <button onclick="app.removeMember('${member}', '${year}')"
+                            class="text-rose-500 hover:text-rose-700 p-1">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                         </svg>
@@ -489,33 +419,33 @@ class NotesApp {
     loadMinistries() {
         const container = document.getElementById('ministries-list');
         const filterSelect = document.getElementById('filter-ministry');
-        
+
         // Clear containers
         container.innerHTML = '';
         filterSelect.innerHTML = '<option value="">Tous les ministères</option>';
-        
+
         this.ministries.forEach(ministry => {
             // Add to ministries list
             const ministryDiv = document.createElement('div');
-            ministryDiv.className = 'flex items-center justify-between p-3 bg-white rounded-lg border';
+            ministryDiv.className = 'flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200';
             ministryDiv.innerHTML = `
-                <span class="text-text text-sm">${ministry}</span>
-                <button onclick="app.removeMinistry('${ministry}')" 
-                        class="text-rose-500 hover:text-rose-700">
+                <span class="text-gray-800 text-xs sm:text-sm">${ministry}</span>
+                <button onclick="app.removeMinistry('${ministry}')"
+                        class="text-rose-500 hover:text-rose-700 p-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                     </svg>
                 </button>
             `;
             container.appendChild(ministryDiv);
-            
+
             // Add to filter select
             const option = document.createElement('option');
             option.value = ministry;
             option.textContent = ministry;
             filterSelect.appendChild(option);
         });
-        
+
         // Initialize Select2 for the filter only if Select2 is loaded
         if (typeof $ !== 'undefined' && $.fn.select2) {
             $('#filter-ministry').select2({
@@ -858,8 +788,8 @@ class NotesApp {
         
         if (meetings.length === 0) {
             container.innerHTML = `
-                <div class="glass-effect rounded-xl p-8 text-center">
-                    <p class="text-secondary text-base">Aucune réunion trouvée.</p>
+                <div class="bg-white rounded-lg sm:rounded-xl p-6 sm:p-8 text-center shadow-lg">
+                    <p class="text-gray-600 text-sm sm:text-base">Aucune réunion trouvée.</p>
                 </div>
             `;
             return;
@@ -870,9 +800,9 @@ class NotesApp {
 
         meetings.forEach(meeting => {
             const meetingDiv = document.createElement('div');
-            meetingDiv.className = 'glass-effect rounded-xl p-4 sm:p-6 card-hover cursor-pointer';
+            meetingDiv.className = 'bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-6 shadow-lg card-hover cursor-pointer';
             meetingDiv.onclick = () => this.showMeetingDetails(meeting);
-            
+
             const date = new Date(meeting.date).toLocaleDateString('fr-FR');
             const decisionsCount = (meeting.topics || []).filter(t => t.decision).length;
             // Get all unique ministries from all topics in the meeting
@@ -880,28 +810,31 @@ class NotesApp {
                 (meeting.topics || [])
                     .flatMap(topic => topic.ministries || []) // flatten all ministry arrays from topics
             )];
-            
+
             meetingDiv.innerHTML = `
-                <div class="flex justify-between items-start mb-3 sm:mb-4">
-                    <div>
-                        <h3 class="heading-font text-base sm:text-lg font-semibold text-text mb-1 sm:mb-2">${date} - ${meeting.type === 'regular' ? 'Réunion régulière' : 'Réunion extraordinaire'}</h3>
-                        <p class="text-secondary text-sm">${meeting.location} • ${meeting.startTime} - ${meeting.endTime}</p>
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 sm:mb-4 gap-2">
+                    <div class="flex-1">
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900 mb-1 sm:mb-2">${date}</h3>
+                        <p class="text-xs sm:text-sm text-gray-600 mb-1">${meeting.type === 'regular' ? 'Réunion régulière' : 'Réunion extraordinaire'}</p>
+                        <p class="text-xs sm:text-sm text-gray-600">${meeting.location} • ${meeting.startTime} - ${meeting.endTime}</p>
                     </div>
-                    <div class="text-right text-sm text-secondary">
-                        <div>${meeting.presentMembers?.length || 0} présents</div>
-                        <div>${decisionsCount} décisions</div>
+                    <div class="flex sm:flex-col gap-3 sm:gap-1 text-xs sm:text-sm text-gray-600 sm:text-right">
+                        <div><span class="font-semibold">${meeting.presentMembers?.length || 0}</span> présents</div>
+                        <div><span class="font-semibold">${decisionsCount}</span> décisions</div>
                     </div>
                 </div>
-                <div class="flex flex-wrap gap-2">
-                    ${ministries.map(ministry => `
-                        <span class="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs sm:text-sm">${ministry}</span>
-                    `).join('')}
-                </div>
-                <div class="mt-2 sm:mt-4 text-sm text-secondary">
+                ${ministries.length > 0 ? `
+                    <div class="flex flex-wrap gap-1 sm:gap-2 mb-2 sm:mb-3">
+                        ${ministries.map(ministry => `
+                            <span class="px-2 py-0.5 sm:py-1 bg-gray-100 text-gray-700 rounded-full text-xs">${ministry}</span>
+                        `).join('')}
+                    </div>
+                ` : ''}
+                <div class="text-xs sm:text-sm text-gray-500">
                     ${(meeting.topics || []).length} sujet(s) traité(s)
                 </div>
             `;
-            
+
             container.appendChild(meetingDiv);
         });
     }
@@ -918,56 +851,56 @@ class NotesApp {
         });
         
         content.innerHTML = `
-            <div class="space-y-6">
-                <div class="border-b pb-4">
-                    <h3 class="heading-font text-lg sm:text-xl font-semibold text-text mb-2">${date}</h3>
-                    <p class="text-secondary text-sm">${meeting.type === 'regular' ? 'Réunion régulière' : 'Réunion extraordinaire'}</p>
-                    <p class="text-secondary text-sm">${meeting.location} • ${meeting.startTime} - ${meeting.endTime}</p>
+            <div class="space-y-4 sm:space-y-6">
+                <div class="border-b pb-3 sm:pb-4">
+                    <h3 class="text-base sm:text-lg font-bold text-gray-900 mb-2">${date}</h3>
+                    <p class="text-gray-600 text-xs sm:text-sm">${meeting.type === 'regular' ? 'Réunion régulière' : 'Réunion extraordinaire'}</p>
+                    <p class="text-gray-600 text-xs sm:text-sm">${meeting.location} • ${meeting.startTime} - ${meeting.endTime}</p>
                 </div>
-                
-                <div class="grid grid-cols-2 gap-6">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <div>
-                        <h4 class="heading-font font-medium mb-3 text-text text-sm sm:text-base">Participants présents</h4>
+                        <h4 class="font-semibold mb-2 sm:mb-3 text-gray-800 text-sm sm:text-base">Participants présents</h4>
                         <ul class="space-y-1">
-                            ${(meeting.presentMembers || []).map(member => `<li class="text-secondary text-sm">• ${member}</li>`).join('')}
+                            ${(meeting.presentMembers || []).map(member => `<li class="text-gray-600 text-xs sm:text-sm">• ${member}</li>`).join('')}
                         </ul>
                     </div>
                     <div>
-                        <h4 class="heading-font font-medium mb-3 text-text text-sm sm:text-base">Participants absents</h4>
+                        <h4 class="font-semibold mb-2 sm:mb-3 text-gray-800 text-sm sm:text-base">Participants absents</h4>
                         <ul class="space-y-1">
-                            ${(meeting.absentMembers || []).map(member => `<li class="text-secondary text-sm">• ${member}</li>`).join('')}
+                            ${(meeting.absentMembers || []).map(member => `<li class="text-gray-600 text-xs sm:text-sm">• ${member}</li>`).join('')}
                         </ul>
                     </div>
                 </div>
                 
                 <div>
-                    <h4 class="heading-font font-medium mb-4 text-text text-sm sm:text-base">Sujets traités</h4>
-                    <div class="space-y-4">
+                    <h4 class="font-semibold mb-3 sm:mb-4 text-gray-800 text-sm sm:text-base">Sujets traités</h4>
+                    <div class="space-y-3 sm:space-y-4">
                         ${(meeting.topics || []).map((topic, index) => `
-                            <div class="border-l-4 border-primary pl-4">
-                                <h5 class="heading-font font-medium text-text mb-2 text-sm sm:text-base">${index + 1}. ${topic.title}</h5>
+                            <div class="border-l-4 border-gray-900 pl-3 sm:pl-4">
+                                <h5 class="font-semibold text-gray-900 mb-2 text-sm sm:text-base">${index + 1}. ${topic.title}</h5>
                                 ${(topic.ministries && topic.ministries.length > 0) ? `
-                                    <div class="flex flex-wrap gap-2 mb-2">
+                                    <div class="flex flex-wrap gap-1 sm:gap-2 mb-2">
                                         ${topic.ministries.map(ministry => `
-                                            <span class="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">${ministry}</span>
+                                            <span class="px-2 py-0.5 sm:py-1 bg-gray-100 text-gray-700 rounded-full text-xs">${ministry}</span>
                                         `).join('')}
                                     </div>
                                 ` : ''}
-                                <p class="text-secondary text-sm mb-2">${topic.description}</p>
+                                <p class="text-gray-600 text-xs sm:text-sm mb-2">${topic.description}</p>
                                 ${topic.decision ? `
-                                    <div class="bg-primary/10 p-3 rounded-lg mb-3">
-                                        <p class="text-sm font-medium text-text">Décision ${topic.decisionNumber || ''}:</p>
-                                        <p class="text-secondary text-sm">${topic.decision}</p>
+                                    <div class="bg-gray-100 p-2 sm:p-3 rounded-lg mb-2 sm:mb-3">
+                                        <p class="text-xs sm:text-sm font-semibold text-gray-900">Décision ${topic.decisionNumber || ''}:</p>
+                                        <p class="text-gray-700 text-xs sm:text-sm mt-1">${topic.decision}</p>
                                     </div>
                                 ` : ''}
                                 ${topic.todos && topic.todos.length > 0 ? `
-                                    <div class="mt-3">
-                                        <p class="text-sm font-medium text-text mb-2">Tâches à faire:</p>
+                                    <div class="mt-2 sm:mt-3">
+                                        <p class="text-xs sm:text-sm font-semibold text-gray-900 mb-2">Tâches à faire:</p>
                                         <ul class="space-y-1">
                                             ${topic.todos.map(todo => `
-                                                <li class="text-sm text-secondary flex items-center">
-                                                    <input type="checkbox" class="mr-2 h-4 w-4" ${todo.completed ? 'checked' : ''}>
-                                                    ${todo.text} ${todo.dueDate ? `(échéance: ${new Date(todo.dueDate).toLocaleDateString('fr-FR')})` : ''} ${todo.assignee ? `- ${todo.assignee}` : ''}
+                                                <li class="text-xs sm:text-sm text-gray-600 flex items-start">
+                                                    <input type="checkbox" class="mr-2 mt-0.5 h-3 w-3 sm:h-4 sm:w-4" ${todo.completed ? 'checked' : ''}>
+                                                    <span>${todo.text} ${todo.dueDate ? `(échéance: ${new Date(todo.dueDate).toLocaleDateString('fr-FR')})` : ''} ${todo.assignee ? `- ${todo.assignee}` : ''}</span>
                                                 </li>
                                             `).join('')}
                                         </ul>
@@ -1304,3 +1237,10 @@ class NotesApp {
 
 // Initialize the application
 const app = new NotesApp();
+
+// Global function for tab switching (called from HTML onclick)
+function switchTab(tabName) {
+    if (app) {
+        app.showTab(tabName);
+    }
+}
