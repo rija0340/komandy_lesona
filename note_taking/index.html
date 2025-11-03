@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes de Réunion - Comité</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Crimson+Text:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <style>
+        :root {
+            --primary: #4a6fa5;
+            --secondary: #6b7280;
+            --accent: #3b82f6;
+            --background: #ffffff;
+            --surface: #f9fafb;
+            --text: #1f2937;
+            --border: #e5e7eb;
+            --dark-primary: #638fb7;
+            --dark-secondary: #9ca3af;
+            --dark-accent: #60a5fa;
+            --dark-background: #111827;
+            --dark-surface: #1f2937;
+            --dark-text: #f9fafb;
+            --dark-border: #374151;
+        }
+        
+        .dark {
+            --primary: var(--dark-primary);
+            --secondary: var(--dark-secondary);
+            --accent: var(--dark-accent);
+            --background: var(--dark-background);
+            --surface: var(--dark-surface);
+            --text: var(--dark-text);
+            --border: var(--dark-border);
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            line-height: 1.6;
+            font-size: 16px;
+        }
+        
+        /* Consistent font sizes across the application */
+        h1, .h1 { @apply text-2xl sm:text-3xl; }
+        h2, .h2 { @apply text-xl sm:text-2xl; }
+        h3, .h3 { @apply text-lg sm:text-xl; }
+        h4, .h4 { @apply text-base sm:text-lg; }
+        h5, .h5 { @apply text-sm sm:text-base; }
+        h6, .h6 { @apply text-xs sm:text-sm; }
+        
+        p, .p { @apply text-sm sm:text-base; }
+        label, .label { @apply text-xs sm:text-sm; }
+        button, .btn { @apply text-xs sm:text-sm; }
+        input, select, textarea { @apply text-xs sm:text-sm; }
+        small, .small { @apply text-xs; }
+        
+        .heading-font {
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+        }
+        
+        .glass-effect {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+        }
+        
+        .tab-active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background: var(--accent);
+        }
+        
+        .minimal-fade {
+            opacity: 0;
+            transform: translateY(5px);
+        }
+        
+        .minimal-slide {
+            opacity: 0;
+            transform: translateY(5px);
+        }
+        
+        /* Mobile-specific styles */
+        @media (max-width: 1024px) {
+            .lg\\:hidden {
+                display: none;
+            }
+        }
+        
+        @media (min-width: 1025px) {
+            .lg\\:flex {
+                display: flex;
+            }
+        }
+        
+        /* Improve touch targets */
+        .touch-target {
+            min-height: 44px;
+            min-width: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Scroll container for horizontal content */
+        .scroll-container {
+            -ms-overflow-style: -ms-autohiderollbar;
+            scrollbar-width: thin;
+        }
+        
+        .scroll-container::-webkit-scrollbar {
+            height: 6px;
+        }
+        
+        .scroll-container::-webkit-scrollbar-track {
+            background: var(--border);
+            border-radius: 3px;
+        }
+        
+        .scroll-container::-webkit-scrollbar-thumb {
+            background: var(--secondary);
+            border-radius: 3px;
+        }
+        
+        /* Select2 dark theme */
+        .select2-container--default .select2-selection--multiple {
+            background-color: var(--background);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        
+        .select2-container--default .select2-selection--single {
+            background-color: var(--background);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        
+        .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            background-color: var(--primary);
+            border: 1px solid var(--primary);
+            color: white;
+        }
+        
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .select2-container--default .select2-search--inline .select2-search__field {
+            color: var(--text);
+        }
+        
+        .select2-dropdown {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        
+        .select2-container--default .select2-results__option[aria-selected="true"] {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: var(--accent);
+            color: white;
+        }
+        
+        /* Dark theme overrides */
+        .dark .select2-container--default .select2-selection--multiple {
+            background-color: var(--dark-background);
+            border: 1px solid var(--dark-border);
+            color: var(--dark-text);
+        }
+        
+        .dark .select2-container--default .select2-selection--single {
+            background-color: var(--dark-background);
+            border: 1px solid var(--dark-border);
+            color: var(--dark-text);
+        }
+        
+        .dark .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            background-color: var(--dark-primary);
+            border: 1px solid var(--dark-primary);
+            color: white;
+        }
+        
+        .dark .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .dark .select2-container--default .select2-search--inline .select2-search__field {
+            color: var(--dark-text);
+            background-color: var(--dark-background);
+        }
+        
+        .dark .select2-dropdown {
+            background-color: var(--dark-surface);
+            border: 1px solid var(--dark-border);
+            color: var(--dark-text);
+        }
+        
+        .dark .select2-container--default .select2-results__option[aria-selected="true"] {
+            background-color: var(--dark-primary);
+        }
+        
+        .dark .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: var(--dark-accent);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Navigation Header -->
+    <header class="glass-effect sticky top-0 z-50 px-3 py-2 sm:px-4 sm:py-3">
+        <div class="max-w-5xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <div class="w-7 h-7 sm:w-8 sm:h-8 bg-primary rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+                <h1 class="heading-font text-base sm:text-lg font-medium text-text">Notes de Réunion</h1>
+            </div>
+            
+            <!-- Mobile Menu Button -->
+            <div class="lg:hidden">
+                <button id="mobile-menu-button" class="text-text focus:outline-none">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Desktop Navigation -->
+            <nav id="desktop-nav" class="hidden lg:flex items-center">
+                <button id="settings-tab" class="tab-button px-2 py-1 sm:px-3 sm:py-2 rounded font-medium text-xs sm:text-sm">
+                    Paramètres
+                </button>
+                <button id="create-tab" class="tab-button px-2 py-1 sm:px-3 sm:py-2 rounded font-medium text-xs sm:text-sm">
+                    Créer
+                </button>
+                <button id="meetings-tab" class="tab-button px-2 py-1 sm:px-3 sm:py-2 rounded font-medium text-xs sm:text-sm">
+                    Notes
+                </button>
+                <button id="decisions-tab" class="tab-button px-2 py-1 sm:px-3 sm:py-2 rounded font-medium text-xs sm:text-sm">
+                    Décisions
+                </button>
+                <!-- Search Bar -->
+                <div class="ml-4 relative">
+                    <input 
+                        type="text" 
+                        id="global-search" 
+                        placeholder="Rechercher..." 
+                        class="px-4 py-2 rounded-lg border border-border bg-white dark:bg-dark-surface text-sm w-40 sm:w-48 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    >
+                    <svg class="w-4 h-4 absolute right-3 top-2.5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </div>
+                <!-- Dark Mode Toggle -->
+                <button id="dark-mode-toggle" class="ml-3 p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                    <svg id="dark-mode-sun" class="w-5 h-5 hidden dark:block" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"></path>
+                    </svg>
+                    <svg id="dark-mode-moon" class="w-5 h-5 dark:hidden" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
+                    </svg>
+                </button>
+            </nav>
+        </div>
+        
+        <!-- Mobile Navigation -->
+        <nav id="mobile-nav" class="lg:hidden glass-effect rounded mt-1 p-2 hidden">
+            <div class="flex flex-col space-y-1">
+                <button id="mobile-settings-tab" class="tab-button px-2 py-1 rounded font-medium text-xs">
+                    Paramètres
+                </button>
+                <button id="mobile-create-tab" class="tab-button px-2 py-1 rounded font-medium text-xs">
+                    Créer
+                </button>
+                <button id="mobile-meetings-tab" class="tab-button px-2 py-1 rounded font-medium text-xs">
+                    Notes
+                </button>
+                <button id="mobile-decisions-tab" class="tab-button px-2 py-1 rounded font-medium text-xs">
+                    Décisions
+                </button>
+                <!-- Mobile Search -->
+                <div class="mt-2 pt-2 border-t border-border">
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="mobile-search" 
+                            placeholder="Rechercher..." 
+                            class="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-dark-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        >
+                        <svg class="w-4 h-4 absolute right-3 top-2.5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <!-- Dark Mode Toggle for Mobile -->
+                <div class="flex items-center justify-center pt-2 mt-2 border-t border-border">
+                    <button id="mobile-dark-mode-toggle" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                        <svg id="mobile-dark-mode-sun" class="w-5 h-5 hidden dark:block" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"></path>
+                        </svg>
+                        <svg id="mobile-dark-mode-moon" class="w-5 h-5 dark:hidden" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        <!-- Settings Section -->
+        <section id="settings-section" class="tab-content">
+            <div class="mb-4 sm:mb-6">
+                <h2 class="heading-font text-lg sm:text-xl font-semibold mb-2 sm:mb-3 text-text">Configuration</h2>
+                <p class="text-secondary text-sm sm:text-base">Gérez les membres, ministères et paramètres par défaut de votre comité.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                <!-- Members Management -->
+                <div class="glass-effect rounded-lg sm:rounded-xl p-3 sm:p-4">
+                    <h3 class="heading-font text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-text flex items-center">
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                        Membres du Comité
+                    </h3>
+                    
+                    <div class="mb-2 sm:mb-3">
+                        <label class="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-secondary">Année</label>
+                        <select id="year-select" class="w-full px-2 py-1 sm:px-3 sm:py-2 rounded border border-border text-xs sm:text-sm">
+                            <option value="2025">2025</option>
+                            <option value="2024">2024</option>
+                            <option value="2023">2023</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-2 sm:mb-3">
+                        <div class="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-1">
+                            <input type="text" id="member-name" placeholder="Nom du membre" 
+                                   class="flex-1 px-2 py-1 sm:px-3 sm:py-2 rounded border border-border text-xs sm:text-sm">
+                            <button id="add-member" class="btn-primary px-2 py-1 sm:px-3 sm:py-2 rounded text-xs sm:text-sm">
+                                Ajouter
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="members-list" class="space-y-1 max-h-48 overflow-y-auto">
+                        <!-- Members will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Ministries Management -->
+                <div class="glass-effect rounded-lg sm:rounded-xl p-3 sm:p-4">
+                    <h3 class="heading-font text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-text flex items-center">
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                        Ministères
+                    </h3>
+                    
+                    <div class="mb-2 sm:mb-3">
+                        <div class="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-1">
+                            <input type="text" id="ministry-name" placeholder="Nom du ministère" 
+                                   class="flex-1 px-2 py-1 sm:px-3 sm:py-2 rounded border border-border text-xs sm:text-sm">
+                            <button id="add-ministry" class="btn-primary px-2 py-1 sm:px-3 sm:py-2 rounded text-xs sm:text-sm">
+                                Ajouter
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="ministries-list" class="space-y-1 max-h-48 overflow-y-auto">
+                        <!-- Ministries will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Default Settings -->
+            <div class="glass-effect rounded-lg sm:rounded-xl p-3 sm:p-4 mt-4 sm:mt-6">
+                <h3 class="heading-font text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-text flex items-center">
+                    <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    Paramètres par défaut
+                </h3>
+                
+                <div class="grid grid-cols-1 gap-2 sm:gap-3">
+                    <div>
+                        <label class="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-secondary">Heure de début</label>
+                        <input type="time" id="default-start-time" value="09:00" 
+                               class="w-full px-2 py-1 sm:px-3 sm:py-2 rounded border border-border text-xs sm:text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-secondary">Heure de fin</label>
+                        <input type="time" id="default-end-time" value="11:00" 
+                               class="w-full px-2 py-1 sm:px-3 sm:py-2 rounded border border-border text-xs sm:text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-secondary">Lieu par défaut</label>
+                        <input type="text" id="default-location" placeholder="Salle de réunion" 
+                               class="w-full px-2 py-1 sm:px-3 sm:py-2 rounded border border-border text-xs sm:text-sm">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Create Meeting Section -->
+        <section id="create-section" class="tab-content hidden">
+            <div class="mb-4 sm:mb-6">
+                <h2 class="heading-font text-lg sm:text-xl font-semibold mb-2 sm:mb-3 text-text">Créer une Note de Réunion</h2>
+                <p class="text-secondary text-sm sm:text-base">Suivez le processus en étapes pour créer une note structurée.</p>
+            </div>
+
+            <!-- Step Indicator -->
+            <div class="flex items-center justify-center mb-3 sm:mb-4">
+                <div class="flex items-center space-x-2">
+                    <div id="step1-indicator" class="flex items-center">
+                        <div class="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center font-medium text-xs">1</div>
+                        <span class="ml-2 text-primary text-xs">Informations de base</span>
+                    </div>
+                    <div class="w-4 h-0.5 bg-border rounded"></div>
+                    <div id="step2-indicator" class="flex items-center">
+                        <div class="w-6 h-6 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center font-medium text-xs">2</div>
+                        <span class="ml-2 text-gray-500 text-xs">Détails de la réunion</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 1: Basic Information -->
+            <div id="step1-content" class="glass-effect rounded-lg sm:rounded-xl p-3 sm:p-4">
+                <h3 class="heading-font text-base sm:text-lg font-medium mb-3 sm:mb-4 text-text">Informations de base</h3>
+                
+                <div class="grid grid-cols-1 gap-3 sm:gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2 text-secondary">Date de la réunion</label>
+                        <input type="date" id="meeting-date" class="w-full px-3 py-2 rounded-lg border border-border text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2 text-secondary">Type de réunion</label>
+                        <select id="meeting-type" class="w-full px-3 py-2 rounded-lg border border-border text-sm">
+                            <option value="regular">Réunion régulière</option>
+                            <option value="extraordinary">Réunion extraordinaire</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end mt-4">
+                    <button id="next-step1" class="btn-primary px-4 py-2 rounded-lg font-medium text-sm">
+                        Suivant →
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Meeting Details -->
+            <div id="step2-content" class="glass-effect rounded-lg sm:rounded-xl p-3 sm:p-4 hidden">
+                <h3 class="heading-font text-base sm:text-lg font-medium mb-3 sm:mb-4 text-text">Détails de la réunion</h3>
+                
+                <!-- General Information -->
+                <div class="mb-4 sm:mb-6">
+                    <h4 class="font-medium mb-3 sm:mb-4 text-text text-sm sm:text-base">Informations générales</h4>
+                    <div class="grid grid-cols-1 gap-3 sm:gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-secondary">Lieu</label>
+                            <input type="text" id="meeting-location" class="w-full px-3 py-2 rounded-lg border border-border text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-secondary">Heure de début</label>
+                            <input type="time" id="meeting-start-time" class="w-full px-3 py-2 rounded-lg border border-border text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-secondary">Heure de fin</label>
+                            <input type="time" id="meeting-end-time" class="w-full px-3 py-2 rounded-lg border border-border text-sm">
+                        </div>
+                    </div>
+                    
+                    <!-- Participants -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2 text-secondary">Participants</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                            <div>
+                                <label class="block text-sm text-secondary mb-2">Présents</label>
+                                <div id="present-members" class="space-y-2 max-h-32 overflow-y-auto p-2 rounded-lg border border-border">
+                                    <!-- Present members checkboxes -->
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm text-secondary mb-2">Absents</label>
+                                <div id="absent-members" class="space-y-2 max-h-32 overflow-y-auto p-2 rounded-lg border border-border">
+                                    <!-- Absent members checkboxes -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Topics Management -->
+                <div class="mb-4 sm:mb-6">
+                    <div class="flex items-center justify-between mb-2 sm:mb-3">
+                        <h4 class="font-medium text-text text-sm sm:text-base">Sujets traités</h4>
+                        <button id="add-topic" class="btn-primary px-3 py-2 rounded-lg font-medium text-sm">
+                            + Ajouter
+                        </button>
+                    </div>
+                    
+                    <div id="topics-container" class="space-y-2 sm:space-y-3">
+                        <!-- Topics will be added here -->
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row justify-between gap-2">
+                    <button id="prev-step2" class="px-3 py-2 rounded-lg font-medium border border-border text-sm">
+                        ← Précédent
+                    </button>
+                    <button id="save-meeting" class="btn-primary px-3 py-2 rounded-lg font-medium text-sm">
+                        Enregistrer
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Meetings List Section -->
+        <section id="meetings-section" class="tab-content hidden">
+            <div class="mb-3 sm:mb-4">
+                <h2 class="heading-font text-base sm:text-lg font-medium mb-1 sm:mb-2 text-text">Toutes les Réunions</h2>
+                <p class="text-secondary text-xs sm:text-sm">Consultez, filtrez et analysez l'ensemble de vos réunions.</p>
+            </div>
+
+            <!-- Filters -->
+            <div class="glass-effect rounded-lg sm:rounded-xl p-3 sm:p-4 mb-3 sm:mb-4">
+                <h3 class="heading-font font-medium mb-3 sm:mb-4 text-text text-sm sm:text-base">Filtres avancés</h3>
+                <div class="grid grid-cols-1 gap-3 sm:gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2 text-secondary">Date de début</label>
+                        <input type="date" id="filter-start-date" class="w-full px-3 py-2 rounded-lg border border-border text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2 text-secondary">Date de fin</label>
+                        <input type="date" id="filter-end-date" class="w-full px-3 py-2 rounded-lg border border-border text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2 text-secondary">Type</label>
+                        <select id="filter-type" class="w-full px-3 py-2 rounded-lg border border-border text-sm">
+                            <option value="">Tous les types</option>
+                            <option value="regular">Réunion régulière</option>
+                            <option value="extraordinary">Réunion extraordinaire</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2 text-secondary">Ministères</label>
+                        <select id="filter-ministry" class="w-full px-3 py-2 rounded-lg border border-border text-sm" multiple="multiple">
+                            <option value="">Tous les ministères</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row justify-between gap-2 mt-3 sm:mt-4">
+                    <button id="clear-filters" class="px-3 py-2 rounded-lg font-medium border border-border text-sm">
+                        Effacer
+                    </button>
+                    <button id="apply-filters" class="btn-primary px-3 py-2 rounded-lg font-medium text-sm">
+                        Appliquer
+                    </button>
+                </div>
+            </div>
+
+            <!-- Meetings List -->
+            <div id="meetings-list" class="space-y-1 sm:space-y-2">
+                <!-- Meetings will be populated here -->
+            </div>
+
+            <!-- Statistics -->
+            <div class="glass-effect rounded-lg sm:rounded-xl p-3 sm:p-4 mt-3 sm:mt-4">
+                <h3 class="heading-font font-medium mb-3 sm:mb-4 text-text">Statistiques</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-4">
+                    <div class="text-center p-3 bg-white/50 dark:bg-dark-surface/50 rounded-lg">
+                        <div class="text-xl sm:text-2xl font-semibold text-primary" id="total-meetings">0</div>
+                        <div class="text-xs sm:text-sm text-secondary">Réunions totales</div>
+                    </div>
+                    <div class="text-center p-3 bg-white/50 dark:bg-dark-surface/50 rounded-lg">
+                        <div class="text-xl sm:text-2xl font-semibold text-primary" id="total-decisions">0</div>
+                        <div class="text-xs sm:text-sm text-secondary">Décisions prises</div>
+                    </div>
+                    <div class="text-center p-3 bg-white/50 dark:bg-dark-surface/50 rounded-lg">
+                        <div class="text-xl sm:text-2xl font-semibold text-primary" id="avg-participation">0%</div>
+                        <div class="text-xs sm:text-sm text-secondary">Participation moyenne</div>
+                    </div>
+                </div>
+                
+                <!-- Charts Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                    <div class="glass-effect rounded-lg p-4">
+                        <h4 class="heading-font font-medium mb-3 text-text text-sm sm:text-base">Réunions par mois</h4>
+                        <div id="meetings-chart" class="h-64"></div>
+                    </div>
+                    <div class="glass-effect rounded-lg p-4">
+                        <h4 class="heading-font font-medium mb-3 text-text text-sm sm:text-base">Décisions par ministère</h4>
+                        <div id="decisions-chart" class="h-64"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Decisions Section -->
+        <section id="decisions-section" class="tab-content hidden">
+            <div class="mb-3 sm:mb-4">
+                <h2 class="heading-font text-base sm:text-lg font-medium mb-1 sm:mb-2 text-text">Décisions par Ministère</h2>
+                <p class="text-secondary text-xs sm:text-sm">Consultez toutes les décisions organisées par ministère.</p>
+            </div>
+
+            <div id="decisions-by-ministry" class="space-y-2 sm:space-y-4">
+                <!-- Decisions will be populated here -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal for Meeting Details -->
+    <div id="meeting-modal" class="fixed inset-0 bg-black bg-opacity-30 z-50 hidden flex items-center justify-center p-2 sm:p-3">
+        <div class="glass-effect rounded-lg sm:rounded-xl w-full max-w-sm max-h-[80vh] overflow-y-auto p-3">
+            <div class="flex justify-between items-start mb-2 sm:mb-3">
+                <h2 class="heading-font text-base sm:text-lg font-medium text-text">Détails de la réunion</h2>
+                <button id="close-modal" class="text-secondary text-base sm:text-lg">&times;</button>
+            </div>
+            <div id="modal-content">
+                <!-- Modal content will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-4 sm:mt-8 py-3 sm:py-4 text-center text-secondary text-xs">
+        <p>&copy; 2025 Notes de Réunion - Comité. Tous droits réservés.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
