@@ -3,18 +3,36 @@ class NotesApp {
     constructor() {
         this.currentTab = 'settings';
         this.currentStep = 1;
-        this.meetings = JSON.parse(localStorage.getItem('meetings') || '[]');
-        this.members = JSON.parse(localStorage.getItem('members') || '{}');
-        this.ministries = JSON.parse(localStorage.getItem('ministries') || '[]');
-        this.settings = JSON.parse(localStorage.getItem('settings') || '{}');
+        this.meetings = [];
+        this.members = {};
+        this.ministries = [];
+        this.settings = {};
+        this.currentUser = null;
+        this.loadingStates = {
+            members: false,
+            ministries: false,
+            meetings: false,
+            savingMeeting: false,
+            addingMember: false,
+            removingMember: false,
+            addingMinistry: false,
+            removingMinistry: false
+        };
         
         this.init();
     }
 
-    init() {
+    async init() {
+        // Check authentication state first
+        await this.checkAuthState();
+        
+        // Load data from Supabase
+        await this.loadFromSupabase();
         this.setupEventListeners();
         this.loadDefaultSettings();
         this.populateInitialData();
+        
+        // Show the settings tab by default after authentication check
         this.showTab('settings');
         this.animateElements();
 
@@ -25,6 +43,18 @@ class NotesApp {
                 allowClear: true,
                 width: '100%'
             });
+        }
+    }
+    
+    async checkAuthState() {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (session) {
+            this.currentUser = session.user;
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('app-content').style.display = 'block';
+        } else {
+            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('app-content').style.display = 'none';
         }
     }
 
@@ -71,6 +101,236 @@ class NotesApp {
         ['default-start-time', 'default-end-time', 'default-location'].forEach(id => {
             document.getElementById(id).addEventListener('change', () => this.saveSettings());
         });
+        
+        // Authentication listeners
+        document.getElementById('login-btn').addEventListener('click', () => this.login());
+        document.getElementById('signup-btn').addEventListener('click', () => this.signup());
+        document.getElementById('logout-btn').addEventListener('click', () => this.logout());
+    }
+    
+    async login() {
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
+        
+        if (error) {
+            alert('Login failed: ' + error.message);
+        } else {
+            this.currentUser = data.user;
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('app-content').style.display = 'block';
+            document.getElementById('user-email').textContent = this.currentUser.email;
+            await this.loadFromSupabase();
+        }
+    }
+    
+    async signup() {
+        const email = document.getElementById('signup-email').value;
+        const password = document.getElementById('signup-password').value;
+        
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password
+        });
+        
+        if (error) {
+            alert('Signup failed: ' + error.message);
+        } else {
+            alert('Signup successful! Please check your email to confirm your account.');
+        }
+    }
+    
+    async logout() {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+            alert('Logout failed: ' + error.message);
+        } else {
+            this.currentUser = null;
+            // Clear data to reset application state
+            this.meetings = [];
+            this.members = {};
+            this.ministries = [];
+            this.settings = {};
+            
+            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('app-content').style.display = 'none';
+        }
+    }
+
+    async loadFromSupabase() {
+        // Set loading state for meetings
+        this.setLoadingState('meetings', true);
+        
+        try {
+            // Load meetings
+            const { data: meetingsData, error: meetingsError } = await supabase
+                .from('meetings')
+                .select(`
+                    *,
+                    meeting_participants(
+                        member_id,
+                        attendance_status,
+                        members(name)
+                    ),
+                    topics(
+                        *,
+                        topic_ministries(
+                            ministry_id,
+                            ministries(name)
+                        ),
+                        decisions(*),
+                        tasks(*)
+                    )
+                `)
+                .order('date', { ascending: false });
+                
+            if (meetingsError) {
+                console.error('Error loading meetings:', meetingsError);
+            } else {
+                this.meetings = await this.processMeetingsData(meetingsData);
+            }
+            
+            // Load members
+            const { data: membersData, error: membersError } = await supabase
+                .from('members')
+                .select('*');
+                
+            if (membersError) {
+                console.error('Error loading members:', membersError);
+            } else {
+                // Group members by year
+                const membersByYear = {};
+                membersData.forEach(member => {
+                    // For now, add to current year, but in a real implementation you'd track by year
+                    const year = new Date().getFullYear().toString();
+                    if (!membersByYear[year]) {
+                        membersByYear[year] = [];
+                    }
+                    // Store both ID and name for each member
+                    membersByYear[year].push({ id: member.id, name: member.name });
+                });
+                this.members = membersByYear;
+            }
+            
+            // Load ministries
+            const { data: ministriesData, error: ministriesError } = await supabase
+                .from('ministries')
+                .select('name');
+                
+            if (ministriesError) {
+                console.error('Error loading ministries:', ministriesError);
+            } else {
+                this.ministries = ministriesData.map(m => m.name);
+            }
+            
+            // Load default settings
+            const { data: settingsData, error: settingsError } = await supabase
+                .from('default_settings')
+                .select('key_name, value');
+                
+            if (settingsError) {
+                console.error('Error loading settings:', settingsError);
+            } else {
+                this.settings = {};
+                settingsData.forEach(setting => {
+                    this.settings[setting.key_name] = setting.value;
+                });
+            }
+            
+            // Update the UI to reflect the loaded data
+            this.loadMembers();
+            this.loadMinistries();
+        } catch (error) {
+            console.error('Error loading data from Supabase:', error);
+            alert('Error loading data: ' + error.message);
+        } finally {
+            // Reset loading state
+            this.setLoadingState('meetings', false);
+        }
+    }
+    
+    async processMeetingsData(meetingsData) {
+        const processedMeetings = [];
+
+        for (const meeting of meetingsData) {
+            // Process participants (now includes member names from query)
+            let presentMembers = [];
+            let absentMembers = [];
+
+            if (meeting.meeting_participants) {
+                presentMembers = meeting.meeting_participants
+                    .filter(p => p.attendance_status === 'present')
+                    .map(p => p.members?.name)
+                    .filter(Boolean);
+                absentMembers = meeting.meeting_participants
+                    .filter(p => p.attendance_status === 'absent')
+                    .map(p => p.members?.name)
+                    .filter(Boolean);
+            }
+
+            // Process topics
+            const topics = [];
+            if (meeting.topics) {
+                for (const topic of meeting.topics) {
+                    // Get ministries for this topic (now includes ministry names from query)
+                    let topicMinistries = [];
+                    if (topic.topic_ministries) {
+                        topicMinistries = topic.topic_ministries
+                            .map(tm => tm.ministries?.name)
+                            .filter(Boolean);
+                    }
+
+                    // Get decisions for this topic
+                    let decision = null;
+                    let decisionNumber = null;
+                    if (topic.decisions && topic.decisions.length > 0) {
+                        const decisionData = topic.decisions[0];
+                        decision = decisionData.content;
+                        decisionNumber = decisionData.decision_number;
+                    }
+
+                    // Get tasks for this topic
+                    let todos = [];
+                    if (topic.tasks) {
+                        todos = topic.tasks.map(task => ({
+                            text: task.description,
+                            dueDate: task.due_date,
+                            assignee: task.assignee_id ? 'Assigned' : '',
+                            completed: task.status === 'completed'
+                        }));
+                    }
+
+                    topics.push({
+                        title: topic.title,
+                        ministries: topicMinistries,
+                        description: topic.description,
+                        decision: decision,
+                        decisionNumber: decisionNumber,
+                        todos: todos
+                    });
+                }
+            }
+
+            processedMeetings.push({
+                id: meeting.id,
+                date: meeting.date,
+                type: meeting.type,
+                location: meeting.location,
+                startTime: meeting.start_time,
+                endTime: meeting.end_time,
+                year: meeting.year,
+                presentMembers: presentMembers,
+                absentMembers: absentMembers,
+                topics: topics,
+                createdAt: meeting.created_at
+            });
+        }
+
+        return processedMeetings;
     }
 
     searchMeetings(query) {
@@ -227,40 +487,79 @@ class NotesApp {
         }
     }
 
-    saveSettings() {
+    async saveSettings() {
         this.settings = {
             defaultStartTime: document.getElementById('default-start-time').value,
             defaultEndTime: document.getElementById('default-end-time').value,
             defaultLocation: document.getElementById('default-location').value
         };
-        localStorage.setItem('settings', JSON.stringify(this.settings));
+        
+        // Save to Supabase
+        await Promise.all([
+            this.upsertSetting('default_start_time', this.settings.defaultStartTime, 'Default meeting start time'),
+            this.upsertSetting('default_end_time', this.settings.defaultEndTime, 'Default meeting end time'),
+            this.upsertSetting('default_location', this.settings.defaultLocation, 'Default meeting location')
+        ]);
+    }
+    
+    async upsertSetting(keyName, value, description) {
+        // First try to update
+        const { error: updateError } = await supabase
+            .from('default_settings')
+            .update({ value, description })
+            .eq('key_name', keyName);
+            
+        if (updateError) {
+            // If update failed, try to insert (in case the setting doesn't exist)
+            const { error: insertError } = await supabase
+                .from('default_settings')
+                .insert({ key_name: keyName, value, description });
+                
+            if (insertError) {
+                console.error('Error saving setting:', insertError);
+            }
+        }
     }
 
     populateInitialData() {
-        // Add some sample ministries if none exist
-        if (this.ministries.length === 0) {
-            this.ministries = [
-                'Finances et Budget',
-                'Ressources Humaines',
-                'Communication',
-                'Projets Spéciaux',
-                'Développement Durable'
-            ];
-            localStorage.setItem('ministries', JSON.stringify(this.ministries));
-        }
-
-        // Add sample members for current year if none exist
-        const currentYear = new Date().getFullYear().toString();
-        if (!this.members[currentYear] || this.members[currentYear].length === 0) {
-            this.members[currentYear] = [
-                'Marie Dubois', 'Jean Martin', 'Sophie Bernard', 'Pierre Durand',
-                'Claire Laurent', 'Thomas Moreau', 'Anne Petit', 'Lucas Simon'
-            ];
-            localStorage.setItem('members', JSON.stringify(this.members));
-        }
-
+        // Only load existing data from UI, no default data creation
         this.loadMinistries();
         this.loadMembers();
+    }
+    
+    async createMinistry(name) {
+        const { data, error } = await supabase
+            .from('ministries')
+            .insert({ name })
+            .select()
+            .single();
+            
+        if (error) {
+            console.error('Error creating ministry:', error);
+        } else {
+            this.ministries.push(name);
+        }
+    }
+    
+    async createMember(name, year) {
+        const { data, error } = await supabase
+            .from('members')
+            .insert({ 
+                name, 
+                email: `${name.toLowerCase().replace(' ', '_')}@example.com`,
+                role: 'Member'
+            })
+            .select()
+            .single();
+            
+        if (error) {
+            console.error('Error creating member:', error);
+        } else {
+            if (!this.members[year]) {
+                this.members[year] = [];
+            }
+            this.members[year].push({ id: data.id, name: data.name });
+        }
     }
 
     showTab(tabName) {
@@ -350,28 +649,78 @@ class NotesApp {
     }
 
     // Members Management
-    addMember() {
+    async addMember() {
         const name = document.getElementById('member-name').value.trim();
         const year = document.getElementById('year-select').value;
         
         if (!name) return;
 
+        // Set loading state
+        this.setLoadingState('addingMember', true);
+        
         if (!this.members[year]) {
             this.members[year] = [];
         }
         
-        if (!this.members[year].includes(name)) {
-            this.members[year].push(name);
-            localStorage.setItem('members', JSON.stringify(this.members));
-            this.loadMembers();
-            document.getElementById('member-name').value = '';
+        // Check if member with same name already exists
+        const memberExists = this.members[year].some(member => member.name === name);
+        if (!memberExists) {
+            try {
+                // Add member to Supabase
+                const { data, error } = await supabase
+                    .from('members')
+                    .insert({ 
+                        name, 
+                        email: `${name.toLowerCase().replace(' ', '_')}@example.com`,
+                        role: 'Member'
+                    })
+                    .select()
+                    .single();
+                    
+                if (error) {
+                    console.error('Error adding member:', error);
+                    alert('Error adding member: ' + error.message);
+                } else {
+                    // Push the member object with both ID and name
+                    this.members[year].push({ id: data.id, name: data.name });
+                    this.loadMembers();
+                    document.getElementById('member-name').value = '';
+                }
+            } catch (error) {
+                console.error('Error adding member:', error);
+                alert('Error adding member: ' + error.message);
+            }
         }
+        
+        // Reset loading state
+        this.setLoadingState('addingMember', false);
     }
 
-    removeMember(name, year) {
-        this.members[year] = this.members[year].filter(member => member !== name);
-        localStorage.setItem('members', JSON.stringify(this.members));
-        this.loadMembers();
+    async removeMember(id, year) {
+        // Set loading state for member removal
+        this.setLoadingState('removingMember', true);
+        
+        try {
+            // Delete from Supabase using ID directly
+            const { error } = await supabase
+                .from('members')
+                .delete()
+                .eq('id', id);
+                
+            if (error) {
+                console.error('Error removing member:', error);
+                alert('Error removing member: ' + error.message);
+            } else {
+                this.members[year] = this.members[year].filter(member => member.id !== id);
+                this.loadMembers();
+            }
+        } catch (error) {
+            console.error('Error removing member:', error);
+            alert('Error removing member: ' + error.message);
+        }
+        
+        // Reset loading state
+        this.setLoadingState('removingMember', false);
     }
 
     loadMembers() {
@@ -384,36 +733,96 @@ class NotesApp {
             this.members[year].forEach(member => {
                 const memberDiv = document.createElement('div');
                 memberDiv.className = 'flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200';
-                memberDiv.innerHTML = `
-                    <span class="text-gray-800 text-xs sm:text-sm">${member}</span>
-                    <button onclick="app.removeMember('${member}', '${year}')"
-                            class="text-rose-500 hover:text-rose-700 p-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
-                    </button>
+
+                // Create member name span
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'text-gray-800 text-xs sm:text-sm';
+                nameSpan.textContent = member.name;
+
+                // Create delete button with event listener instead of inline onclick
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'text-rose-500 hover:text-rose-700 p-1';
+                deleteButton.innerHTML = `
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
                 `;
+                deleteButton.addEventListener('click', () => this.removeMember(member.id, year));
+
+                memberDiv.appendChild(nameSpan);
+                memberDiv.appendChild(deleteButton);
                 container.appendChild(memberDiv);
             });
+        } else {
+            container.innerHTML = '<p class="text-gray-500 text-sm p-2">Aucun membre trouvé</p>';
         }
     }
 
     // Ministries Management
-    addMinistry() {
+    async addMinistry() {
         const name = document.getElementById('ministry-name').value.trim();
         
         if (!name || this.ministries.includes(name)) return;
 
-        this.ministries.push(name);
-        localStorage.setItem('ministries', JSON.stringify(this.ministries));
-        this.loadMinistries();
-        document.getElementById('ministry-name').value = '';
+        // Set loading state
+        this.setLoadingState('addingMinistry', true);
+        
+        try {
+            const { data, error } = await supabase
+                .from('ministries')
+                .insert({ name })
+                .select()
+                .single();
+                
+            if (error) {
+                console.error('Error adding ministry:', error);
+                alert('Error adding ministry: ' + error.message);
+            } else {
+                this.ministries.push(name);
+                this.loadMinistries();
+                document.getElementById('ministry-name').value = '';
+            }
+        } catch (error) {
+            console.error('Error adding ministry:', error);
+            alert('Error adding ministry: ' + error.message);
+        }
+        
+        // Reset loading state
+        this.setLoadingState('addingMinistry', false);
     }
 
-    removeMinistry(name) {
-        this.ministries = this.ministries.filter(ministry => ministry !== name);
-        localStorage.setItem('ministries', JSON.stringify(this.ministries));
-        this.loadMinistries();
+    async removeMinistry(name) {
+        try {
+            // Find ministry ID to delete from Supabase
+            const { data: ministryData, error: ministryError } = await supabase
+                .from('ministries')
+                .select('id')
+                .eq('name', name)
+                .single();
+                
+            if (ministryError) {
+                console.error('Error finding ministry to remove:', ministryError);
+                alert('Error finding ministry: ' + ministryError.message);
+                return;
+            }
+            
+            // Delete from Supabase
+            const { error } = await supabase
+                .from('ministries')
+                .delete()
+                .eq('id', ministryData.id);
+                
+            if (error) {
+                console.error('Error removing ministry:', error);
+                alert('Error removing ministry: ' + error.message);
+            } else {
+                this.ministries = this.ministries.filter(ministry => ministry !== name);
+                this.loadMinistries();
+            }
+        } catch (error) {
+            console.error('Error removing ministry:', error);
+            alert('Error removing ministry: ' + error.message);
+        }
     }
 
     loadMinistries() {
@@ -424,35 +833,48 @@ class NotesApp {
         container.innerHTML = '';
         filterSelect.innerHTML = '<option value="">Tous les ministères</option>';
 
-        this.ministries.forEach(ministry => {
-            // Add to ministries list
-            const ministryDiv = document.createElement('div');
-            ministryDiv.className = 'flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200';
-            ministryDiv.innerHTML = `
-                <span class="text-gray-800 text-xs sm:text-sm">${ministry}</span>
-                <button onclick="app.removeMinistry('${ministry}')"
-                        class="text-rose-500 hover:text-rose-700 p-1">
+        if (this.ministries.length > 0) {
+            this.ministries.forEach(ministry => {
+                // Add to ministries list
+                const ministryDiv = document.createElement('div');
+                ministryDiv.className = 'flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200';
+
+                // Create ministry name span
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'text-gray-800 text-xs sm:text-sm';
+                nameSpan.textContent = ministry;
+
+                // Create delete button with event listener instead of inline onclick
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'text-rose-500 hover:text-rose-700 p-1';
+                deleteButton.innerHTML = `
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                     </svg>
-                </button>
-            `;
-            container.appendChild(ministryDiv);
+                `;
+                deleteButton.addEventListener('click', () => this.removeMinistry(ministry));
 
-            // Add to filter select
-            const option = document.createElement('option');
-            option.value = ministry;
-            option.textContent = ministry;
-            filterSelect.appendChild(option);
-        });
+                ministryDiv.appendChild(nameSpan);
+                ministryDiv.appendChild(deleteButton);
+                container.appendChild(ministryDiv);
 
-        // Initialize Select2 for the filter only if Select2 is loaded
-        if (typeof $ !== 'undefined' && $.fn.select2) {
-            $('#filter-ministry').select2({
-                placeholder: "Tous les ministères",
-                allowClear: true,
-                width: '100%'
+                // Add to filter select
+                const option = document.createElement('option');
+                option.value = ministry;
+                option.textContent = ministry;
+                filterSelect.appendChild(option);
             });
+
+            // Initialize Select2 for the filter only if Select2 is loaded
+            if (typeof $ !== 'undefined' && $.fn.select2) {
+                $('#filter-ministry').select2({
+                    placeholder: "Tous les ministères",
+                    allowClear: true,
+                    width: '100%'
+                });
+            }
+        } else {
+            container.innerHTML = '<p class="text-gray-500 text-sm p-2">Aucun ministère trouvé</p>';
         }
     }
 
@@ -490,8 +912,8 @@ class NotesApp {
             const presentDiv = document.createElement('div');
             presentDiv.className = 'flex items-center';
             presentDiv.innerHTML = `
-                <input type="checkbox" id="present-${member}" value="${member}" class="mr-3 h-4 w-4 text-primary rounded focus:ring-primary present-checkbox" onchange="app.toggleParticipant('${member}')">
-                <label for="present-${member}" class="text-sm">${member}</label>
+                <input type="checkbox" id="present-${member.name}" value="${member.name}" class="mr-3 h-4 w-4 text-primary rounded focus:ring-primary present-checkbox" onchange="app.toggleParticipant('${member.name}')">
+                <label for="present-${member.name}" class="text-sm">${member.name}</label>
             `;
             presentContainer.appendChild(presentDiv);
             
@@ -499,8 +921,8 @@ class NotesApp {
             const absentDiv = document.createElement('div');
             absentDiv.className = 'flex items-center';
             absentDiv.innerHTML = `
-                <input type="checkbox" id="absent-${member}" value="${member}" class="mr-3 h-4 w-4 text-primary rounded focus:ring-primary absent-checkbox" onchange="app.toggleParticipant('${member}')">
-                <label for="absent-${member}" class="text-sm">${member}</label>
+                <input type="checkbox" id="absent-${member.name}" value="${member.name}" class="mr-3 h-4 w-4 text-primary rounded focus:ring-primary absent-checkbox" onchange="app.toggleParticipant('${member.name}')">
+                <label for="absent-${member.name}" class="text-sm">${member.name}</label>
             `;
             absentContainer.appendChild(absentDiv);
         });
@@ -662,49 +1084,275 @@ class NotesApp {
 
     getCurrentMembers() {
         const currentYear = new Date().getFullYear().toString();
-        return this.members[currentYear] || [];
+        const members = this.members[currentYear] || [];
+        // Return just the names to maintain compatibility with existing usage
+        return members.map(member => member.name);
     }
 
-    saveMeeting() {
-        // Collect meeting data
-        const meeting = {
-            id: Date.now().toString(),
-            date: document.getElementById('meeting-date').value,
-            type: document.getElementById('meeting-type').value,
-            location: document.getElementById('meeting-location').value,
-            startTime: document.getElementById('meeting-start-time').value,
-            endTime: document.getElementById('meeting-end-time').value,
-            presentMembers: Array.from(document.querySelectorAll('#present-members input:checked')).map(cb => cb.value),
-            absentMembers: Array.from(document.querySelectorAll('#absent-members input:checked')).map(cb => cb.value),
-            topics: this.collectTopicsData(),
-            createdAt: new Date().toISOString()
-        };
-
+    async saveMeeting() {
         // Validate required fields
-        if (!meeting.date || !meeting.location || meeting.topics.length === 0) {
-            alert('Veuillez remplir tous les champs obligatoires et ajouter au moins un sujet.');
+        const meetingDate = document.getElementById('meeting-date').value;
+        const meetingLocation = document.getElementById('meeting-location').value;
+        if (!meetingDate || !meetingLocation) {
+            alert('Veuillez remplir tous les champs obligatoires.');
             return;
         }
 
-        // Add decision numbers for topics with decisions
-        meeting.topics.forEach(topic => {
-            if (topic.decision) {
-                topic.decisionNumber = this.generateDecisionNumber(meeting.date);
+        // Set loading state
+        this.setLoadingState('savingMeeting', true);
+
+        try {
+            // Collect meeting data
+            const meeting = {
+                date: meetingDate,
+                type: document.getElementById('meeting-type').value,
+                location: meetingLocation,
+                start_time: document.getElementById('meeting-start-time').value,
+                end_time: document.getElementById('meeting-end-time').value,
+                year: new Date().getFullYear() // Use current year
+            };
+
+            let meetingData;
+            let meetingError;
+
+            if (this.editingMeetingId) {
+                // Update existing meeting
+                const { data, error } = await supabase
+                    .from('meetings')
+                    .update(meeting)
+                    .eq('id', this.editingMeetingId)
+                    .select()
+                    .single();
+                
+                meetingData = data;
+                meetingError = error;
+            } else {
+                // Insert new meeting
+                meeting.created_at = new Date().toISOString();
+                const { data, error } = await supabase
+                    .from('meetings')
+                    .insert(meeting)
+                    .select()
+                    .single();
+                
+                meetingData = data;
+                meetingError = error;
             }
-        });
 
-        // Save meeting
-        this.meetings.push(meeting);
-        localStorage.setItem('meetings', JSON.stringify(this.meetings));
+            if (meetingError) {
+                throw new Error('Error saving meeting: ' + meetingError.message);
+            }
 
-        // Reset form
-        this.resetCreateForm();
+            // Process participants
+            const presentMembers = Array.from(document.querySelectorAll('#present-members input:checked')).map(cb => cb.value);
+            const absentMembers = Array.from(document.querySelectorAll('#absent-members input:checked')).map(cb => cb.value);
+            
+            // If updating an existing meeting, clear existing participants first
+            if (this.editingMeetingId) {
+                const { error: deleteParticipantsError } = await supabase
+                    .from('meeting_participants')
+                    .delete()
+                    .eq('meeting_id', this.editingMeetingId);
+                
+                if (deleteParticipantsError) {
+                    console.error('Error deleting existing participants:', deleteParticipantsError);
+                }
+            }
+            
+            for (const member of presentMembers) {
+                await this.addMeetingParticipant(meetingData.id, member, 'present');
+            }
+            
+            for (const member of absentMembers) {
+                await this.addMeetingParticipant(meetingData.id, member, 'absent');
+            }
+
+            // Process topics
+            const topics = this.collectTopicsData();
+            
+            // If editing an existing meeting, delete existing topics first
+            if (this.editingMeetingId) {
+                const { error: deleteTopicsError } = await supabase
+                    .from('topics')
+                    .delete()
+                    .eq('meeting_id', this.editingMeetingId);
+                
+                if (deleteTopicsError) {
+                    console.error('Error deleting existing topics:', deleteTopicsError);
+                }
+            }
+            
+            for (const topic of topics) {
+                // Insert topic into Supabase
+                const { data: topicData, error: topicError } = await supabase
+                    .from('topics')
+                    .insert({
+                        meeting_id: meetingData.id,
+                        title: topic.title,
+                        description: topic.description,
+                        sort_order: 0 // Default order
+                    })
+                    .select()
+                    .single();
+
+                if (topicError) {
+                    console.error('Error saving topic:', topicError);
+                    continue;
+                }
+
+                // Process ministries for this topic
+                for (const ministryName of (topic.ministries || [])) {
+                    await this.linkTopicToMinistry(topicData.id, ministryName);
+                }
+
+                // Process decision for this topic
+                if (topic.decision) {
+                    const decisionNumber = this.generateDecisionNumber(meeting.date);
+                    await this.createDecision(topicData.id, topic.decision, decisionNumber);
+                }
+
+                // Process todos for this topic
+                for (const todo of (topic.todos || [])) {
+                    await this.createTask(topicData.id, todo.text, todo.dueDate, todo.assignee);
+                }
+            }
+
+            // Reset form
+            this.resetCreateForm();
+            
+            // Refresh data to include the new meeting
+            await this.loadFromSupabase();
+            
+            // Show success message
+            if (this.editingMeetingId) {
+                alert('Réunion mise à jour avec succès !');
+                // Clear editing state
+                delete this.editingMeetingId;
+                
+                // Restore save button text
+                const saveButton = document.getElementById('save-meeting');
+                if (saveButton) {
+                    saveButton.innerHTML = `
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                        </svg>
+                        Enregistrer
+                    `;
+                }
+            } else {
+                alert('Réunion enregistrée avec succès !');
+            }
+            
+            // Switch to meetings tab to show the new meeting
+            this.showTab('meetings');
+            // Reload meetings to show the newly created one
+            this.loadMeetings();
+        } catch (error) {
+            console.error('Error saving meeting:', error);
+            alert('Error saving meeting: ' + error.message);
+        } finally {
+            // Reset loading state
+            this.setLoadingState('savingMeeting', false);
+        }
+    }
+    
+    async addMeetingParticipant(meetingId, memberName, status) {
+        // First get member ID
+        const { data: memberData, error: memberError } = await supabase
+            .from('members')
+            .select('id')
+            .eq('name', memberName)
+            .single();
+            
+        if (memberError) {
+            console.error('Error finding member for participant:', memberError);
+            return;
+        }
         
-        // Show success message
-        alert('Réunion enregistrée avec succès !');
+        // Add participant to meeting
+        const { error } = await supabase
+            .from('meeting_participants')
+            .insert({
+                meeting_id: meetingId,
+                member_id: memberData.id,
+                attendance_status: status
+            });
+            
+        if (error) {
+            console.error('Error adding meeting participant:', error);
+        }
+    }
+    
+    async linkTopicToMinistry(topicId, ministryName) {
+        // First get ministry ID
+        const { data: ministryData, error: ministryError } = await supabase
+            .from('ministries')
+            .select('id')
+            .eq('name', ministryName)
+            .single();
+            
+        if (ministryError) {
+            console.error('Error finding ministry:', ministryError);
+            return;
+        }
         
-        // Switch to meetings tab
-        this.showTab('meetings');
+        // Link topic to ministry
+        const { error } = await supabase
+            .from('topic_ministries')
+            .insert({
+                topic_id: topicId,
+                ministry_id: ministryData.id
+            });
+            
+        if (error) {
+            console.error('Error linking topic to ministry:', error);
+        }
+    }
+    
+    async createDecision(topicId, content, decisionNumber) {
+        const { error } = await supabase
+            .from('decisions')
+            .insert({
+                topic_id: topicId,
+                content: content,
+                decision_number: decisionNumber,
+                status: 'pending'
+            });
+            
+        if (error) {
+            console.error('Error creating decision:', error);
+        }
+    }
+    
+    async createTask(topicId, description, dueDate, assignee) {
+        // Get assignee member ID if assignee is specified
+        let assigneeId = null;
+        if (assignee) {
+            const { data: assigneeData, error: assigneeError } = await supabase
+                .from('members')
+                .select('id')
+                .eq('name', assignee)
+                .single();
+                
+            if (!assigneeError && assigneeData) {
+                assigneeId = assigneeData.id;
+            }
+        }
+        
+        const { error } = await supabase
+            .from('tasks')
+            .insert({
+                topic_id: topicId,
+                description: description,
+                due_date: dueDate || null,
+                assignee_id: assigneeId,
+                status: 'pending',
+                priority: 'medium'
+            });
+            
+        if (error) {
+            console.error('Error creating task:', error);
+        }
     }
 
     collectTopicsData() {
@@ -750,14 +1398,9 @@ class NotesApp {
         const month = date.split('-')[1];
         const prefix = `${year}-${month}`;
         
-        // Count existing decisions for this month
-        const existingDecisions = this.meetings.reduce((count, meeting) => {
-            return count + (meeting.topics || []).filter(topic => 
-                topic.decisionNumber && topic.decisionNumber.startsWith(prefix)
-            ).length;
-        }, 0);
-        
-        const sequence = (existingDecisions + 1).toString().padStart(3, '0');
+        // For Supabase implementation, we'll use a simpler approach
+        // In a real implementation, we'd query the database for existing decisions in this month
+        const sequence = (Math.floor(Math.random() * 1000) + 1).toString().padStart(3, '0');
         return `${prefix}-${sequence}`;
     }
 
@@ -768,6 +1411,8 @@ class NotesApp {
         document.getElementById('step2-content').classList.add('hidden');
         
         // Clear form fields
+        document.getElementById('meeting-date').value = '';
+        document.getElementById('meeting-type').value = '';
         document.getElementById('meeting-location').value = '';
         document.getElementById('meeting-start-time').value = '';
         document.getElementById('meeting-end-time').value = '';
@@ -777,6 +1422,20 @@ class NotesApp {
         document.querySelectorAll('#present-members input, #absent-members input').forEach(cb => {
             cb.checked = false;
         });
+        
+        // Clear editing state
+        delete this.editingMeetingId;
+        
+        // Restore save button text to original
+        const saveButton = document.getElementById('save-meeting');
+        if (saveButton) {
+            saveButton.innerHTML = `
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                </svg>
+                Enregistrer
+            `;
+        }
     }
 
     // Meetings List
@@ -852,10 +1511,24 @@ class NotesApp {
         
         content.innerHTML = `
             <div class="space-y-4 sm:space-y-6">
-                <div class="border-b pb-3 sm:pb-4">
-                    <h3 class="text-base sm:text-lg font-bold text-gray-900 mb-2">${date}</h3>
-                    <p class="text-gray-600 text-xs sm:text-sm">${meeting.type === 'regular' ? 'Réunion régulière' : 'Réunion extraordinaire'}</p>
-                    <p class="text-gray-600 text-xs sm:text-sm">${meeting.location} • ${meeting.startTime} - ${meeting.endTime}</p>
+                <div class="flex justify-between items-start border-b pb-3 sm:pb-4">
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900 mb-2">${date}</h3>
+                        <p class="text-gray-600 text-xs sm:text-sm">${meeting.type === 'regular' ? 'Réunion régulière' : 'Réunion extraordinaire'}</p>
+                        <p class="text-gray-600 text-xs sm:text-sm">${meeting.location} • ${meeting.startTime} - ${meeting.endTime}</p>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="app.editMeeting(${meeting.id})" class="text-blue-500 hover:text-blue-700 p-1" title="Modifier">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                        </button>
+                        <button onclick="app.deleteMeeting(${meeting.id})" class="text-rose-500 hover:text-rose-700 p-1" title="Supprimer">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
@@ -920,6 +1593,287 @@ class NotesApp {
         document.getElementById('meeting-modal').classList.add('hidden');
     }
 
+    async deleteMeeting(meetingId) {
+        if (!confirm('Êtes-vous sûr de vouloir supprimer cette réunion ? Cette action est irréversible.')) {
+            return;
+        }
+
+        try {
+            // Delete related data first (due to foreign key constraints)
+            // Delete meeting_participants
+            const { error: participantError } = await supabase
+                .from('meeting_participants')
+                .delete()
+                .eq('meeting_id', meetingId);
+            
+            if (participantError) {
+                console.error('Error deleting meeting participants:', participantError);
+                alert('Error deleting meeting: ' + participantError.message);
+                return;
+            }
+
+            // Delete topics and their related data
+            const { data: topicsData, error: topicsError } = await supabase
+                .from('topics')
+                .select('id')
+                .eq('meeting_id', meetingId);
+            
+            if (topicsError) {
+                console.error('Error fetching topics:', topicsError);
+                alert('Error deleting meeting: ' + topicsError.message);
+                return;
+            }
+
+            // Delete related decisions, tasks, and topic_ministries for each topic
+            if (topicsData && topicsData.length > 0) {
+                const topicIds = topicsData.map(topic => topic.id);
+
+                // Delete decisions
+                const { error: decisionsError } = await supabase
+                    .from('decisions')
+                    .delete()
+                    .in('topic_id', topicIds);
+                
+                if (decisionsError) {
+                    console.error('Error deleting decisions:', decisionsError);
+                }
+
+                // Delete tasks
+                const { error: tasksError } = await supabase
+                    .from('tasks')
+                    .delete()
+                    .in('topic_id', topicIds);
+                
+                if (tasksError) {
+                    console.error('Error deleting tasks:', tasksError);
+                }
+
+                // Delete topic_ministries
+                const { error: topicMinistriesError } = await supabase
+                    .from('topic_ministries')
+                    .delete()
+                    .in('topic_id', topicIds);
+                
+                if (topicMinistriesError) {
+                    console.error('Error deleting topic ministries:', topicMinistriesError);
+                }
+
+                // Delete topics
+                const { error: topicsDeleteError } = await supabase
+                    .from('topics')
+                    .delete()
+                    .eq('meeting_id', meetingId);
+                
+                if (topicsDeleteError) {
+                    console.error('Error deleting topics:', topicsDeleteError);
+                    alert('Error deleting meeting: ' + topicsDeleteError.message);
+                    return;
+                }
+            }
+
+            // Finally delete the meeting
+            const { error: meetingError } = await supabase
+                .from('meetings')
+                .delete()
+                .eq('id', meetingId);
+            
+            if (meetingError) {
+                console.error('Error deleting meeting:', meetingError);
+                alert('Error deleting meeting: ' + meetingError.message);
+                return;
+            }
+
+            // Update the local state
+            this.meetings = this.meetings.filter(meeting => meeting.id !== meetingId);
+            
+            // Close modal and reload meetings list
+            this.closeModal();
+            this.loadMeetings();
+            
+            // Show success message
+            alert('Réunion supprimée avec succès !');
+        } catch (error) {
+            console.error('Error deleting meeting:', error);
+            alert('Error deleting meeting: ' + error.message);
+        }
+    }
+
+    async editMeeting(meetingId) {
+        try {
+            // Fetch the meeting data to edit
+            const { data: meetingData, error: meetingError } = await supabase
+                .from('meetings')
+                .select(`
+                    *,
+                    meeting_participants(
+                        member_id,
+                        attendance_status,
+                        members(name)
+                    ),
+                    topics(
+                        *,
+                        topic_ministries(
+                            ministry_id,
+                            ministries(name)
+                        ),
+                        decisions(*),
+                        tasks(*)
+                    )
+                `)
+                .eq('id', meetingId)
+                .single();
+            
+            if (meetingError) {
+                console.error('Error fetching meeting to edit:', meetingError);
+                alert('Error fetching meeting: ' + meetingError.message);
+                return;
+            }
+
+            // Process the meeting data to match the form structure
+            const processedMeeting = await this.processMeetingsData([meetingData]);
+            const meeting = processedMeeting[0];
+
+            // Switch to the create tab to show the edit form
+            this.showTab('create');
+            
+            // Populate the form fields with the meeting data
+            document.getElementById('meeting-date').value = meeting.date;
+            document.getElementById('meeting-type').value = meeting.type;
+            document.getElementById('meeting-location').value = meeting.location;
+            document.getElementById('meeting-start-time').value = meeting.startTime;
+            document.getElementById('meeting-end-time').value = meeting.endTime;
+            
+            // Set the current step to step 2 to show the topics form
+            this.currentStep = 2;
+            this.updateStepIndicators();
+            document.getElementById('step1-content').classList.add('hidden');
+            document.getElementById('step2-content').classList.remove('hidden');
+
+            // Set a flag to indicate we're editing
+            this.editingMeetingId = meetingId;
+
+            // Update the save button text to "Update"
+            const saveButton = document.getElementById('save-meeting');
+            if (saveButton) {
+                saveButton.innerHTML = `
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                    </svg>
+                    Mettre à jour
+                `;
+            }
+
+            // Load participants and set their attendance status
+            this.loadParticipants();
+            
+            // Set checkboxes based on the meeting's attendance data
+            meeting.presentMembers.forEach(member => {
+                const checkbox = document.getElementById(`present-${member}`);
+                if (checkbox) checkbox.checked = true;
+            });
+            
+            meeting.absentMembers.forEach(member => {
+                const checkbox = document.getElementById(`absent-${member}`);
+                if (checkbox) checkbox.checked = true;
+            });
+            
+            // Clear and populate topics container with existing topics
+            const topicsContainer = document.getElementById('topics-container');
+            topicsContainer.innerHTML = '';
+            
+            meeting.topics.forEach((topic, index) => {
+                const topicDiv = document.createElement('div');
+                topicDiv.className = 'glass-effect rounded-xl p-4 space-y-4 border border-border';
+                topicDiv.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-center">
+                            <h5 class="heading-font font-semibold text-text mr-3">Sujet #${index + 1}</h5>
+                            <div class="flex space-x-1">
+                                <div class="w-2 h-2 rounded-full bg-sage"></div>
+                                <div class="w-2 h-2 rounded-full bg-amber-500"></div>
+                                <div class="w-2 h-2 rounded-full bg-rose-500"></div>
+                            </div>
+                        </div>
+                        <button onclick="this.parentElement.parentElement.remove()" class="text-rose-500 hover:text-rose-700 touch-target">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1 text-secondary">Titre du sujet</label>
+                        <input type="text" class="topic-title w-full px-3 py-2 rounded-lg border border-border text-sm" placeholder="Titre du sujet" value="${topic.title}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1 text-secondary">Ministères concernés</label>
+                        <select class="ministry-select w-full px-3 py-2 rounded-lg border border-border text-sm" multiple="multiple">
+                            ${this.ministries.map(ministry => `<option value="${ministry}" ${topic.ministries && topic.ministries.includes(ministry) ? 'selected' : ''}>${ministry}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1 text-secondary">Description</label>
+                        <textarea class="topic-description w-full px-3 py-2 rounded-lg border border-border text-sm" rows="3" placeholder="Description détaillée du sujet">${topic.description || ''}</textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1 text-secondary">Décision prise (optionnel)</label>
+                        <textarea class="topic-decision w-full px-3 py-2 rounded-lg border border-border text-sm" rows="2" placeholder="Décision ou conclusion du sujet">${topic.decision || ''}</textarea>
+                    </div>
+                    <div class="border-t border-border pt-4">
+                        <h6 class="heading-font font-medium text-text mb-2 flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                            Tâches à faire
+                        </h6>
+                        <div class="todo-container space-y-2 mb-2">
+                            ${(topic.todos || []).map((todo, todoIndex) => `
+                                <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 p-3 bg-white rounded-lg border border-border">
+                                    <input type="text" class="todo-text flex-1 w-full sm:w-auto px-3 py-2 rounded-lg border border-border text-sm" placeholder="Description de la tâche" value="${todo.text || ''}">
+                                    <input type="date" class="todo-date px-3 py-2 rounded-lg border border-border text-sm" value="${todo.dueDate || ''}">
+                                    <select class="todo-assignee px-3 py-2 rounded-lg border border-border text-sm">
+                                        <option value="">Assigner à</option>
+                                        ${this.getCurrentMembers().map(member => `<option value="${member}" ${todo.assignee === member ? 'selected' : ''}>${member}</option>`).join('')}
+                                    </select>
+                                    <button onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700 touch-target">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button onclick="app.addTodoItem(this)" class="btn-primary px-3 py-1 rounded text-sm font-medium flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            Ajouter une tâche
+                        </button>
+                    </div>
+                `;
+                
+                topicsContainer.appendChild(topicDiv);
+                
+                // Initialize Select2 for the newly added topic after a small delay to ensure DOM is ready
+                setTimeout(() => {
+                    if (typeof $ !== 'undefined' && $.fn.select2) {
+                        $(topicDiv).find('.ministry-select').select2({
+                            placeholder: "Sélectionnez les ministères...",
+                            allowClear: true,
+                            width: '100%'
+                        });
+                    }
+                }, 100);
+            });
+
+            // Scroll to the form
+            document.getElementById('create-meeting-section').scrollIntoView({ behavior: 'smooth' });
+            
+        } catch (error) {
+            console.error('Error in editMeeting:', error);
+            alert('Error loading meeting for editing: ' + error.message);
+        }
+    }
+    
     // Filters
     applyFilters() {
         const startDate = document.getElementById('filter-start-date').value;
@@ -973,10 +1927,12 @@ class NotesApp {
             count + (meeting.topics || []).filter(topic => topic.decision).length, 0
         );
         
-        const avgParticipation = data.length > 0 ? 
-            Math.round(data.reduce((sum, meeting) => 
-                sum + (meeting.presentMembers?.length || 0), 0) / data.length * 100 / 
-                ((meeting) => this.getCurrentMembers().length)()) : 0;
+        const avgParticipation = data.length > 0 && this.getCurrentMembers().length > 0 ?
+            Math.round(
+                data.reduce((sum, meeting) =>
+                    sum + (meeting.presentMembers?.length || 0), 0
+                ) / data.length / this.getCurrentMembers().length * 100
+            ) : 0;
         
         document.getElementById('total-meetings').textContent = totalMeetings;
         document.getElementById('total-decisions').textContent = totalDecisions;
@@ -1232,6 +2188,138 @@ class NotesApp {
                 });
             }
         });
+    }
+    
+    // Helper methods for loading states
+    setLoadingState(stateKey, isLoading) {
+        if (this.loadingStates.hasOwnProperty(stateKey)) {
+            this.loadingStates[stateKey] = isLoading;
+            this.updateLoadingUI(stateKey, isLoading);
+        }
+    }
+    
+    updateLoadingUI(stateKey, isLoading) {
+        // Update UI elements based on loading state
+        switch(stateKey) {
+            case 'addingMember':
+                const addMemberBtn = document.getElementById('add-member');
+                if (addMemberBtn) {
+                    addMemberBtn.disabled = isLoading;
+                    if (isLoading) {
+                        addMemberBtn.innerHTML = `
+                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Ajout...
+                        `;
+                    } else {
+                        addMemberBtn.innerHTML = `
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            Ajouter
+                        `;
+                    }
+                }
+                break;
+                
+            case 'removingMember':
+                // We'll handle member removal loading in the UI separately
+                break;
+                
+            case 'addingMinistry':
+                const addMinistryBtn = document.getElementById('add-ministry');
+                if (addMinistryBtn) {
+                    addMinistryBtn.disabled = isLoading;
+                    if (isLoading) {
+                        addMinistryBtn.innerHTML = `
+                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Ajout...
+                        `;
+                    } else {
+                        addMinistryBtn.innerHTML = `
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            Ajouter
+                        `;
+                    }
+                }
+                break;
+                
+            case 'removingMinistry':
+                // We'll handle ministry removal loading in the UI separately
+                break;
+                
+            case 'savingMeeting':
+                const saveMeetingBtn = document.getElementById('save-meeting');
+                if (saveMeetingBtn) {
+                    saveMeetingBtn.disabled = isLoading;
+                    if (isLoading) {
+                        saveMeetingBtn.innerHTML = `
+                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Enregistrement...
+                        `;
+                    } else {
+                        saveMeetingBtn.innerHTML = `
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                            </svg>
+                            Enregistrer
+                        `;
+                    }
+                }
+                break;
+                
+            case 'meetings':
+                // Handle loading for meetings list
+                const meetingsList = document.getElementById('meetings-list');
+                if (meetingsList && isLoading) {
+                    meetingsList.innerHTML = `
+                        <div class="flex justify-center items-center h-40">
+                            <svg class="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                    `;
+                }
+                break;
+        }
+    }
+    
+    // Show loading animation on a specific button or element
+    showElementLoading(elementId, loadingText = "Chargement...") {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.disabled = true;
+            const originalContent = element.innerHTML;
+            element.originalContent = originalContent; // Store original content for later restoration
+            element.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                ${loadingText}
+            `;
+        }
+    }
+    
+    // Restore original content for a button or element
+    restoreElementContent(elementId) {
+        const element = document.getElementById(elementId);
+        if (element && element.originalContent) {
+            element.innerHTML = element.originalContent;
+            element.disabled = false;
+            delete element.originalContent; // Remove the stored content
+        }
     }
 }
 
