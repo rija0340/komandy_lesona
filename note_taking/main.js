@@ -991,57 +991,73 @@ class NotesApp {
         const topicIndex = container.children.length;
         
         const topicDiv = document.createElement('div');
-        topicDiv.className = 'glass-effect rounded-xl p-4 space-y-4 border border-border';
+        topicDiv.className = 'glass-effect rounded-xl p-0 border border-border mb-3';
         topicDiv.innerHTML = `
-            <div class="flex justify-between items-start">
-                <div class="flex items-center">
-                    <h5 class="heading-font font-semibold text-text mr-3">Sujet #${topicIndex + 1}</h5>
-                    <div class="flex space-x-1">
-                        <div class="w-2 h-2 rounded-full bg-sage"></div>
-                        <div class="w-2 h-2 rounded-full bg-amber-500"></div>
-                        <div class="w-2 h-2 rounded-full bg-rose-500"></div>
+            <div class="p-4 cursor-pointer topic-header" onclick="app.toggleTopic(this)">
+                <div class="flex justify-between items-start">
+                    <div class="flex items-center">
+                        <h5 class="heading-font font-semibold text-text mr-3">Sujet #${topicIndex + 1}</h5>
+                        <div class="flex space-x-1">
+                            <div class="w-2 h-2 rounded-full bg-sage"></div>
+                            <div class="w-2 h-2 rounded-full bg-amber-500"></div>
+                            <div class="w-2 h-2 rounded-full bg-rose-500"></div>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="topic-title-preview text-gray-600 text-sm truncate max-w-xs"></span>
+                        <button class="text-rose-500 hover:text-rose-700 touch-target" onclick="app.removeTopic(event, this)">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                        <button class="topic-toggle text-gray-500 hover:text-gray-700">
+                            <svg class="w-5 h-5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
                     </div>
                 </div>
-                <button onclick="this.parentElement.parentElement.remove()" class="text-rose-500 hover:text-rose-700 touch-target">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
             </div>
-            <div>
-                <label class="block text-xs font-medium mb-1 text-secondary">Titre du sujet</label>
-                <input type="text" class="topic-title w-full px-3 py-2 rounded-lg border border-border text-sm" placeholder="Titre du sujet">
-            </div>
-            <div>
-                <label class="block text-xs font-medium mb-1 text-secondary">Ministères concernés</label>
-                <select class="ministry-select w-full px-3 py-2 rounded-lg border border-border text-sm" multiple="multiple">
-                    ${this.ministries.map(ministry => `<option value="${ministry}">${ministry}</option>`).join('')}
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs font-medium mb-1 text-secondary">Description</label>
-                <textarea class="topic-description w-full px-3 py-2 rounded-lg border border-border text-sm" rows="3" placeholder="Description détaillée du sujet"></textarea>
-            </div>
-            <div>
-                <label class="block text-xs font-medium mb-1 text-secondary">Décision prise (optionnel)</label>
-                <textarea class="topic-decision w-full px-3 py-2 rounded-lg border border-border text-sm" rows="2" placeholder="Décision ou conclusion du sujet"></textarea>
-            </div>
-            <div class="border-t border-border pt-4">
-                <h6 class="heading-font font-medium text-text mb-2 flex items-center">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                    </svg>
-                    Tâches à faire
-                </h6>
-                <div class="todo-container space-y-2 mb-2">
-                    <!-- To-do items will be added here -->
+            <div class="topic-content p-4 hidden">
+                <div class="mb-3">
+                    <label class="block text-xs font-medium mb-1 text-secondary">Titre du sujet</label>
+                    <input type="text" class="topic-title w-full px-3 py-2 rounded-lg border border-border text-sm" placeholder="Titre du sujet" oninput="app.updateTopicPreview(this)">
                 </div>
-                <button onclick="app.addTodoItem(this)" class="btn-primary px-3 py-1 rounded text-sm font-medium flex items-center">
-                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                    </svg>
-                    Ajouter une tâche
-                </button>
+                <div class="mb-3">
+                    <label class="block text-xs font-medium mb-1 text-secondary">Ministères concernés</label>
+                    <select class="ministry-select w-full px-3 py-2 rounded-lg border border-border text-sm" multiple="multiple">
+                        ${this.ministries.map(ministry => `<option value="${ministry}">${ministry}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="block text-xs font-medium mb-1 text-secondary">Contenu du sujet</label>
+                    <div class="topic-content-editor border border-border rounded-lg"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="block text-xs font-medium mb-1 text-secondary">Notes (optionnel)</label>
+                    <textarea class="topic-notes w-full px-3 py-2 rounded-lg border border-border text-sm" rows="2" placeholder="Notes supplémentaires"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="block text-xs font-medium mb-1 text-secondary">Décision prise (optionnel)</label>
+                    <textarea class="topic-decision w-full px-3 py-2 rounded-lg border border-border text-sm" rows="2" placeholder="Décision ou conclusion du sujet"></textarea>
+                </div>
+                <div class="border-t border-border pt-4">
+                    <h6 class="heading-font font-medium text-text mb-2 flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                        Tâches à faire
+                    </h6>
+                    <div class="todo-container space-y-2 mb-2">
+                        <!-- To-do items will be added here -->
+                    </div>
+                    <button onclick="app.addTodoItem(this)" class="btn-primary px-3 py-1 rounded text-sm font-medium flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Ajouter une tâche
+                    </button>
+                </div>
             </div>
         `;
         
@@ -1055,6 +1071,27 @@ class NotesApp {
                     allowClear: true,
                     width: '100%'
                 });
+            }
+            
+            // Initialize Quill editor for the topic content
+            const editorElement = topicDiv.querySelector('.topic-content-editor');
+            if (editorElement) {
+                const quill = new Quill(editorElement, {
+                    theme: 'snow',
+                    placeholder: 'Contenu détaillé du sujet...',
+                    modules: {
+                        toolbar: [
+                            [{ 'header': [1, 2, 3, false] }],
+                            ['bold', 'italic', 'underline', 'strike'],
+                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                            ['link', 'image'],
+                            ['clean']
+                        ]
+                    }
+                });
+                
+                // Store reference to quill instance
+                topicDiv.quillEditor = quill;
             }
         }, 100);
     }
@@ -1364,10 +1401,23 @@ class NotesApp {
             const ministrySelect = element.querySelector('.ministry-select');
             const selectedMinistries = $(ministrySelect).val() || [];
             
+            // Get content from Quill editor if it exists
+            let topicContent = '';
+            if (element.quillEditor) {
+                topicContent = element.quillEditor.root.innerHTML;
+            } else {
+                // Fallback if Quill editor is not available
+                const contentEditor = element.querySelector('.topic-content-editor');
+                if (contentEditor) {
+                    topicContent = contentEditor.innerHTML;
+                }
+            }
+            
             const topic = {
                 title: element.querySelector('.topic-title').value,
                 ministries: selectedMinistries, // Changed from single ministry to array of ministries
-                description: element.querySelector('.topic-description').value,
+                description: topicContent || '', // Using rich text content
+                notes: element.querySelector('.topic-notes')?.value || '', // Additional notes
                 decision: element.querySelector('.topic-decision').value,
                 todos: []
             };
@@ -1510,7 +1560,7 @@ class NotesApp {
         });
         
         content.innerHTML = `
-            <div class="space-y-4 sm:space-y-6">
+            <div id="meeting-export-content" class="space-y-4 sm:space-y-6">
                 <div class="flex justify-between items-start border-b pb-3 sm:pb-4">
                     <div>
                         <h3 class="text-base sm:text-lg font-bold text-gray-900 mb-2">${date}</h3>
@@ -1518,12 +1568,22 @@ class NotesApp {
                         <p class="text-gray-600 text-xs sm:text-sm">${meeting.location} • ${meeting.startTime} - ${meeting.endTime}</p>
                     </div>
                     <div class="flex space-x-2">
-                        <button onclick="app.editMeeting(${meeting.id})" class="text-blue-500 hover:text-blue-700 p-1" title="Modifier">
+                        <button id="export-pdf-${meeting.id}" class="text-green-500 hover:text-green-700 p-1" title="Exporter en PDF">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                            </svg>
+                        </button>
+                        <button id="export-image-${meeting.id}" class="text-purple-500 hover:text-purple-700 p-1" title="Exporter en image">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                        </button>
+                        <button id="edit-meeting-${meeting.id}" class="text-blue-500 hover:text-blue-700 p-1" title="Modifier">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                             </svg>
                         </button>
-                        <button onclick="app.deleteMeeting(${meeting.id})" class="text-rose-500 hover:text-rose-700 p-1" title="Supprimer">
+                        <button id="delete-meeting-${meeting.id}" class="text-rose-500 hover:text-rose-700 p-1" title="Supprimer">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                             </svg>
@@ -1560,6 +1620,12 @@ class NotesApp {
                                     </div>
                                 ` : ''}
                                 <p class="text-gray-600 text-xs sm:text-sm mb-2">${topic.description}</p>
+                                ${topic.notes ? `
+                                    <div class="bg-blue-50 p-2 sm:p-3 rounded-lg mb-2 sm:mb-3">
+                                        <p class="text-xs sm:text-sm font-semibold text-blue-800">Notes:</p>
+                                        <p class="text-gray-700 text-xs sm:text-sm mt-1">${topic.notes}</p>
+                                    </div>
+                                ` : ''}
                                 ${topic.decision ? `
                                     <div class="bg-gray-100 p-2 sm:p-3 rounded-lg mb-2 sm:mb-3">
                                         <p class="text-xs sm:text-sm font-semibold text-gray-900">Décision ${topic.decisionNumber || ''}:</p>
@@ -1586,11 +1652,310 @@ class NotesApp {
             </div>
         `;
         
+        // Add event listeners after the content is added to the DOM
+        const editButton = document.getElementById(`edit-meeting-${meeting.id}`);
+        const deleteButton = document.getElementById(`delete-meeting-${meeting.id}`);
+        const exportPdfButton = document.getElementById(`export-pdf-${meeting.id}`);
+        const exportImageButton = document.getElementById(`export-image-${meeting.id}`);
+        
+        if (editButton) {
+            editButton.addEventListener('click', () => this.editMeeting(meeting.id));
+        }
+        
+        if (deleteButton) {
+            deleteButton.addEventListener('click', () => this.deleteMeeting(meeting.id));
+        }
+        
+        if (exportPdfButton) {
+            exportPdfButton.addEventListener('click', () => this.exportMeetingAsPDF(meeting));
+        }
+        
+        if (exportImageButton) {
+            exportImageButton.addEventListener('click', () => this.exportMeetingAsImage(meeting));
+        }
+        
         modal.classList.remove('hidden');
+    }
+    
+    // Toggle topic details visibility (for meeting details modal)
+    toggleTopicDetails(element) {
+        // Find the parent topic div
+        const topicDiv = element.closest('[class*="border-l-4"]');
+        const topicContent = topicDiv.querySelector('.topic-details-content');
+        const toggleIcon = element.querySelector('.topic-toggle-icon');
+        
+        if (topicContent.style.display === 'none' || !topicContent.style.display) {
+            topicContent.style.display = 'block';
+            // Rotate icon up (expanded state)
+            toggleIcon.style.transform = 'rotate(0deg)';
+        } else {
+            topicContent.style.display = 'none';
+            // Rotate icon down (collapsed state)
+            toggleIcon.style.transform = 'rotate(180deg)';
+        }
     }
 
     closeModal() {
         document.getElementById('meeting-modal').classList.add('hidden');
+    }
+    
+    // Export meeting as PDF
+    async exportMeetingAsPDF(meeting) {
+        // Show loading state
+        const exportButton = document.getElementById(`export-pdf-${meeting.id}`);
+        if (exportButton) {
+            const originalContent = exportButton.innerHTML;
+            exportButton.innerHTML = `
+                <svg class="animate-spin w-5 h-5 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            `;
+            exportButton.disabled = true;
+        }
+
+        try {
+            // Use jsPDF - check if the library is loaded
+            if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
+                console.error('jsPDF library not loaded');
+                alert('Export library not available. Please refresh the page.');
+                return;
+            }
+
+            // Create a new PDF instance
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Meeting header information
+            const date = new Date(meeting.date).toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            // Add title
+            doc.setFontSize(18);
+            doc.text('Compte Rendu de Réunion', 20, 20);
+            
+            // Add meeting details
+            doc.setFontSize(12);
+            doc.text(`Date: ${date}`, 20, 35);
+            doc.text(`Type: ${meeting.type === 'regular' ? 'Réunion régulière' : 'Réunion extraordinaire'}`, 20, 45);
+            doc.text(`Lieu: ${meeting.location}`, 20, 55);
+            doc.text(`Heure: ${meeting.startTime} - ${meeting.endTime}`, 20, 65);
+            
+            // Add participants
+            let yPos = 80;
+            doc.setFontSize(14);
+            doc.text('Participants', 20, yPos);
+            
+            yPos += 10;
+            doc.setFontSize(12);
+            doc.text('Présents:', 20, yPos);
+            
+            if (meeting.presentMembers && meeting.presentMembers.length > 0) {
+                meeting.presentMembers.forEach((member, index) => {
+                    doc.text(`• ${member}`, 30, yPos + (index + 1) * 10);
+                });
+                yPos += meeting.presentMembers.length * 10 + 10;
+            } else {
+                doc.text('Aucun participant présent', 30, yPos + 10);
+                yPos += 20;
+            }
+            
+            doc.text('Absents:', 20, yPos);
+            if (meeting.absentMembers && meeting.absentMembers.length > 0) {
+                meeting.absentMembers.forEach((member, index) => {
+                    doc.text(`• ${member}`, 30, yPos + (index + 1) * 10);
+                });
+                yPos += meeting.absentMembers.length * 10 + 10;
+            } else {
+                doc.text('Aucun participant absent', 30, yPos + 10);
+                yPos += 20;
+            }
+            
+            // Add topics
+            doc.setFontSize(14);
+            doc.text('Sujets traités', 20, yPos);
+            
+            if (meeting.topics && meeting.topics.length > 0) {
+                for (const topic of meeting.topics) {
+                    yPos += 10;
+                    
+                    // Topic title
+                    doc.setFontSize(12);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(`${meeting.topics.indexOf(topic) + 1}. ${topic.title}`, 20, yPos);
+                    
+                    yPos += 8;
+                    
+                    // Ministries
+                    if (topic.ministries && topic.ministries.length > 0) {
+                        doc.setFont(undefined, 'normal');
+                        const ministriesText = topic.ministries.join(', ');
+                        doc.text(`Ministères: ${ministriesText}`, 20, yPos);
+                        yPos += 8;
+                    }
+                    
+                    // Topic description - need to handle HTML content
+                    if (topic.description) {
+                        doc.setFont(undefined, 'normal');
+                        const descriptionText = this.stripHtmlTags(topic.description);
+                        this.addWrappedText(doc, `Contenu: ${descriptionText}`, 20, yPos, 170);
+                        yPos = this.getLastYPosition(doc); // Get updated Y position after wrapping text
+                    }
+                    
+                    // Topic notes
+                    if (topic.notes) {
+                        doc.setFont(undefined, 'normal');
+                        this.addWrappedText(doc, `Notes: ${topic.notes}`, 20, yPos, 170);
+                        yPos = this.getLastYPosition(doc);
+                    }
+                    
+                    // Decision
+                    if (topic.decision) {
+                        doc.setFont(undefined, 'bold');
+                        const decisionText = `Décision: ${topic.decisionNumber || ''} ${topic.decision}`;
+                        this.addWrappedText(doc, decisionText, 20, yPos, 170);
+                        yPos = this.getLastYPosition(doc);
+                    }
+                    
+                    // Add space between topics
+                    yPos += 10;
+                    
+                    // Check if we need a new page
+                    if (yPos > 270) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+                }
+            } else {
+                doc.text('Aucun sujet traité', 20, yPos + 10);
+            }
+            
+            // Save the PDF
+            doc.save(`Reunion_${meeting.date}_${meeting.type}.pdf`);
+        } catch (error) {
+            console.error('Error exporting PDF:', error);
+            alert('Erreur lors de l\'exportation du PDF: ' + error.message);
+        } finally {
+            // Restore button state
+            if (exportButton) {
+                const originalContent = `
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    </svg>
+                `;
+                exportButton.innerHTML = originalContent;
+                exportButton.disabled = false;
+            }
+        }
+    }
+    
+    // Export meeting as image
+    async exportMeetingAsImage(meeting) {
+        // Show loading state
+        const exportButton = document.getElementById(`export-image-${meeting.id}`);
+        if (exportButton) {
+            const originalContent = exportButton.innerHTML;
+            exportButton.innerHTML = `
+                <svg class="animate-spin w-5 h-5 text-purple-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            `;
+            exportButton.disabled = true;
+        }
+
+        try {
+            // Get the content to export
+            const contentDiv = document.getElementById('meeting-export-content');
+            if (!contentDiv) {
+                console.error('Export content not found');
+                alert('Contenu d\'exportation non trouvé');
+                return;
+            }
+            
+            // Use html2canvas to capture the content as an image
+            if (typeof html2canvas === 'undefined') {
+                console.error('html2canvas library not loaded');
+                alert('Export library not available. Please refresh the page.');
+                return;
+            }
+            
+            // Temporarily increase the modal width to capture content better
+            const originalStyle = contentDiv.style.width;
+            contentDiv.style.width = '800px';
+            
+            const canvas = await html2canvas(contentDiv, {
+                scale: 2, // Higher resolution
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff',
+                scrollX: 0,
+                scrollY: -window.scrollY
+            });
+            
+            // Restore original style
+            contentDiv.style.width = originalStyle;
+            
+            // Create image from canvas
+            const image = canvas.toDataURL('image/png');
+            
+            // Create a download link and trigger download
+            const link = document.createElement('a');
+            link.download = `Reunion_${meeting.date}_${meeting.type}.png`;
+            link.href = image;
+            link.click();
+        } catch (error) {
+            console.error('Error exporting image:', error);
+            alert('Erreur lors de l\'exportation de l\'image: ' + error.message);
+        } finally {
+            // Restore button state
+            if (exportButton) {
+                const originalContent = `
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                `;
+                exportButton.innerHTML = originalContent;
+                exportButton.disabled = false;
+            }
+        }
+    }
+    
+    // Helper function to strip HTML tags for PDF export
+    stripHtmlTags(html) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        return tmp.textContent || tmp.innerText || '';
+    }
+    
+    // Helper function to add wrapped text to PDF
+    addWrappedText(doc, text, x, y, maxWidth) {
+        const paragraphs = text.split('\n');
+        let currentY = y;
+        
+        for (const paragraph of paragraphs) {
+            const lines = doc.splitTextToSize(paragraph, maxWidth);
+            for (const line of lines) {
+                if (currentY > 270) { // Near bottom of page
+                    doc.addPage();
+                    currentY = 20; // Reset Y position for new page
+                }
+                doc.text(line, x, currentY);
+                currentY += 7; // Move Y position down for next line
+            }
+        }
+        
+        // Store the final Y position
+        this.lastY = currentY;
+    }
+    
+    // Helper function to get last Y position
+    getLastYPosition(doc) {
+        return this.lastY || 0;
     }
 
     async deleteMeeting(meetingId) {
@@ -1783,71 +2148,87 @@ class NotesApp {
             
             meeting.topics.forEach((topic, index) => {
                 const topicDiv = document.createElement('div');
-                topicDiv.className = 'glass-effect rounded-xl p-4 space-y-4 border border-border';
+                topicDiv.className = 'glass-effect rounded-xl p-0 border border-border mb-3';
                 topicDiv.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <div class="flex items-center">
-                            <h5 class="heading-font font-semibold text-text mr-3">Sujet #${index + 1}</h5>
-                            <div class="flex space-x-1">
-                                <div class="w-2 h-2 rounded-full bg-sage"></div>
-                                <div class="w-2 h-2 rounded-full bg-amber-500"></div>
-                                <div class="w-2 h-2 rounded-full bg-rose-500"></div>
+                    <div class="p-4 cursor-pointer topic-header" onclick="app.toggleTopic(this)">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-center">
+                                <h5 class="heading-font font-semibold text-text mr-3">Sujet #${index + 1}</h5>
+                                <div class="flex space-x-1">
+                                    <div class="w-2 h-2 rounded-full bg-sage"></div>
+                                    <div class="w-2 h-2 rounded-full bg-amber-500"></div>
+                                    <div class="w-2 h-2 rounded-full bg-rose-500"></div>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="topic-title-preview text-gray-600 text-sm truncate max-w-xs">${topic.title || 'Sans titre'}</span>
+                                <button class="text-rose-500 hover:text-rose-700 touch-target" onclick="app.removeTopic(event, this)">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                                <button class="topic-toggle text-gray-500 hover:text-gray-700">
+                                    <svg class="w-5 h-5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </button>
                             </div>
                         </div>
-                        <button onclick="this.parentElement.parentElement.remove()" class="text-rose-500 hover:text-rose-700 touch-target">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
                     </div>
-                    <div>
-                        <label class="block text-xs font-medium mb-1 text-secondary">Titre du sujet</label>
-                        <input type="text" class="topic-title w-full px-3 py-2 rounded-lg border border-border text-sm" placeholder="Titre du sujet" value="${topic.title}">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium mb-1 text-secondary">Ministères concernés</label>
-                        <select class="ministry-select w-full px-3 py-2 rounded-lg border border-border text-sm" multiple="multiple">
-                            ${this.ministries.map(ministry => `<option value="${ministry}" ${topic.ministries && topic.ministries.includes(ministry) ? 'selected' : ''}>${ministry}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium mb-1 text-secondary">Description</label>
-                        <textarea class="topic-description w-full px-3 py-2 rounded-lg border border-border text-sm" rows="3" placeholder="Description détaillée du sujet">${topic.description || ''}</textarea>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium mb-1 text-secondary">Décision prise (optionnel)</label>
-                        <textarea class="topic-decision w-full px-3 py-2 rounded-lg border border-border text-sm" rows="2" placeholder="Décision ou conclusion du sujet">${topic.decision || ''}</textarea>
-                    </div>
-                    <div class="border-t border-border pt-4">
-                        <h6 class="heading-font font-medium text-text mb-2 flex items-center">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                            </svg>
-                            Tâches à faire
-                        </h6>
-                        <div class="todo-container space-y-2 mb-2">
-                            ${(topic.todos || []).map((todo, todoIndex) => `
-                                <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 p-3 bg-white rounded-lg border border-border">
-                                    <input type="text" class="todo-text flex-1 w-full sm:w-auto px-3 py-2 rounded-lg border border-border text-sm" placeholder="Description de la tâche" value="${todo.text || ''}">
-                                    <input type="date" class="todo-date px-3 py-2 rounded-lg border border-border text-sm" value="${todo.dueDate || ''}">
-                                    <select class="todo-assignee px-3 py-2 rounded-lg border border-border text-sm">
-                                        <option value="">Assigner à</option>
-                                        ${this.getCurrentMembers().map(member => `<option value="${member}" ${todo.assignee === member ? 'selected' : ''}>${member}</option>`).join('')}
-                                    </select>
-                                    <button onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700 touch-target">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                            `).join('')}
+                    <div class="topic-content p-4">
+                        <div class="mb-3">
+                            <label class="block text-xs font-medium mb-1 text-secondary">Titre du sujet</label>
+                            <input type="text" class="topic-title w-full px-3 py-2 rounded-lg border border-border text-sm" placeholder="Titre du sujet" value="${topic.title}" oninput="app.updateTopicPreview(this)">
                         </div>
-                        <button onclick="app.addTodoItem(this)" class="btn-primary px-3 py-1 rounded text-sm font-medium flex items-center">
-                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                            </svg>
-                            Ajouter une tâche
-                        </button>
+                        <div class="mb-3">
+                            <label class="block text-xs font-medium mb-1 text-secondary">Ministères concernés</label>
+                            <select class="ministry-select w-full px-3 py-2 rounded-lg border border-border text-sm" multiple="multiple">
+                                ${this.ministries.map(ministry => `<option value="${ministry}" ${topic.ministries && topic.ministries.includes(ministry) ? 'selected' : ''}>${ministry}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="block text-xs font-medium mb-1 text-secondary">Contenu du sujet</label>
+                            <div class="topic-content-editor border border-border rounded-lg">${topic.description || ''}</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="block text-xs font-medium mb-1 text-secondary">Notes (optionnel)</label>
+                            <textarea class="topic-notes w-full px-3 py-2 rounded-lg border border-border text-sm" rows="2" placeholder="Notes supplémentaires">${topic.notes || ''}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="block text-xs font-medium mb-1 text-secondary">Décision prise (optionnel)</label>
+                            <textarea class="topic-decision w-full px-3 py-2 rounded-lg border border-border text-sm" rows="2" placeholder="Décision ou conclusion du sujet">${topic.decision || ''}</textarea>
+                        </div>
+                        <div class="border-t border-border pt-4">
+                            <h6 class="heading-font font-medium text-text mb-2 flex items-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                </svg>
+                                Tâches à faire
+                            </h6>
+                            <div class="todo-container space-y-2 mb-2">
+                                ${(topic.todos || []).map((todo, todoIndex) => `
+                                    <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 p-3 bg-white rounded-lg border border-border">
+                                        <input type="text" class="todo-text flex-1 w-full sm:w-auto px-3 py-2 rounded-lg border border-border text-sm" placeholder="Description de la tâche" value="${todo.text || ''}">
+                                        <input type="date" class="todo-date px-3 py-2 rounded-lg border border-border text-sm" value="${todo.dueDate || ''}">
+                                        <select class="todo-assignee px-3 py-2 rounded-lg border border-border text-sm">
+                                            <option value="">Assigner à</option>
+                                            ${this.getCurrentMembers().map(member => `<option value="${member}" ${todo.assignee === member ? 'selected' : ''}>${member}</option>`).join('')}
+                                        </select>
+                                        <button onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700 touch-target">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <button onclick="app.addTodoItem(this)" class="btn-primary px-3 py-1 rounded text-sm font-medium flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                Ajouter une tâche
+                            </button>
+                        </div>
                     </div>
                 `;
                 
@@ -1862,11 +2243,40 @@ class NotesApp {
                             width: '100%'
                         });
                     }
+                    
+                    // Initialize Quill editor for the topic content
+                    const editorElement = topicDiv.querySelector('.topic-content-editor');
+                    if (editorElement) {
+                        const quill = new Quill(editorElement, {
+                            theme: 'snow',
+                            placeholder: 'Contenu détaillé du sujet...',
+                            modules: {
+                                toolbar: [
+                                    [{ 'header': [1, 2, 3, false] }],
+                                    ['bold', 'italic', 'underline', 'strike'],
+                                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                    ['link', 'image'],
+                                    ['clean']
+                                ]
+                            }
+                        });
+                        
+                        // Store reference to quill instance
+                        topicDiv.quillEditor = quill;
+                        
+                        // Set initial content if topic has description
+                        if (topic.description) {
+                            quill.root.innerHTML = topic.description;
+                        }
+                    }
                 }, 100);
             });
 
-            // Scroll to the form
-            document.getElementById('create-meeting-section').scrollIntoView({ behavior: 'smooth' });
+            // Scroll to the form if the element exists
+            const createSection = document.getElementById('tab-create');
+            if (createSection) {
+                createSection.scrollIntoView({ behavior: 'smooth' });
+            }
             
         } catch (error) {
             console.error('Error in editMeeting:', error);
@@ -2320,6 +2730,38 @@ class NotesApp {
             element.disabled = false;
             delete element.originalContent; // Remove the stored content
         }
+    }
+    
+    // Toggle topic visibility (expand/collapse)
+    toggleTopic(element) {
+        // Find the parent topic div
+        const topicDiv = element.closest('.glass-effect');
+        const topicContent = topicDiv.querySelector('.topic-content');
+        const toggleIcon = topicDiv.querySelector('.topic-toggle svg');
+        
+        if (topicContent.classList.contains('hidden')) {
+            topicContent.classList.remove('hidden');
+            // Rotate icon up (expanded state)
+            toggleIcon.style.transform = 'rotate(0deg)';
+        } else {
+            topicContent.classList.add('hidden');
+            // Rotate icon down (collapsed state)
+            toggleIcon.style.transform = 'rotate(180deg)';
+        }
+    }
+    
+    // Remove topic
+    removeTopic(event, element) {
+        event.stopPropagation(); // Prevent the toggle action when clicking remove
+        const topicDiv = element.closest('.glass-effect');
+        topicDiv.remove();
+    }
+    
+    // Update topic preview when title changes
+    updateTopicPreview(inputElement) {
+        const topicDiv = inputElement.closest('.glass-effect');
+        const previewElement = topicDiv.querySelector('.topic-title-preview');
+        previewElement.textContent = inputElement.value || 'Sans titre';
     }
 }
 
