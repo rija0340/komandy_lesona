@@ -388,16 +388,207 @@ function afficherListeJours() {
     
     jours.forEach(jour => {
         const div = document.createElement('div');
-        div.className = 'flex items-center justify-between bg-blue-50 p-3 rounded-lg';
+        div.className = 'flex items-center justify-between bg-blue-50 p-3 rounded-lg draggable-day';
+        div.draggable = true;
+        div.dataset.jour = jour;
         div.innerHTML = `
-            <span class="font-medium text-gray-700">${jour}</span>
+            <span class="font-medium text-gray-700 cursor-move"><i class="fas fa-grip-vertical mr-2"></i>${jour}</span>
             <button onclick="supprimerJour('${jour}')" 
                     class="text-red-500 hover:text-red-700 remove-btn">
                 <i class="fas fa-trash"></i>
             </button>
         `;
+        
+        // Add drag event listeners
+        div.addEventListener('dragstart', handleDragStart);
+        div.addEventListener('dragover', handleDragOver);
+        div.addEventListener('dragenter', handleDragEnter);
+        div.addEventListener('dragleave', handleDragLeave);
+        div.addEventListener('drop', handleDrop);
+        div.addEventListener('dragend', handleDragEnd);
+        
         liste.appendChild(div);
     });
+}
+
+// Drag and drop variables
+let dragSrcEl = null;
+
+function handleDragStart(e) {
+    dragSrcEl = this;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', this.innerHTML);
+}
+
+function handleDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    return false;
+}
+
+function handleDragEnter(e) {
+    this.classList.add('bg-blue-100');
+}
+
+function handleDragLeave(e) {
+    this.classList.remove('bg-blue-100');
+}
+
+function handleDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+    
+    if (dragSrcEl !== this) {
+        // Swap the days in the array
+        const fromJour = dragSrcEl.dataset.jour;
+        const toJour = this.dataset.jour;
+        
+        const fromIndex = jours.indexOf(fromJour);
+        const toIndex = jours.indexOf(toJour);
+        
+        // Remove from old position and insert at new position
+        jours.splice(fromIndex, 1);
+        if (toIndex >= fromIndex) {
+            jours.splice(toIndex, 0, fromJour);
+        } else {
+            jours.splice(toIndex, 0, fromJour);
+        }
+        
+        sauvegarderDonnees();
+        afficherListeJours();
+    }
+    
+    return false;
+}
+
+function handleDragEnd(e) {
+    document.querySelectorAll('.draggable-day').forEach(div => {
+        div.classList.remove('bg-blue-100');
+    });
+}
+
+function reorganiserJours() {
+    if (jours.length <= 1) {
+        afficherMessage('Au moins 2 jours sont nécessaires pour réorganiser', 'error');
+        return;
+    }
+    
+    // Create a modal to reorder days
+    const modal = document.createElement('div');
+    modal.id = 'reorganiserModal';
+    modal.innerHTML = `
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-xl p-6 max-w-md w-full max-h-96 overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">Réorganiser les jours</h3>
+                    <button onclick="fermerModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="mb-4">
+                    <p class="text-gray-600 mb-3">Faites glisser les jours pour modifier leur ordre:</p>
+                    <div id="joursOrderList" class="space-y-2" style="min-height: 100px;">
+                        <!-- Les jours seront ajoutés ici -->
+                    </div>
+                </div>
+                
+                <div class="flex gap-2">
+                    <button onclick="enregistrerOrdreJours()" class="btn-gradient font-semibold py-2 px-4 rounded-lg flex-1">
+                        Enregistrer
+                    </button>
+                    <button onclick="fermerModal()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg">
+                        Annuler
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Populate the order list with current days
+    const orderList = document.getElementById('joursOrderList');
+    jours.forEach((jour, index) => {
+        const item = document.createElement('div');
+        item.className = 'flex items-center bg-gray-100 p-3 rounded-lg draggable-item';
+        item.draggable = true;
+        item.dataset.index = index;
+        item.innerHTML = `
+            <i class="fas fa-grip-vertical text-gray-500 mr-3 cursor-move"></i>
+            <span class="font-medium">${jour}</span>
+        `;
+        
+        // Add drag event listeners
+        item.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', index);
+            item.classList.add('opacity-50');
+        });
+        
+        item.addEventListener('dragend', () => {
+            item.classList.remove('opacity-50');
+        });
+        
+        orderList.appendChild(item);
+    });
+    
+    // Add drop target events
+    orderList.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        orderList.classList.add('border-2', 'border-blue-300');
+    });
+    
+    orderList.addEventListener('dragleave', () => {
+        orderList.classList.remove('border-2', 'border-blue-300');
+    });
+    
+    orderList.addEventListener('drop', (e) => {
+        e.preventDefault();
+        orderList.classList.remove('border-2', 'border-blue-300');
+        
+        const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'));
+        const items = orderList.querySelectorAll('.draggable-item');
+        const newIndex = Array.from(items).indexOf(e.target.closest('.draggable-item'));
+        
+        if (draggedIndex !== -1 && newIndex !== -1 && draggedIndex !== newIndex) {
+            // Reorder the items in the UI
+            if (draggedIndex < newIndex) {
+                orderList.insertBefore(items[draggedIndex], items[newIndex].nextSibling);
+            } else {
+                orderList.insertBefore(items[draggedIndex], items[newIndex]);
+            }
+        }
+    });
+}
+
+function enregistrerOrdreJours() {
+    const items = document.querySelectorAll('#joursOrderList .draggable-item');
+    const nouvelOrdre = [];
+    
+    items.forEach(item => {
+        const index = parseInt(item.dataset.index);
+        nouvelOrdre.push(jours[index]);
+    });
+    
+    // Update the global jours array
+    jours = nouvelOrdre;
+    
+    sauvegarderDonnees();
+    afficherListeJours();
+    
+    fermerModal();
+    
+    afficherMessage('Ordre des jours enregistré avec succès', 'success');
+}
+
+function fermerModal() {
+    const modal = document.getElementById('reorganiserModal');
+    if (modal) {
+        modal.remove();
+    }
 }
 
 function afficherListeRoles() {
@@ -563,7 +754,7 @@ function genererPlanning() {
     let erreurs = [];
     
     for (let semaine = 1; semaine <= nbSemaines; semaine++) {
-        for (const jour of jours) {
+        for (const jour of jours) { // This will respect the current order of jours array
             const rolesJour = roles[jour];
             const personnesDisponibles = personnes.filter(p => 
                 p.disponibilites.includes(jour)
@@ -653,7 +844,7 @@ function afficherTableauPlanning() {
     }
     headerHTML += '</tr>';
     
-    // Body Desktop
+    // Body Desktop - respecting the order of jours
     let bodyHTML = '';
     jours.forEach((jour, jourIndex) => {
         roles[jour].forEach((role, roleIndex) => {
@@ -694,7 +885,7 @@ function afficherTableauPlanning() {
         });
     });
     
-    // Mobile view - group by week
+    // Mobile view - group by week, respecting the order of jours
     for (let semaine = 1; semaine <= nbSemaines; semaine++) {
         bodyHTML += `<tr class="mobile-view"><td colspan="3" class="week-header bg-gray-100 font-bold text-center py-3">Semaine ${semaine}</td></tr>`;
         
@@ -759,7 +950,7 @@ function mettreAJourAssistant() {
     
     // Obtenir tous les rôles uniques dans l'ordre d'apparition (comme dans le tableau d'assignation)
     const tousLesRoles = [];
-    jours.forEach(jour => {
+    jours.forEach(jour => { // This ensures the roles follow the correct day order
         roles[jour].forEach(role => {
             if (rolesFiltres.includes(role) && !tousLesRoles.includes(role)) {
                 tousLesRoles.push(role);
@@ -1719,7 +1910,7 @@ function genererCarteStatsAvancee(nom, stat) {
     
     stat.details.sort((a, b) => {
         if (a.semaine !== b.semaine) return a.semaine - b.semaine;
-        return jours.indexOf(a.jour) - jours.indexOf(b.jour);
+        return jours.indexOf(a.jour) - jours.indexOf(b.jour); // This ensures the order follows jours array
     }).forEach(detail => {
         html += `
             <tr class="border-t border-gray-100">
