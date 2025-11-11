@@ -1,0 +1,16 @@
+{
+  "name": "planning-affectation-roles",
+  "version": "1.0.0",
+  "description": "Application de planning pour l'affectation de rôles religieux",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve .",
+    "dev": "npx serve ."
+  },
+  "keywords": ["planning", "react", "javascript", "vanilla-js"],
+  "author": "Vibecoding",
+  "license": "MIT",
+  "devDependencies": {
+    "serve": "^14.2.1"
+  }
+}

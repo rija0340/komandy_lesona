@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planning d'Affectation de Rôles Religieux</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX processing -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Flatpickr for date picker -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    
+    <!-- SheetJS for Excel export -->
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        
+        /* Glass effect for cards */
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Fade-in animation */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Tab button styles */
+        .tab-button {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .tab-button:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .tab-button.active {
+            background-color: #ffffff;
+            color: #1f2937 !important;
+            border-bottom: 3px solid #3b82f6;
+        }
+        
+        /* Custom button with gradient */
+        .btn-gradient {
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-gradient:hover {
+            background: linear-gradient(45deg, #2563eb, #7c3aed);
+            transform: translateY(-1px);
+        }
+        
+        /* Card hover effect */
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Role badge */
+        .role-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background-color: #e0e7ff;
+            color: #4f46e5;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin: 0.125rem;
+            border: 1px solid #c7d2fe;
+        }
+        
+        /* Remove button */
+        .remove-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+            transition: all 0.2s ease;
+        }
+        
+        .remove-btn:hover {
+            background-color: #fee2e2;
+        }
+        
+        /* Table styles */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .table-container table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table-container th,
+        .table-container td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .table-container th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .table-container tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        
+        /* Stat card */
+        .stat-card {
+            background-color: #ffffff;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+        
+        /* Progress bar */
+        .progress-bar {
+            width: 100%;
+            height: 0.5rem;
+            background-color: #e5e7eb;
+            border-radius: 0.25rem;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            transition: width 0.3s ease;
+        }
+        
+        /* Configuration panel animation */
+        .config-expanded {
+            max-height: 1000px;
+            opacity: 1;
+        }
+
+        .config-collapsed {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .desktop-view {
+                display: none !important;
+            }
+
+            .mobile-view {
+                display: block !important;
+            }
+
+            .table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* Mobile table styles */
+            .mobile-table-row {
+                display: block;
+                border: 1px solid #d1d5db;
+                margin-bottom: 12px;
+                border-radius: 8px;
+                padding: 12px;
+                background: white;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+
+            .mobile-table-cell {
+                display: block !important;
+                padding: 8px !important;
+                border: none;
+                position: relative;
+                border-bottom: 1px solid #e5e7eb;
+                text-align: left !important;
+                white-space: normal;
+            }
+
+            .mobile-table-cell:last-child {
+                border-bottom: none;
+            }
+
+            .mobile-table-cell:before {
+                content: attr(data-label) ": ";
+                font-weight: 600;
+                display: inline-block;
+                min-width: 80px;
+                margin-right: 10px;
+                color: #4b5563;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .desktop-view {
+                display: table-row !important;
+            }
+
+            .mobile-view {
+                display: none !important;
+            }
+        }
+
+        /* Highlight cell */
+        .highlight-cell {
+            background: #fef3c7 !important;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        /* Editable cell */
+        .editable-cell {
+            cursor: pointer;
+            position: relative;
+            min-height: 2rem;
+        }
+
+        .editable-cell:hover {
+            background: #f3f4f6 !important;
+        }
+
+        .empty-cell {
+            color: #9ca3af;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div id="root" class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100"></div>
+
+    <!-- Load all components -->
+    <script type="text/babel" src="./routes.js"></script>
+    <script type="text/babel" src="./ConfigurerTab.js"></script>
+    <script type="text/babel" src="./PlanningTab.js"></script>
+    <script type="text/babel" src="./StatistiquesTab.js"></script>
+    <script type="text/babel" src="./AssistantTab.js"></script>
+    <script type="text/babel" src="./App.js"></script>
+
+    <!-- Main application script -->
+    <script type="text/babel">
+        // Initialize router
+        const Router = {
+            currentRoute: 'configurer',
+            navigate: function(route) {
+                this.currentRoute = route;
+                this.render();
+            },
+            render: function() {
+                const root = document.getElementById('root');
+                const container = document.createElement('div');
+                ReactDOM.render(React.createElement(App, { currentRoute: this.currentRoute }), container);
+                root.innerHTML = '';
+                root.appendChild(container);
+            }
+        };
+
+        // Initial render
+        Router.render();
+    </script>
+</body>
+</html>

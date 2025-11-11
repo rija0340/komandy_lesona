@@ -7,6 +7,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Flatpickr Calendar -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
@@ -427,10 +430,16 @@
             </div>
             <div id="configSection" class="config-expanded p-6">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
+                    <div class="hidden">
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Nombre de semaines</label>
-                        <input type="number" id="nbSemaines" value="4" min="1" max="52" 
+                        <input type="number" id="nbSemaines" value="4" min="1" max="52"
                                class="w-full px-4 py-3 rounded-lg focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Mode de génération</label>
+                        <select id="modeGeneration" class="w-full px-4 py-3 rounded-lg focus:outline-none">
+                            <option value="dates">Par dates sélectionnées</option>
+                        </select>
                     </div>
                     <div class="flex items-center">
                         <label class="flex items-center cursor-pointer">
@@ -465,31 +474,8 @@
             <!-- Tab Configurer -->
             <div id="tab-configurer" class="tab-content p-6">
                 <div id="messageConfigurer" class="mb-6"></div>
-                
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                    <!-- Ajouter un jour -->
-                    <div class="bg-white rounded-xl p-6 shadow-lg card-hover">
-                        <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                            <i class="fas fa-plus-circle mr-2 text-blue-500"></i>Ajouter un jour avec rôles
-                        </h3>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Nom du jour</label>
-                                <input type="text" id="nomJour" placeholder="Ex: Alarobia" 
-                                       class="w-full px-4 py-3 rounded-lg">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Rôles (un par ligne)</label>
-                                <textarea id="rolesJour" rows="4" placeholder="PRESIDE&#10;FAMPAHEREZANA&#10;..." 
-                                          class="w-full px-4 py-3 rounded-lg resize-none"></textarea>
-                            </div>
-                            <button onclick="ajouterJourAvecRoles()" 
-                                    class="w-full btn-gradient font-semibold py-3 rounded-lg">
-                                <i class="fas fa-plus mr-2"></i>Ajouter jour avec rôles
-                            </button>
-                        </div>
-                    </div>
 
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                     <!-- Ajouter une personne -->
                     <div class="bg-white rounded-xl p-6 shadow-lg card-hover">
                         <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
@@ -498,69 +484,110 @@
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Nom</label>
-                                <input type="text" id="nomPersonne" placeholder="Ex: Miora" 
+                                <input type="text" id="nomPersonne" placeholder="Ex: Miora"
                                        class="w-full px-4 py-3 rounded-lg">
                             </div>
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Disponible les jours :</label>
-                                <div id="disponibilitesContainer" class="space-y-2 max-h-48 overflow-y-auto"></div>
-                            </div>
-                            <button onclick="ajouterPersonne()" 
+                            <p class="text-sm text-gray-500">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                Les disponibilités seront configurées dans la grille ci-dessous après sélection des dates
+                            </p>
+                            <button onclick="ajouterPersonne()"
                                     class="w-full btn-gradient font-semibold py-3 rounded-lg">
                                 <i class="fas fa-user-check mr-2"></i>Ajouter personne
                             </button>
                         </div>
                     </div>
-                </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                    <!-- Modifier rôles d'un jour -->
+                    <!-- Liste des personnes -->
                     <div class="bg-white rounded-xl p-6 shadow-lg card-hover">
                         <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                            <i class="fas fa-edit mr-2 text-purple-500"></i>Modifier les rôles d'un jour
+                            <i class="fas fa-users mr-2 text-green-500"></i>Personnes enregistrées
                         </h3>
+                        <div id="listePersonnes" class="space-y-2" style="min-height: 50px;">
+                            <!-- Les personnes seront affichées ici -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Date-based Planning -->
+                <div class="bg-white rounded-xl p-6 shadow-lg mb-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-calendar-check mr-2 text-indigo-500"></i>Configuration par Dates
+                    </h3>
+                    <p class="text-sm text-gray-600 mb-4">Sélectionnez des dates spécifiques et configurez les rôles et disponibilités pour chaque date</p>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Left Column: Date Selection -->
                         <div class="space-y-4">
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Jour à modifier</label>
-                                <select id="jourAModifier" onchange="chargerRolesJour()" 
-                                        class="w-full px-4 py-3 rounded-lg">
-                                    <option value="">-- Sélectionner un jour --</option>
-                                </select>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Sélectionner les dates</label>
+                                <input type="text" id="datePicker" class="w-full px-4 py-3 rounded-lg border-2 border-gray-300" placeholder="Cliquez pour sélectionner plusieurs dates">
+                                <div id="selectedDatesCount" class="text-sm text-gray-600 mt-1"></div>
                             </div>
-                            <div id="rolesJourContainer" style="display: none;">
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Rôles actuels</label>
-                                <div id="listeRolesJourAModifier" class="mb-4"></div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Dates sélectionnées (<span id="countDates">0</span>)</label>
+                                <div id="selectedDatesList" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-3 bg-gray-50 border rounded-lg">
+                                    <p class="text-gray-500 text-sm">Aucune date sélectionnée.</p>
+                                </div>
                             </div>
-                            <div id="ajoutRoleContainer" style="display: none;">
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Ajouter un rôle</label>
-                                <div class="flex gap-2">
-                                    <input type="text" id="nouveauRole" placeholder="Nom du rôle" 
-                                           class="flex-1 px-4 py-3 rounded-lg">
-                                    <button onclick="ajouterRoleJour()" 
-                                            class="btn-gradient px-6 py-3 rounded-lg font-semibold">
-                                        <i class="fas fa-plus"></i>
-                                    </button>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Sélectionner les membres pour ce planning</label>
+                                <div id="membresSelection" class="max-h-48 overflow-y-auto p-3 bg-gray-50 border rounded-lg space-y-2">
+                                    <p class="text-gray-500 text-sm">Ajoutez des personnes pour les sélectionner ici.</p>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Modifier disponibilités -->
-                    <div class="bg-white rounded-xl p-6 shadow-lg card-hover">
-                        <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                            <i class="fas fa-user-edit mr-2 text-orange-500"></i>Modifier les disponibilités
-                        </h3>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Personne à modifier</label>
-                                <select id="personneAModifier" onchange="chargerDisponibilitesPersonne()" 
-                                        class="w-full px-4 py-3 rounded-lg">
-                                    <option value="">-- Sélectionner une personne --</option>
-                                </select>
+                <!-- Gestion des Rôles -->
+                <div class="bg-white rounded-xl p-6 shadow-lg mb-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-tags mr-2 text-purple-500"></i>Gestion des Rôles
+                    </h3>
+                    <p class="text-sm text-gray-600 mb-4">Ajoutez, modifiez ou supprimez des rôles pour chaque type de jour présent dans vos dates sélectionnées</p>
+
+                    <!-- Aperçu de tous les jours et leurs rôles -->
+                    <div id="apercuTousRoles" class="mb-6">
+                        <h4 class="font-semibold text-gray-700 mb-3">Aperçu par type de jour</h4>
+                        <div id="listeJoursAvecRoles" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <!-- Les jours et leurs rôles seront injectés ici -->
+                        </div>
+                    </div>
+
+                    <!-- Formulaire d'ajout/modification -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Left Column: Ajouter un rôle -->
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-3">Ajouter un rôle</h4>
+
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Type de jour</label>
+                                    <select id="selectJourPourRole" class="w-full px-4 py-3 rounded-lg border-2 border-gray-300" onchange="chargerRolesPourJourSelectionne()">
+                                        <option value="">-- Sélectionner un type de jour --</option>
+                                    </select>
+                                    <p class="text-xs text-gray-500 mt-1">Les types de jour disponibles dépendent de vos dates sélectionnées</p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Nom du rôle</label>
+                                    <input type="text" id="nomNouveauRole" placeholder="Ex: CUISINIER, ORGANISATEUR, etc." class="w-full px-4 py-3 rounded-lg border-2 border-gray-300">
+                                </div>
+
+                                <button onclick="ajouterRolePersonnalise()" class="w-full btn-gradient font-semibold py-3 rounded-lg">
+                                    <i class="fas fa-plus mr-2"></i>Ajouter le rôle
+                                </button>
                             </div>
-                            <div id="disponibilitesPersonneContainer" style="display: none;">
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Disponibilités</label>
-                                <div id="listeDisponibilitesPersonne" class="space-y-2 max-h-48 overflow-y-auto"></div>
+                        </div>
+
+                        <!-- Right Column: Détails du jour sélectionné -->
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-3">Détails du jour sélectionné</h4>
+                            <div id="recapRoles" class="border rounded-lg p-3 bg-gray-50 max-h-96 overflow-y-auto">
+                                <p class="text-gray-500 text-sm">Sélectionnez un type de jour pour voir ses rôles</p>
                             </div>
                         </div>
                     </div>
@@ -572,41 +599,52 @@
                         <i class="fas fa-exchange-alt mr-2 text-gray-700"></i>Import / Export de configuration
                     </h3>
                     <div class="flex flex-wrap gap-4">
-                        <button onclick="exporterJSON()" 
+                        <button onclick="exporterJSON()"
                                 class="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors">
                             <i class="fas fa-file-download mr-2"></i>Exporter JSON
                         </button>
-                        <button onclick="importerJSON()" 
+                        <button onclick="importerJSON()"
                                 class="flex-1 md:flex-none bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors">
                             <i class="fas fa-file-upload mr-2"></i>Importer JSON
+                        </button>
+                        <button onclick="reinitialiserDonnees()"
+                                class="flex-1 md:flex-none bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors">
+                            <i class="fas fa-trash-alt mr-2"></i>Réinitialiser complètement
                         </button>
                     </div>
                     <!-- Hidden file input for JSON import -->
                     <input type="file" id="importFile" accept=".json" style="display: none;" onchange="handleFileImport(event)">
                 </div>
 
+                <!-- Availability Grid -->
+                <div class="bg-white rounded-xl p-6 shadow-lg mb-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-table mr-2 text-cyan-500"></i>Grille de Disponibilité
+                    </h3>
+                    <p class="text-sm text-gray-600 mb-4">Cochez les cases pour indiquer la disponibilité de chaque membre pour chaque date sélectionnée</p>
+                    <div id="grilleDisponibilite" class="border rounded-lg overflow-x-auto max-h-96 overflow-y-auto">
+                        <p class="text-gray-500 p-4 text-center">Sélectionnez des dates et des membres pour configurer les disponibilités.</p>
+                    </div>
+                </div>
+
                 <!-- Listes actuelles -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="bg-white rounded-xl p-6 shadow-lg">
                         <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                            <i class="fas fa-calendar mr-2 text-blue-500"></i>Jours configurés
-                        </h4>
-                        <div id="listeJours" class="space-y-2" style="min-height: 50px;"></div>
-                        <button onclick="reorganiserJours()" class="mt-4 btn-gradient font-semibold py-2 px-4 rounded-lg text-sm">
-                            <i class="fas fa-sort mr-1"></i>Réorganiser ordre des jours
-                        </button>
-                    </div>
-                    <div class="bg-white rounded-xl p-6 shadow-lg">
-                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                            <i class="fas fa-tasks mr-2 text-purple-500"></i>Rôles par jour
-                        </h4>
-                        <div id="listeRoles" class="space-y-3"></div>
-                    </div>
-                    <div class="bg-white rounded-xl p-6 shadow-lg">
-                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                            <i class="fas fa-users mr-2 text-green-500"></i>Personnes
+                            <i class="fas fa-users mr-2 text-green-500"></i>Personnes enregistrées
                         </h4>
                         <div id="listePersonnes" class="space-y-2"></div>
+                    </div>
+                    <div class="bg-white rounded-xl p-6 shadow-lg">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-info-circle mr-2 text-blue-500"></i>Informations
+                        </h4>
+                        <div class="space-y-2 text-sm text-gray-600">
+                            <p><i class="fas fa-calendar-check mr-2"></i>Sélectionnez des dates spécifiques</p>
+                            <p><i class="fas fa-tasks mr-2"></i>Configurez les rôles par type de jour</p>
+                            <p><i class="fas fa-user-check mr-2"></i>Définissez les disponibilités dans la grille</p>
+                            <p><i class="fas fa-magic mr-2"></i>Générez un planning équilibré</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -754,14 +792,17 @@
                     
                     <!-- Contenu de l'assistant avec affichage compact -->
                     <div id="assistantContent" class="text-sm"></div>
-                    
+
+                    <!-- Section analyse d'équité -->
+                    <div id="analyseDiv" class="mt-4 border-t border-gray-200 pt-4"></div>
+
                     <!-- Section rôles assignés et non assignés -->
                     <div id="assistantRolesSummary" class="mt-4 border-t border-gray-200 pt-4">
                         <div class="flex flex-wrap gap-2" id="rolesSummaryContainer">
                             <!-- Les rôles assignés et non assignés seront affichés ici -->
                         </div>
                     </div>
-                    
+
                     <!-- Analyse des répétitions -->
                     <div id="assistantAnalyse" class="mt-4 border-t border-gray-200 pt-4"></div>
                 </div>
