@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlanDivin - Multi-Plannings</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Flatpickr -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/fr.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- SheetJS -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1', 
+                        secondary: '#ec4899',
+                        surface: '#f8fafc',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        
+        /* Onglets */
+        .tab-content:not(.active) { display: none !important; }
+        .tab-content.active { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .checkbox-wrapper input:checked + div { background-color: #10b981; border-color: #10b981; }
+
+        /* Highlighting Logic */
+        .cell-highlight-global { background-color: #fef08a !important; border: 2px solid #eab308 !important; } /* Jaune */
+        .cell-highlight-specific { background-color: #bfdbfe !important; border: 2px solid #3b82f6 !important; } /* Bleu */
+    </style>
+</head>
+<body class="text-slate-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- HEADER -->
+    <header class="bg-white shadow-sm z-20 border-b border-slate-200 flex-none">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-gradient-to-br from-primary to-secondary text-white w-9 h-9 rounded-lg flex items-center justify-center shadow-lg">
+                    <i class="fa-solid fa-church"></i>
+                </div>
+                <!-- Selecteur de Planning -->
+                <div class="flex flex-col">
+                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Planning Actif</span>
+                    <select id="plan-selector" onchange="switchPlan(this.value)" class="text-sm font-bold text-slate-800 bg-transparent border-none focus:ring-0 cursor-pointer p-0">
+                        <!-- Options générées -->
+                    </select>
+                </div>
+                <button onclick="createNewPlan()" class="ml-2 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded" title="Nouveau Planning">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+
+            <!-- Nav -->
+            <nav class="flex bg-slate-100 p-1 rounded-lg">
+                <button onclick="switchTab('global')" id="tab-btn-global" class="tab-btn px-4 py-1.5 rounded-md text-sm font-medium transition-all text-slate-600">Global</button>
+                <button onclick="switchTab('config')" id="tab-btn-config" class="tab-btn px-4 py-1.5 rounded-md text-sm font-medium transition-all text-slate-600 active-tab bg-white shadow-sm text-primary">Config</button>
+                <button onclick="switchTab('planning')" id="tab-btn-planning" class="tab-btn px-4 py-1.5 rounded-md text-sm font-medium transition-all text-slate-600">Planning</button>
+                <button onclick="switchTab('stats')" id="tab-btn-stats" class="tab-btn px-4 py-1.5 rounded-md text-sm font-medium transition-all text-slate-600">Stats</button>
+            </nav>
+
+            <div class="flex gap-2">
+                <button onclick="deleteCurrentPlan()" class="p-2 text-slate-400 hover:text-red-500 transition" title="Supprimer ce planning">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+                <button onclick="exportData()" class="p-2 text-slate-400 hover:text-primary transition" title="Sauvegarder backup JSON">
+                    <i class="fa-solid fa-save"></i>
+                </button>
+                <button onclick="resetAll()" class="p-2 text-slate-400 hover:text-red-500 transition" title="Réinitialiser tout">
+                    <i class="fa-solid fa-bomb"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 overflow-hidden bg-slate-50 relative">
+        <div id="toast-container" class="absolute top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+        <!-- TAB GLOBAL -->
+        <div id="tab-global" class="tab-content h-full overflow-y-auto p-6">
+            <div class="max-w-3xl mx-auto space-y-6">
+                 <!-- Global Roles -->
+                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+                    <h3 class="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-globe text-blue-500"></i> Rôles (Global)
+                    </h3>
+                    <div class="mb-3">
+                        <select id="role-day-type" class="w-full p-2 border rounded text-sm mb-2 bg-slate-50" onchange="renderRoleList()">
+                            <option value="0">Dimanche</option>
+                            <option value="6">Sabbat / Samedi</option>
+                            <option value="5">Vendredi Soir</option>
+                            <option value="3">Mercredi</option>
+                        </select>
+                        <div class="flex gap-2">
+                            <input type="text" id="new-role-name" class="flex-1 p-2 border rounded text-sm" placeholder="Nouveau rôle..." onkeypress="handleEnter(event, addRole)">
+                            <button onclick="addRole()" class="bg-blue-500 text-white px-3 rounded"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                    </div>
+                    <ul id="roles-list" class="h-40 overflow-y-auto custom-scroll space-y-1 text-sm"></ul>
+                    <p class="text-[10px] text-slate-400 mt-2">Ces rôles sont utilisables dans tous les plannings.</p>
+                </div>
+
+                <!-- Global People -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+                    <h3 class="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-users text-blue-500"></i> Base de Membres (Global)
+                    </h3>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="new-person-name" class="flex-1 p-2 border rounded text-sm" placeholder="Nom..." onkeypress="handleEnter(event, addPerson)">
+                        <button onclick="addPerson()" class="bg-slate-800 text-white px-3 rounded"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    <ul id="people-list" class="h-64 overflow-y-auto custom-scroll space-y-1"></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 1: CONFIGURATION -->
+        <div id="tab-config" class="tab-content active h-full overflow-y-auto p-6">
+            <div class="max-w-5xl mx-auto space-y-6">
+                <!-- CONFIGURATION PLANNING ACTUEL (Droite) -->
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-primary/20 relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-1 h-full bg-primary"></div>
+                        <h3 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-primary"></i> Configuration du Planning : <span id="config-plan-title" class="text-primary"></span>
+                        </h3>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- 1. Titre -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Titre du planning</label>
+                                <input type="text" id="plan-title-input" onchange="updatePlanTitle(this.value)" class="w-full p-2 border border-slate-300 rounded focus:ring-primary focus:border-primary font-semibold text-slate-700">
+                            </div>
+
+                            <!-- 2. Dates -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Dates sélectionnées</label>
+                                <input type="text" id="date-picker" class="w-full p-2 border border-slate-300 rounded focus:ring-primary focus:border-primary" placeholder="Choisir les dates...">
+                            </div>
+                        </div>
+
+                        <div class="mt-6">
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Participants & Disponibilités</label>
+                            <div class="bg-slate-50 p-1 rounded-lg border border-slate-200 overflow-x-auto custom-scroll">
+                                <table id="participant-table" class="w-full text-sm">
+                                    <!-- Content generated by JS -->
+                                </table>
+                            </div>
+                            <div class="flex justify-between items-center mt-2">
+                                <p class="text-xs text-slate-400">Cochez les membres à inclure et leurs disponibilités.</p>
+                                <button onclick="selectAllPeopleForPlan(true)" class="text-xs text-primary hover:underline">Tout inclure</button> / 
+                                <button onclick="selectAllPeopleForPlan(false)" class="text-xs text-primary hover:underline">Tout exclure</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+                        <h3 class="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-star text-yellow-500"></i> Rôles Personnalisés (Ce Planning)
+                        </h3>
+                        <div class="mb-3">
+                            <select id="plan-role-day-type" class="w-full p-2 border rounded text-sm mb-2 bg-slate-50" onchange="renderPlanRoleEditor()">
+                                <option value="0">Dimanche</option>
+                                <option value="6">Sabbat / Samedi</option>
+                                <option value="5">Vendredi Soir</option>
+                                <option value="3">Mercredi</option>
+                            </select>
+                        </div>
+                        <div id="plan-roles-editor" class="space-y-3">
+                            <!-- Content generated by JS -->
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-2">Personnalisez les rôles juste pour ce planning. Les rôles globaux sont utilisés par défaut.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: DISPONIBILITÉS (REMOVED) -->
+
+        <!-- TAB 3: PLANNING -->
+        <div id="tab-planning" class="tab-content h-full overflow-hidden flex flex-col">
+            <div class="p-3 bg-white border-b border-slate-200 flex justify-between items-center shadow-sm z-10 shrink-0">
+                <div class="flex gap-2">
+                    <button onclick="clearHighlights()" class="text-xs bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600">
+                        <i class="fa-solid fa-eraser"></i> Effacer surlignage
+                    </button>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="generateSchedule()" class="bg-primary text-white px-3 py-1.5 rounded hover:bg-indigo-600 transition shadow text-sm font-medium">
+                        <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Générer
+                    </button>
+                    <button onclick="exportToExcel()" class="bg-emerald-600 text-white px-3 py-1.5 rounded hover:bg-emerald-700 transition text-sm font-medium">
+                        <i class="fa-solid fa-file-excel mr-1"></i> Excel
+                    </button>
+                </div>
+            </div>
+            
+            <div class="flex-1 overflow-hidden flex flex-col">
+                <!-- Main Table Area -->
+                <div class="flex-1 overflow-auto p-4 bg-slate-50 custom-scroll relative">
+                     <div id="empty-planning" class="h-full flex flex-col items-center justify-center text-slate-400">
+                        <i class="fa-regular fa-calendar-xmark text-5xl mb-3 text-slate-300"></i>
+                        <p>Aucun planning.</p>
+                    </div>
+                    
+                    <div id="planning-container" class="hidden bg-white rounded-lg shadow border border-slate-200 overflow-hidden mb-6">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-sm">
+                                <thead class="bg-slate-100 text-slate-600">
+                                    <tr id="planning-header-row">
+                                        <!-- Columns: Jour | Role | Week 1 | Week 2 ... -->
+                                    </tr>
+                                </thead>
+                                <tbody id="planning-body" class="divide-y divide-slate-100">
+                                    <!-- Content -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Realtime Assistant (Matrix) - Fixed at bottom -->
+                <div class="mt-4 bg-white border-t border-slate-200 flex flex-col shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                    <div class="p-2 bg-slate-50 border-b border-slate-200 flex justify-between items-center px-4">
+                        <h3 class="font-bold text-slate-700 text-xs uppercase flex items-center gap-2">
+                            <i class="fa-solid fa-robot text-secondary"></i> Assistant Matriciel (Temps Réel)
+                        </h3>
+                        <span class="text-[10px] text-slate-400">Cliquez sur un nom ou un chiffre pour surligner</span>
+                    </div>
+                    <div class="overflow-x-auto custom-scroll p-0">
+                        <table class="w-full text-xs text-center border-collapse">
+                            <thead class="bg-white sticky top-0 z-10 shadow-sm">
+                                <tr id="assistant-header-row" class="text-slate-500 font-medium">
+                                    <!-- Headers: Name | Role 1 | Role 2 ... | Total -->
+                                </tr>
+                            </thead>
+                            <tbody id="assistant-matrix-body" class="divide-y divide-slate-100">
+                                <!-- Matrix Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: STATS -->
+        <div id="tab-stats" class="tab-content h-full overflow-y-auto p-6">
+            <div class="max-w-5xl mx-auto bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                <h2 class="text-xl font-bold mb-4">Statistiques du Planning</h2>
+                <div class="h-80">
+                    <canvas id="chart-total"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL ASSIGNMENT -->
+    <div id="assign-modal" class="fixed inset-0 bg-black/50 hidden z-50 items-center justify-center backdrop-blur-sm" onclick="closeModal(event)">
+        <div class="bg-white rounded-xl shadow-2xl w-[400px] max-w-[90%] overflow-hidden transform transition-all scale-100 flex flex-col max-h-[80vh]" onclick="event.stopPropagation()">
+            <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                <div>
+                    <h3 class="font-bold text-slate-800" id="modal-title">Assignation</h3>
+                    <p class="text-xs text-slate-500" id="modal-subtitle">Date - Rôle</p>
+                </div>
+                <button onclick="closeModalForce()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-times"></i></button>
+            </div>
+            
+            <div class="p-2 overflow-y-auto custom-scroll flex-1" id="modal-list">
+                <!-- List of buttons -->
+            </div>
+            
+            <div class="p-3 bg-slate-50 border-t border-slate-100 flex justify-end">
+                 <button onclick="modalAssign(null)" class="text-xs text-red-500 hover:text-red-700 font-medium mr-auto">Désassigner</button>
+                 <button onclick="closeModalForce()" class="bg-slate-200 hover:bg-slate-300 px-3 py-1 rounded text-xs font-bold text-slate-600">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        // --- CONSTANTS & UTILS ---
+        const DAY_NAMES = { 0: 'Dimanche', 1: 'Lundi', 2: 'Mardi', 3: 'Mercredi', 4: 'Jeudi', 5: 'Vendredi', 6: 'Sabbat' };
+        const genId = () => Math.random().toString(36).substr(2, 9);
+        
+        // Helpers pour gérer les dates sans soucis de timezone
+        // `new Date('YYYY-MM-DD')` est interprété comme UTC, ce qui cause des bugs.
+        // On utilise `dateToYMD` pour stocker en format local, et `parseYMD` pour lire en format local.
+        const dateToYMD = (date) => {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        };
+        const parseYMD = (dStr) => dStr ? new Date(dStr + 'T00:00:00') : null;
+        
+        // --- DATA STORE ---
+        let store = {
+            global: {
+                people: ['Jean', 'Marie', 'Pierre', 'Sophie', 'Lucas', 'Emma'],
+                rolesConfig: {
+                    '0': ['Prédication', 'Présidence', 'Accueil'], 
+                    '6': ['École du Sabbat', 'Culte', 'Diaconat', 'Sono'],
+                    '3': ['Étude', 'Prière']
+                }
+            },
+            plans: [],
+            currentPlanId: null
+        };
+
+        // Helper to get current plan
+        const currentPlan = () => store.plans.find(p => p.id === store.currentPlanId);
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadState();
+            
+            // Ensure we have a valid state even after load
+            if (!store.plans || !Array.isArray(store.plans)) store.plans = [];
+            if (!store.global || !store.global.people) {
+                store.global = { 
+                    people: ['Jean', 'Marie'], 
+                    rolesConfig: { '0': ['Prédication'], '6': ['Culte'] } 
+                };
+            }
+            
+            if (store.plans.length === 0) createNewPlan(true);
+            else if (!store.currentPlanId || !currentPlan()) store.currentPlanId = store.plans[0].id;
+            
+            initFlatpickr();
+            renderPlanSelector();
+            renderGlobalLists();
+            refreshUI();
+            
+            // Default tab
+            switchTab('config');
+        });
+
+        function loadState() {
+            try {
+                const saved = localStorage.getItem('PlanDivin_v2');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    // Basic migration/validation check
+                    if (parsed && parsed.global && parsed.plans) {
+                        store = parsed;
+                        // Migration for custom roles
+                        store.plans.forEach(p => {
+                            if (!p.customRoles) {
+                                p.customRoles = {};
+                            }
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error("Erreur chargement sauvegarde", e);
+            }
+        }
+        
+        function saveState() {
+            localStorage.setItem('PlanDivin_v2', JSON.stringify(store));
+        }
+        
+        function resetAll() {
+            if(confirm("ATTENTION: Cela va effacer toutes les données et plannings. Continuer ?")) {
+                localStorage.removeItem('PlanDivin_v2');
+                location.reload();
+            }
+        }
+
+        // --- NAVIGATION ---
+        function switchTab(tabId) {
+            // Update Tab UI
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            const target = document.getElementById(`tab-${tabId}`);
+            if(target) target.classList.add('active');
+            
+            // Update Button UI
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('bg-white', 'shadow-sm', 'text-primary');
+            });
+            const btn = document.getElementById(`tab-btn-${tabId}`);
+            if(btn) btn.classList.add('bg-white', 'shadow-sm', 'text-primary');
+
+            // Trigger Tab Specific Logic
+            if (tabId === 'planning') renderPlanning();
+            if (tabId === 'stats') updateStats();
+        }
+
+        // --- PLAN MANAGEMENT ---
+        function createNewPlan(isFirst = false) {
+            const today = new Date();
+            const defaultDates = [];
+            for (let i = 0; i < 4; i++) { // Add 4 upcoming Sundays
+                const nextSunday = new Date(today);
+                nextSunday.setDate(today.getDate() + (7 + 0 - today.getDay()) % 7 + (i * 7)); // (7 + targetDay - currentDay) % 7
+                defaultDates.push(dateToYMD(nextSunday));
+            }
+            
+            const newPlan = {
+                id: genId(),
+                title: `Planning ${store.plans.length + 1}`,
+                selectedPeople: [...store.global.people], // Default to all
+                selectedDates: defaultDates,
+                availability: {},
+                assignments: {},
+                customRoles: {}
+            };
+            store.plans.push(newPlan);
+            store.currentPlanId = newPlan.id;
+            saveState();
+            
+            if (!isFirst) {
+                renderPlanSelector();
+                refreshUI();
+                showToast("Nouveau planning créé");
+            }
+        }
+
+        function switchPlan(id) {
+            store.currentPlanId = id;
+            saveState();
+            refreshUI();
+        }
+
+        function deleteCurrentPlan() {
+            if (store.plans.length <= 1) {
+                showToast("Impossible de supprimer le dernier planning", "error");
+                return;
+            }
+            if (confirm("Supprimer définitivement ce planning ?")) {
+                store.plans = store.plans.filter(p => p.id !== store.currentPlanId);
+                store.currentPlanId = store.plans[0].id;
+                saveState();
+                renderPlanSelector();
+                refreshUI();
+            }
+        }
+
+        function updatePlanTitle(val) {
+            const plan = currentPlan();
+            if(plan) {
+                plan.title = val;
+                saveState();
+                renderPlanSelector(); // Update dropdown label
+                document.getElementById('config-plan-title').textContent = val;
+            }
+        }
+
+        function renderPlanSelector() {
+            const sel = document.getElementById('plan-selector');
+            sel.innerHTML = store.plans.map(p => 
+                `<option value="${p.id}" ${p.id === store.currentPlanId ? 'selected' : ''}>${p.title}</option>`
+            ).join('');
+        }
+
+        function refreshUI() {
+            const plan = currentPlan();
+            if (!plan) return;
+
+            // Config Tab
+            document.getElementById('plan-title-input').value = plan.title;
+            document.getElementById('config-plan-title').textContent = plan.title;
+            
+            // Date Picker Sync
+            const fp = document.getElementById("date-picker")._flatpickr;
+            if(fp) fp.setDate(plan.selectedDates);
+
+            // Plan People Selection
+            renderParticipantTable();
+            renderPlanRoleEditor();
+            
+            // Other Tabs refresh if active
+            const activeEl = document.querySelector('.tab-content.active');
+            if (activeEl) {
+                const activeTab = activeEl.id;
+                if (activeTab === 'tab-planning') renderPlanning();
+                if (activeTab === 'tab-stats') updateStats();
+            }
+        }
+
+        // --- GLOBAL CONFIG ---
+        function addPerson() {
+            const name = document.getElementById('new-person-name').value.trim();
+            if (name && !store.global.people.includes(name)) {
+                store.global.people.push(name);
+                store.global.people.sort();
+                document.getElementById('new-person-name').value = '';
+                saveState();
+                renderGlobalLists();
+                renderPlanPeopleSelection(); // Update current plan options
+            }
+        }
+        function addRole() {
+            const dayType = document.getElementById('role-day-type').value;
+            const name = document.getElementById('new-role-name').value.trim();
+            if(name) {
+                if(!store.global.rolesConfig[dayType]) store.global.rolesConfig[dayType] = [];
+                store.global.rolesConfig[dayType].push(name);
+                document.getElementById('new-role-name').value = '';
+                saveState();
+                renderGlobalLists();
+            }
+        }
+        
+        function renderGlobalLists() {
+            // People
+            const pList = document.getElementById('people-list');
+            if(pList) {
+                pList.innerHTML = store.global.people.map(p => 
+                    `<li class="flex justify-between text-xs p-2 hover:bg-slate-50 rounded border-b border-slate-50 last:border-0">${p}</li>`
+                ).join('');
+            }
+
+            // Roles
+            renderRoleList();
+        }
+
+        function renderRoleList() {
+            const rList = document.getElementById('roles-list');
+            if(rList) {
+                const dayType = document.getElementById('role-day-type').value;
+                const roles = store.global.rolesConfig[dayType] || [];
+                rList.innerHTML = roles.map(r => 
+                    `<li class="flex items-center justify-between px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium">
+                        <span>${r}</span>
+                        <button onclick="removeGlobalRole('${dayType}', '${r}')" class="text-blue-500 hover:text-red-500 text-xs"><i class="fa-solid fa-trash"></i></button>
+                    </li>`
+                ).join('');
+            }
+        }
+
+        function removeGlobalRole(dayType, role) {
+            if (!store.global.rolesConfig[dayType]) return;
+            store.global.rolesConfig[dayType] = store.global.rolesConfig[dayType].filter(r => r !== role);
+            saveState();
+            renderGlobalLists(); // Re-render global roles list
+            renderPlanning(); // Re-render planning table in case a global role was removed that was in use
+            renderPlanRoleEditor(); // Re-render custom role editor as it shows global roles
+        }
+
+        // --- PLAN CONFIG (People & Dates) ---
+        function initFlatpickr() {
+            flatpickr("#date-picker", {
+                mode: "multiple",
+                dateFormat: "Y-m-d",
+                locale: "fr",
+                onChange: (dates) => {
+                    const plan = currentPlan();
+                    if(plan) {
+                        plan.selectedDates = dates.map(dateToYMD).sort();
+                        saveState();
+                        // Refresh relevant views
+                        renderParticipantTable();
+                        if(document.getElementById('tab-planning').classList.contains('active')) renderPlanning();
+                        renderPlanRoleEditor();
+                    }
+                }
+            });
+        }
+
+        // --- PLAN CONFIG (Participants & Availability) ---
+        function renderParticipantTable() {
+            const plan = currentPlan();
+            if (!plan) return;
+
+            const table = document.getElementById('participant-table');
+            if (!table) return;
+
+            // 1. Header
+            let headerHtml = '<thead><tr class="bg-slate-100 text-slate-600 text-xs">';
+            headerHtml += `<th class="p-2 w-10 text-center"><input type="checkbox" onchange="selectAllPeopleForPlan(this.checked)" title="Tout inclure/exclure" ${plan.selectedPeople.length === store.global.people.length ? 'checked' : ''}></th>`;
+            headerHtml += '<th class="p-2 text-left font-semibold">Membre</th>';
+            plan.selectedDates.forEach(d => {
+                const date = parseYMD(d);
+                headerHtml += `<th class="p-2 text-center min-w-[60px] font-medium" title="${DAY_NAMES[date.getDay()]} ${date.toLocaleDateString()}"><div class="text-[10px]">${DAY_NAMES[date.getDay()].substring(0,3)}</div><div>${formatDateShort(d)}</div></th>`;
+            });
+            headerHtml += '</tr></thead>';
+
+            // 2. Body
+            let bodyHtml = '<tbody class="divide-y divide-slate-100">';
+            store.global.people.sort((a,b) => a.localeCompare(b)).forEach(person => {
+                const isIncluded = plan.selectedPeople.includes(person);
+                let rowClass = isIncluded ? 'bg-white' : 'bg-slate-50 opacity-50';
+
+                bodyHtml += `<tr class="${rowClass} hover:bg-indigo-50/50 hover:opacity-100">`;
+                // Col 1: Inclusion checkbox
+                bodyHtml += `<td class="p-2 text-center">
+                                <input type="checkbox" class="w-4 h-4 text-primary rounded focus:ring-primary" 
+                                    ${isIncluded ? 'checked' : ''} onchange="togglePlanPerson('${person}')">
+                            </td>`;
+                // Col 2: Name
+                bodyHtml += `<td class="p-2 font-medium text-slate-700">${person}</td>`;
+                // Col 3+: Availability checkboxes
+                plan.selectedDates.forEach(date => {
+                    const key = `${person}_${date}`;
+                    const isUnavailable = plan.availability[key] === false;
+                    bodyHtml += `<td class="p-2 text-center">`;
+                    if (isIncluded) {
+                         bodyHtml += `<label class="checkbox-wrapper cursor-pointer inline-block w-5 h-5">
+                                    <input type="checkbox" class="hidden" 
+                                        ${!isUnavailable ? 'checked' : ''} 
+                                        onchange="toggleDispo('${person}', '${date}', this.checked)">
+                                    <div class="w-full h-full rounded-full flex items-center justify-center text-white text-[10px] ${!isUnavailable ? 'bg-emerald-400' : 'bg-slate-300'}">
+                                        ${!isUnavailable ? '<i class="fa-solid fa-check"></i>' : ''}
+                                    </div>
+                                </label>`;
+                    }
+                    bodyHtml += `</td>`;
+                });
+                bodyHtml += '</tr>';
+            });
+            bodyHtml += '</tbody>';
+
+            table.innerHTML = headerHtml + bodyHtml;
+        }
+
+        function togglePlanPerson(name) {
+            const plan = currentPlan();
+            if(!plan) return;
+            
+            if (plan.selectedPeople.includes(name)) {
+                plan.selectedPeople = plan.selectedPeople.filter(p => p !== name);
+            } else {
+                plan.selectedPeople.push(name);
+            }
+            saveState();
+            renderParticipantTable();
+        }
+        
+        function selectAllPeopleForPlan(includeAll) {
+            const plan = currentPlan();
+            if(!plan) return;
+            
+            if (includeAll) {
+                plan.selectedPeople = [...store.global.people];
+            } else {
+                plan.selectedPeople = [];
+            }
+            saveState();
+            renderParticipantTable();
+        }
+
+        function toggleDispo(person, date, available) {
+            const plan = currentPlan();
+            if(!plan) return;
+            
+            const key = `${person}_${date}`;
+            if(available) delete plan.availability[key];
+            else plan.availability[key] = false;
+            saveState();
+            // Just need to toggle color, not re-render whole table
+            const checkboxDiv = event.target.nextElementSibling;
+            if (available) {
+                checkboxDiv.classList.remove('bg-slate-300');
+                checkboxDiv.classList.add('bg-emerald-400');
+                checkboxDiv.innerHTML = '<i class="fa-solid fa-check"></i>';
+            } else {
+                checkboxDiv.classList.remove('bg-emerald-400');
+                checkboxDiv.classList.add('bg-slate-300');
+                checkboxDiv.innerHTML = '';
+            }
+        }
+
+        // --- PLAN CONFIG (Custom Roles) ---
+        function renderPlanRoleEditor() {
+            const plan = currentPlan();
+            if (!plan) return;
+
+            const container = document.getElementById('plan-roles-editor');
+            if (!container) return;
+
+            const dayTypeSelector = document.getElementById('plan-role-day-type');
+
+            // Get unique day types from selected dates
+            const uniqueDayTypes = new Set(plan.selectedDates.map(d => parseYMD(d).getDay()));
+            const sortedDayTypes = Array.from(uniqueDayTypes).sort((a, b) => a - b);
+
+            let optionsHtml = '';
+            let currentDayType = dayTypeSelector.value;
+
+            if (sortedDayTypes.length > 0) {
+                // If the current selection is not in the new set of day types, reset it.
+                if (!sortedDayTypes.includes(parseInt(currentDayType))) {
+                    currentDayType = sortedDayTypes[0].toString();
+                }
+
+                sortedDayTypes.forEach(dt => {
+                    optionsHtml += `<option value="${dt}" ${dt.toString() === currentDayType ? 'selected' : ''}>${DAY_NAMES[dt]}</option>`;
+                });
+                dayTypeSelector.innerHTML = optionsHtml;
+                dayTypeSelector.disabled = false;
+                container.style.display = 'block';
+
+            } else {
+                dayTypeSelector.innerHTML = '<option value="">-- Sélectionnez des dates --</option>';
+                dayTypeSelector.disabled = true;
+                container.innerHTML = ''; // Clear the editor
+                return; // No need to render the rest
+            }
+
+            const dayType = dayTypeSelector.value;
+
+            const globalRoles = store.global.rolesConfig[dayType] || [];
+            if (!plan.customRoles) plan.customRoles = {};
+            const custom = plan.customRoles[dayType] || {};
+            const addedRoles = custom.add || [];
+            const removedRoles = custom.remove || [];
+
+            let html = '<div class="h-48 overflow-y-auto custom-scroll space-y-2 pr-2">';
+
+            // 1. Global roles with checkboxes
+            html += '<p class="text-xs font-bold text-slate-500 uppercase">Rôles Globaux</p>';
+            if(globalRoles.length > 0) {
+                html += globalRoles.map(role => {
+                    const isEnabled = !removedRoles.includes(role);
+                    return `
+                        <label class="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-slate-100 ${isEnabled ? 'bg-white' : 'bg-slate-50 opacity-70'}">
+                            <input type="checkbox" class="w-4 h-4 text-primary rounded focus:ring-primary"
+                                ${isEnabled ? 'checked' : ''} onchange="togglePlanRole('${dayType}', '${role}', this.checked)">
+                            <span class="text-xs font-medium ${isEnabled ? 'text-slate-600' : 'text-slate-400 line-through'}">${role}</span>
+                        </label>
+                    `;
+                }).join('');
+            } else {
+                html += '<p class="text-xs text-slate-400 italic">Aucun rôle global pour ce jour.</p>';
+            }
+
+            // 2. Custom added roles for this plan
+            html += '<p class="text-xs font-bold text-slate-500 uppercase mt-4">Rôles Ajoutés</p>';
+            if (addedRoles.length > 0) {
+                html += addedRoles.map(role => {
+                    return `
+                        <div class="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded">
+                            <span class="text-xs font-medium text-blue-700">${role}</span>
+                            <button onclick="removeCustomPlanRole('${dayType}', '${role}')" class="text-blue-500 hover:text-red-500 text-xs"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                html += '<p class="text-xs text-slate-400 italic">Aucun rôle ajouté pour ce jour.</p>';
+            }
+
+            html += '</div>';
+
+            // 3. Input to add new custom role
+            html += `
+                <div class="flex gap-2 pt-3 border-t mt-3">
+                    <input type="text" id="new-plan-role-name" class="flex-1 p-2 border rounded text-sm" placeholder="Ajouter un rôle spécifique..." onkeypress="handleEnter(event, () => addCustomPlanRole('${dayType}'))">
+                    <button onclick="addCustomPlanRole('${dayType}')" class="bg-blue-500 text-white px-3 rounded"><i class="fa-solid fa-plus"></i></button>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function togglePlanRole(dayType, role, isEnabled) {
+            const plan = currentPlan();
+            if (!plan.customRoles) plan.customRoles = {};
+            if (!plan.customRoles[dayType]) plan.customRoles[dayType] = { add: [], remove: [] };
+
+            const removed = plan.customRoles[dayType].remove || [];
+
+            if (isEnabled) {
+                // un-remove it
+                plan.customRoles[dayType].remove = removed.filter(r => r !== role);
+            } else {
+                // remove it
+                if (!removed.includes(role)) {
+                    plan.customRoles[dayType].remove.push(role);
+                }
+            }
+            saveState();
+            renderPlanRoleEditor(); // rerender this component
+            renderPlanning(); // rerender planning table
+        }
+
+        function addCustomPlanRole(dayType) {
+            const plan = currentPlan();
+            const input = document.getElementById('new-plan-role-name');
+            const name = input.value.trim();
+            if (!name) return;
+
+            if (!plan.customRoles) plan.customRoles = {};
+            if (!plan.customRoles[dayType]) plan.customRoles[dayType] = { add: [], remove: [] };
+            
+            const added = plan.customRoles[dayType].add || [];
+            if (!added.includes(name)) {
+                added.push(name);
+                plan.customRoles[dayType].add = added;
+                input.value = '';
+                saveState();
+                renderPlanRoleEditor();
+                renderPlanning();
+            }
+        }
+
+        function removeCustomPlanRole(dayType, role) {
+            const plan = currentPlan();
+            if (!plan.customRoles || !plan.customRoles[dayType] || !plan.customRoles[dayType].add) return;
+
+            plan.customRoles[dayType].add = plan.customRoles[dayType].add.filter(r => r !== role);
+            saveState();
+            renderPlanRoleEditor();
+            renderPlanning();
+        }
+
+        // --- PLANNING LOGIC ---
+        
+        function getWeeksStruct(dates) {
+            // Group dates by Week Number, assuming Monday as the start of the week to match French locale.
+            const weeks = {};
+            dates.forEach(dStr => {
+                const d = parseYMD(dStr);
+                if (!d) return;
+                
+                const dCopy = new Date(d.valueOf());
+                const day = dCopy.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+
+                // Adjust to find the preceding Monday.
+                // If Sunday (0), go back 6 days. If Monday (1), go back 0 days. If Tuesday (2), go back 1 day, etc.
+                const offset = day === 0 ? 6 : day - 1;
+                dCopy.setDate(dCopy.getDate() - offset);
+                
+                const key = dateToYMD(dCopy);
+                
+                if(!weeks[key]) weeks[key] = [];
+                weeks[key].push(dStr);
+            });
+            return Object.keys(weeks).sort().map(k => ({ start: k, dates: weeks[k].sort() }));
+        }
+
+        function getPlanRoles(plan, dates) {
+            if (!plan) return [];
+            
+            let defs = [];
+            const dayTypesWithRoles = new Set();
+            dates.forEach(d => {
+                const date = parseYMD(d);
+                if (date) dayTypesWithRoles.add(date.getDay().toString());
+            });
+            
+                const allDayTypes = Array.from(dayTypesWithRoles).sort((a, b) => a - b);
+            
+                allDayTypes.forEach(dt => {
+                    const dayType = dt.toString();
+                    const globalRoles = store.global.rolesConfig[dayType] || [];
+                    const custom = plan.customRoles ? (plan.customRoles[dayType] || {}) : {};
+                    const added = custom.add || [];
+                    const removed = custom.remove || [];
+            
+                    let finalRoles = [...globalRoles.filter(r => !removed.includes(r)), ...added];
+            
+                    finalRoles.forEach(r => defs.push({ dayType: parseInt(dayType), role: r }));
+                });
+                
+                return defs;        }
+
+        function renderPlanning() {
+            const plan = currentPlan();
+            if(!plan) return;
+            
+            const container = document.getElementById('planning-container');
+            const empty = document.getElementById('empty-planning');
+
+            if(plan.selectedDates.length === 0) {
+                container.classList.add('hidden');
+                empty.classList.remove('hidden');
+                return;
+            }
+            container.classList.remove('hidden');
+            empty.classList.add('hidden');
+
+            const weeks = getWeeksStruct(plan.selectedDates);
+            const rowDefs = getPlanRoles(plan, plan.selectedDates);
+
+            // 1. Header: Jour | Rôle | Semaines...
+            let headerHTML = `
+                <th class="p-3 w-24 bg-slate-50 border-r">Jour</th>
+                <th class="p-3 w-48 bg-slate-50 border-r">Rôle</th>
+            `;
+            weeks.forEach((w, idx) => {
+                const d1 = parseYMD(w.dates[0]);
+                const d2 = parseYMD(w.dates[w.dates.length-1]);
+                headerHTML += `
+                    <th class="p-3 text-center min-w-[150px] border-r last:border-0">
+                        <div class="text-xs font-bold text-primary uppercase">Semaine ${idx+1}</div>
+                        <div class="text-[10px] font-normal text-slate-400">${d1.getDate()}/${d1.getMonth()+1} - ${d2.getDate()}/${d2.getMonth()+1}</div>
+                    </th>
+                `;
+            });
+            document.getElementById('planning-header-row').innerHTML = headerHTML;
+
+            // 2. Body
+            document.getElementById('planning-body').innerHTML = rowDefs.map(def => {
+                const dayName = DAY_NAMES[def.dayType];
+                
+                let cells = weeks.map(week => {
+                    // Find relevant date in this week for this role (matches dayType)
+                    const date = week.dates.find(d => parseYMD(d).getDay() === def.dayType);
+                    
+                    if (!date) return `<td class="bg-slate-50 border-r border-b border-slate-100"></td>`;
+
+                    const assigned = plan.assignments[`${date}_${def.role}`];
+                    const label = assigned || '<span class="text-slate-300 italic">--</span>';
+                    const bgClass = assigned ? 'bg-white text-slate-700 font-medium' : 'bg-white';
+                    
+                    // Data attributes for highlighting
+                    return `
+                        <td class="p-0 border-r border-b border-slate-100 align-middle h-10 relative group cursor-pointer hover:bg-blue-50 transition"
+                            onclick="openAssignModal('${date}', '${def.role}', '${week.dates.join(',')}')"
+                            data-date="${date}"
+                            data-role="${def.role}"
+                            data-assignee="${assigned || ''}">
+                            <div class="w-full h-full flex items-center justify-center text-xs ${bgClass}">
+                                ${label}
+                            </div>
+                        </td>
+                    `;
+                }).join('');
+
+                return `
+                    <tr>
+                        <td class="p-3 text-xs font-bold text-slate-500 uppercase bg-slate-50 border-r border-b border-slate-200">${dayName}</td>
+                        <td class="p-3 text-sm font-medium text-slate-700 border-r border-b border-slate-100">${def.role}</td>
+                        ${cells}
+                    </tr>
+                `;
+            }).join('');
+
+            renderMatrixAssistant();
+        }
+
+        // --- MODAL LOGIC ---
+        let currentModalCtx = null;
+
+        function openAssignModal(date, role, weekDatesStr) {
+            currentModalCtx = { date, role };
+            const plan = currentPlan();
+            const weekDates = weekDatesStr.split(',');
+            
+            document.getElementById('assign-modal').classList.remove('hidden');
+            document.getElementById('assign-modal').classList.add('flex');
+            
+            document.getElementById('modal-title').innerText = `Assignation : ${role}`;
+            const d = parseYMD(date);
+            document.getElementById('modal-subtitle').innerText = `${DAY_NAMES[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}`;
+
+            // Calculate week assignments for conflicts
+            const assignedInWeek = new Set();
+            weekDates.forEach(wd => {
+                Object.entries(plan.assignments).forEach(([k, p]) => {
+                    if (k.startsWith(wd + '_') && p) assignedInWeek.add(p);
+                });
+            });
+            const currentAssignee = plan.assignments[`${date}_${role}`]; // Don't count self as conflict
+
+            // List People
+            const list = document.getElementById('modal-list');
+            list.innerHTML = plan.selectedPeople.map(p => {
+                const isAvailable = plan.availability[`${p}_${date}`] !== false;
+                const isConflicted = assignedInWeek.has(p) && p !== currentAssignee;
+                const isSelected = p === currentAssignee;
+
+                let subtext = "";
+                if (!isAvailable) subtext = "Absent";
+                else if (isConflicted) subtext = "Déjà assigné cette semaine";
+
+                let btnClass = "bg-white border-slate-200 hover:bg-slate-50 text-slate-700";
+                if (isSelected) btnClass = "bg-primary text-white border-primary ring-2 ring-offset-1 ring-primary";
+                else if (!isAvailable) btnClass = "bg-slate-50 text-slate-400 border-slate-100 opacity-60";
+                else if (isConflicted) btnClass = "bg-orange-50 text-orange-800 border-orange-200";
+
+                return `
+                    <button onclick="modalAssign('${p}')" class="w-full text-left p-3 mb-2 rounded border flex justify-between items-center transition ${btnClass}">
+                        <span class="font-medium text-sm">${p}</span>
+                        <span class="text-[10px] uppercase font-bold opacity-70">${subtext}</span>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function modalAssign(person) {
+            const plan = currentPlan();
+            const key = `${currentModalCtx.date}_${currentModalCtx.role}`;
+            
+            if (person) plan.assignments[key] = person;
+            else delete plan.assignments[key];
+            
+            saveState();
+            closeModalForce();
+            renderPlanning();
+        }
+
+        function closeModal(e) { if (e.target.id === 'assign-modal') closeModalForce(); }
+        function closeModalForce() {
+            document.getElementById('assign-modal').classList.add('hidden');
+            document.getElementById('assign-modal').classList.remove('flex');
+        }
+
+        // --- MATRIX ASSISTANT (Realtime) ---
+        function renderMatrixAssistant() {
+            const plan = currentPlan();
+            if(!plan || plan.selectedDates.length === 0) {
+                document.getElementById('assistant-header-row').innerHTML = '';
+                document.getElementById('assistant-matrix-body').innerHTML = '';
+                return;
+            };
+
+            const assignments = plan.assignments;
+
+            // 1. Identify Columns - Use getPlanRoles to get roles sorted by day
+            const roleDefs = getPlanRoles(plan, plan.selectedDates);
+
+            // 2. Build stats
+            const peopleStats = {}; // { "Jean": { "Prédication": 2, "Total": 5 } }
+            plan.selectedPeople.forEach(p => peopleStats[p] = { total: 0 });
+
+            Object.entries(assignments).forEach(([k, p]) => {
+                if (!p) return;
+                const r = k.split('_')[1];
+                if (!peopleStats[p]) peopleStats[p] = { total: 0 };
+                if (!peopleStats[p][r]) peopleStats[p][r] = 0;
+                peopleStats[p][r]++;
+                peopleStats[p].total++;
+            });
+
+            // 3. Render Header (Compact)
+            let hHtml = `<th class="p-1 px-2 bg-slate-50 text-left sticky left-0 z-20 border-r border-b w-28 text-xs">Membre</th>`;
+            roleDefs.forEach(def => {
+                const dayShort = DAY_NAMES[def.dayType].substring(0, 3);
+                const headerText = `${dayShort} - ${def.role}`;
+                hHtml += `<th class="p-1 min-w-[110px] bg-slate-50 border-b font-medium text-[10px] uppercase whitespace-nowrap" title="${DAY_NAMES[def.dayType]} - ${def.role}">${headerText}</th>`;
+            });
+            hHtml += `<th class="p-1 px-2 bg-slate-100 border-b w-14 font-bold text-slate-700 text-xs">Total</th>`;
+            document.getElementById('assistant-header-row').innerHTML = hHtml;
+
+            // 4. Render Body (Compact)
+            const sortedPeople = [...plan.selectedPeople].sort();
+            document.getElementById('assistant-matrix-body').innerHTML = sortedPeople.map(p => {
+                const stats = peopleStats[p] || { total: 0 };
+                let cells = roleDefs.map(def => {
+                    const r = def.role;
+                    const count = stats[r] || 0;
+                    const cls = count > 0 ? 'font-bold text-blue-600' : 'text-slate-300';
+                    return `
+                        <td class="border-b border-slate-100 p-0 h-8 cursor-pointer hover:bg-yellow-50 transition ${cls}"
+                            onclick="highlightCells('${p}', '${r}')">
+                            ${count || '-'}
+                        </td>`;
+                }).join('');
+
+                return `
+                    <tr>
+                        <td class="p-1 px-2 text-left font-medium text-slate-700 border-r border-b bg-white sticky left-0 cursor-pointer hover:text-primary text-xs whitespace-nowrap"
+                            onclick="highlightCells('${p}', null)">
+                            ${p}
+                        </td>
+                        ${cells}
+                        <td class="font-bold text-slate-800 bg-slate-50 border-b">${stats.total}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // --- HIGHLIGHT LOGIC ---
+        function highlightCells(person, role) {
+            clearHighlights();
+            
+            const selector = role 
+                ? `td[data-assignee="${person}"][data-role="${role}"]`
+                : `td[data-assignee="${person}"]`;
+
+            const cells = document.querySelectorAll(selector);
+            
+            cells.forEach(td => {
+                if (role) td.classList.add('cell-highlight-specific');
+                else td.classList.add('cell-highlight-global');
+            });
+            
+            if(cells.length === 0) showToast("Aucune cellule trouvée pour cette sélection");
+        }
+
+        function clearHighlights() {
+            document.querySelectorAll('.cell-highlight-global, .cell-highlight-specific').forEach(el => {
+                el.classList.remove('cell-highlight-global', 'cell-highlight-specific');
+            });
+        }
+
+        // --- GENERATION ---
+        function generateSchedule() {
+            const plan = currentPlan();
+            if(!plan) return;
+            
+            if(plan.selectedDates.length === 0) { showToast("Sélectionnez des dates", "error"); return; }
+            
+            const dates = plan.selectedDates;
+            
+            // Count Assignments for Fairness
+            const counts = {};
+            plan.selectedPeople.forEach(p => counts[p] = 0);
+            Object.values(plan.assignments).forEach(p => { if(p) counts[p]++; });
+
+            dates.forEach(date => {
+                const d = parseYMD(date);
+                const dayType = d.getDay();
+                
+                const globalRoles = store.global.rolesConfig[dayType] || [];
+                const custom = plan.customRoles ? (plan.customRoles[dayType] || {}) : {};
+                const added = custom.add || [];
+                const removed = custom.remove || [];
+                const rolesForDay = [...globalRoles.filter(r => !removed.includes(r)), ...added];
+
+                const assignedToday = new Set(); // Track per day unique
+
+                rolesForDay.forEach(role => {
+                    const key = `${date}_${role}`;
+                    if(plan.assignments[key]) {
+                        assignedToday.add(plan.assignments[key]);
+                        return; // Already assigned
+                    }
+
+                    // Filter Candidates
+                    let candidates = plan.selectedPeople.filter(p => {
+                        const avail = plan.availability[`${p}_${date}`] !== false;
+                        const notToday = !assignedToday.has(p);
+                        return avail && notToday;
+                    });
+
+                    if(candidates.length > 0) {
+                        // Sort by least assigned, then random
+                        candidates.sort((a,b) => counts[a] - counts[b] || 0.5 - Math.random());
+                        const chosen = candidates[0];
+                        
+                        plan.assignments[key] = chosen;
+                        counts[chosen]++;
+                        assignedToday.add(chosen);
+                    }
+                });
+            });
+
+            saveState();
+            renderPlanning();
+            showToast("Génération terminée");
+        }
+
+        // --- EXPORT ---
+        function exportToExcel() {
+            const plan = currentPlan();
+            if(!plan) return;
+
+            const weeks = getWeeksStruct(plan.selectedDates);
+            const rowDefs = getPlanRoles(plan, plan.selectedDates);
+
+            // Build Data Matrix
+            // Header Row
+            const header = ["Jour", "Rôle"];
+            weeks.forEach((w, i) => header.push(`Semaine ${i+1} (${w.dates[0]})`));
+
+            const data = [header];
+
+            rowDefs.forEach(def => {
+                const row = [DAY_NAMES[def.dayType], def.role];
+                weeks.forEach(week => {
+                    const date = week.dates.find(d => new Date(d).getDay() === def.dayType);
+                    if(date) {
+                        row.push(plan.assignments[`${date}_${def.role}`] || "");
+                    } else {
+                        row.push("");
+                    }
+                });
+                data.push(row);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, plan.title.substring(0,30));
+            XLSX.writeFile(wb, `${plan.title}.xlsx`);
+        }
+
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(store));
+            const a = document.createElement('a');
+            a.href = dataStr;
+            a.download = "plandivin_backup.json";
+            a.click();
+        }
+
+        // --- UTILS ---
+        function formatDateShort(dStr) {
+            const d = parseYMD(dStr);
+            return d ? `${d.getDate()}/${d.getMonth()+1}` : '';
+        }
+        function handleEnter(e, cb) { if(e.key === 'Enter') cb(); }
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const el = document.createElement('div');
+            const color = type === 'error' ? 'bg-red-500' : 'bg-emerald-500';
+            el.className = `${color} text-white px-4 py-2 rounded shadow-lg text-sm transform transition translate-x-10 opacity-0`;
+            el.innerText = msg;
+            container.appendChild(el);
+            requestAnimationFrame(() => el.classList.remove('translate-x-10', 'opacity-0'));
+            setTimeout(() => el.remove(), 3000);
+        }
+        
+        // --- CHART (Basic) ---
+        function updateStats() {
+            // Re-use count logic
+            const plan = currentPlan();
+            if(!plan) return;
+            
+            const counts = {};
+            plan.selectedPeople.forEach(p => counts[p] = 0);
+            Object.values(plan.assignments).forEach(p => { if(p) counts[p]++; });
+            
+            const ctx = document.getElementById('chart-total').getContext('2d');
+            if(window.myChart) window.myChart.destroy();
+            window.myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(counts),
+                    datasets: [{ label: 'Assignments', data: Object.values(counts), backgroundColor: '#6366f1' }]
+                }
+            });
+        }
+
+    </script>
