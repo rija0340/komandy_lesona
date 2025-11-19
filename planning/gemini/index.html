@@ -66,7 +66,7 @@
 
     <!-- HEADER -->
     <header class="bg-white shadow-sm z-20 border-b border-slate-200 flex-none">
-        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex flex-col sm:flex-row items-center justify-between gap-2">
             <div class="flex items-center gap-3">
                 <div class="bg-gradient-to-br from-primary to-secondary text-white w-9 h-9 rounded-lg flex items-center justify-center shadow-lg">
                     <i class="fa-solid fa-church"></i>
@@ -78,17 +78,17 @@
                         <!-- Options générées -->
                     </select>
                 </div>
-                <button onclick="createNewPlan()" class="ml-2 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded" title="Nouveau Planning">
+                <button onclick="createNewPlan()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded" title="Nouveau Planning">
                     <i class="fa-solid fa-plus"></i>
                 </button>
             </div>
 
             <!-- Nav -->
-            <nav class="flex bg-slate-100 p-1 rounded-lg">
-                <button onclick="switchTab('global')" id="tab-btn-global" class="tab-btn px-4 py-1.5 rounded-md text-sm font-medium transition-all text-slate-600">Global</button>
-                <button onclick="switchTab('config')" id="tab-btn-config" class="tab-btn px-4 py-1.5 rounded-md text-sm font-medium transition-all text-slate-600 active-tab bg-white shadow-sm text-primary">Config</button>
-                <button onclick="switchTab('planning')" id="tab-btn-planning" class="tab-btn px-4 py-1.5 rounded-md text-sm font-medium transition-all text-slate-600">Planning</button>
-                <button onclick="switchTab('stats')" id="tab-btn-stats" class="tab-btn px-4 py-1.5 rounded-md text-sm font-medium transition-all text-slate-600">Stats</button>
+            <nav class="flex bg-slate-100 p-1 rounded-lg overflow-x-auto min-w-0">
+                <button onclick="switchTab('global')" id="tab-btn-global" class="tab-btn px-3 py-1.5 rounded-md text-sm font-medium transition-all text-slate-600 whitespace-nowrap">Global</button>
+                <button onclick="switchTab('config')" id="tab-btn-config" class="tab-btn px-3 py-1.5 rounded-md text-sm font-medium transition-all text-slate-600 active-tab bg-white shadow-sm text-primary whitespace-nowrap">Config</button>
+                <button onclick="switchTab('planning')" id="tab-btn-planning" class="tab-btn px-3 py-1.5 rounded-md text-sm font-medium transition-all text-slate-600 whitespace-nowrap">Planning</button>
+                <button onclick="switchTab('stats')" id="tab-btn-stats" class="tab-btn px-3 py-1.5 rounded-md text-sm font-medium transition-all text-slate-600 whitespace-nowrap">Stats</button>
             </nav>
 
             <div class="flex gap-2">
@@ -110,10 +110,10 @@
         <div id="toast-container" class="absolute top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
         <!-- TAB GLOBAL -->
-        <div id="tab-global" class="tab-content h-full overflow-y-auto p-6">
+        <div id="tab-global" class="tab-content h-full overflow-y-auto p-4 sm:p-6">
             <div class="max-w-3xl mx-auto space-y-6">
                  <!-- Global Roles -->
-                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+                 <div class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-slate-100">
                     <h3 class="font-bold text-slate-700 mb-3 flex items-center gap-2">
                         <i class="fa-solid fa-globe text-blue-500"></i> Rôles (Global)
                     </h3>
@@ -124,7 +124,7 @@
                             <option value="5">Vendredi Soir</option>
                             <option value="3">Mercredi</option>
                         </select>
-                        <div class="flex gap-2">
+                        <div class="flex flex-col sm:flex-row gap-2">
                             <input type="text" id="new-role-name" class="flex-1 p-2 border rounded text-sm" placeholder="Nouveau rôle..." onkeypress="handleEnter(event, addRole)">
                             <button onclick="addRole()" class="bg-blue-500 text-white px-3 rounded"><i class="fa-solid fa-plus"></i></button>
                         </div>
@@ -134,11 +134,11 @@
                 </div>
 
                 <!-- Global People -->
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+                <div class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-slate-100">
                     <h3 class="font-bold text-slate-700 mb-3 flex items-center gap-2">
                         <i class="fa-solid fa-users text-blue-500"></i> Base de Membres (Global)
                     </h3>
-                    <div class="flex gap-2 mb-3">
+                    <div class="flex flex-col sm:flex-row gap-2 mb-3">
                         <input type="text" id="new-person-name" class="flex-1 p-2 border rounded text-sm" placeholder="Nom..." onkeypress="handleEnter(event, addPerson)">
                         <button onclick="addPerson()" class="bg-slate-800 text-white px-3 rounded"><i class="fa-solid fa-plus"></i></button>
                     </div>
@@ -212,7 +212,7 @@
 
         <!-- TAB 3: PLANNING -->
         <div id="tab-planning" class="tab-content h-full overflow-hidden flex flex-col">
-            <div class="p-3 bg-white border-b border-slate-200 flex justify-between items-center shadow-sm z-10 shrink-0">
+            <div class="p-3 bg-white border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-2 shadow-sm z-10 shrink-0">
                 <div class="flex gap-2">
                     <button onclick="clearHighlights()" class="text-xs bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600">
                         <i class="fa-solid fa-eraser"></i> Effacer surlignage
@@ -253,14 +253,14 @@
                 </div>
 
                 <!-- Realtime Assistant (Matrix) - Fixed at bottom -->
-                <div class="mt-4 bg-white border-t border-slate-200 flex flex-col shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                <div class="mt-4 mb-4 mr-4 ml-4 bg-white border-t border-slate-200 flex flex-col shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                     <div class="p-2 bg-slate-50 border-b border-slate-200 flex justify-between items-center px-4">
                         <h3 class="font-bold text-slate-700 text-xs uppercase flex items-center gap-2">
                             <i class="fa-solid fa-robot text-secondary"></i> Assistant Matriciel (Temps Réel)
                         </h3>
                         <span class="text-[10px] text-slate-400">Cliquez sur un nom ou un chiffre pour surligner</span>
                     </div>
-                    <div class="overflow-x-auto custom-scroll p-0">
+                    <div class="overflow-x-auto custom-scroll p-4">
                         <table class="w-full text-xs text-center border-collapse">
                             <thead class="bg-white sticky top-0 z-10 shadow-sm">
                                 <tr id="assistant-header-row" class="text-slate-500 font-medium">
@@ -277,10 +277,10 @@
         </div>
 
         <!-- TAB 4: STATS -->
-        <div id="tab-stats" class="tab-content h-full overflow-y-auto p-6">
-            <div class="max-w-5xl mx-auto bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                <h2 class="text-xl font-bold mb-4">Statistiques du Planning</h2>
-                <div class="h-80">
+        <div id="tab-stats" class="tab-content h-full overflow-y-auto p-4 sm:p-6">
+            <div class="max-w-5xl mx-auto bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-100">
+                <h2 class="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Statistiques du Planning</h2>
+                <div class="h-64 sm:h-80">
                     <canvas id="chart-total"></canvas>
                 </div>
             </div>
@@ -990,14 +990,25 @@
 
             // List People
             const list = document.getElementById('modal-list');
-            list.innerHTML = plan.selectedPeople.map(p => {
+            list.innerHTML = [...plan.selectedPeople].sort((a, b) => a.localeCompare(b)).map(p => {
                 const isAvailable = plan.availability[`${p}_${date}`] !== false;
                 const isConflicted = assignedInWeek.has(p) && p !== currentAssignee;
                 const isSelected = p === currentAssignee;
 
-                let subtext = "";
-                if (!isAvailable) subtext = "Absent";
-                else if (isConflicted) subtext = "Déjà assigné cette semaine";
+                // Check if person has ever done this role in this plan
+                const hasNeverDoneRole = !Object.entries(plan.assignments).some(([key, assignee]) => {
+                    const assignedRole = key.substring(key.indexOf('_') + 1);
+                    return assignee === p && assignedRole === role;
+                });
+
+                let mentions = [];
+                if (!isAvailable) {
+                    mentions.push("Absent");
+                } else {
+                    if (isConflicted) mentions.push("Déjà assigné cette semaine");
+                    if (hasNeverDoneRole) mentions.push("Jamais fait ce rôle");
+                }
+                const subtext = mentions.join(' / ');
 
                 let btnClass = "bg-white border-slate-200 hover:bg-slate-50 text-slate-700";
                 if (isSelected) btnClass = "bg-primary text-white border-primary ring-2 ring-offset-1 ring-primary";
@@ -1007,7 +1018,7 @@
                 return `
                     <button onclick="modalAssign('${p}')" class="w-full text-left p-3 mb-2 rounded border flex justify-between items-center transition ${btnClass}">
                         <span class="font-medium text-sm">${p}</span>
-                        <span class="text-[10px] uppercase font-bold opacity-70">${subtext}</span>
+                        <span class="text-[10px] uppercase font-bold opacity-70 text-right">${subtext}</span>
                     </button>
                 `;
             }).join('');
