@@ -525,22 +525,28 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 .data-table th {
-    padding: 0.75rem 0.5rem;
+    padding: 0.5rem 0.25rem; /* Reduced padding for better fit with more columns */
     text-align: center;
     font-weight: 600;
     color: var(--gray-700);
     border: 1px solid var(--gray-200);
     white-space: nowrap;
-    font-size: 0.75rem;
+    font-size: 0.7rem; /* Smaller font for headers to fit more columns */
     letter-spacing: 0.025em;
     text-transform: uppercase;
 }
 
+/* Special styling for quantity, price, and total headers */
+.data-table th.qty-header { padding: 0.4rem 0.15rem !important; font-size: 0.65rem; }
+.data-table th.price-header { padding: 0.4rem 0.15rem !important; font-size: 0.65rem; }
+.data-table th.total-header { padding: 0.4rem 0.15rem !important; font-size: 0.65rem; }
+
 .data-table td {
-    padding: 0.5rem 0.375rem;
+    padding: 0.4rem 0.25rem; /* Reduced padding for better fit */
     text-align: center;
     border: 1px solid var(--gray-200);
     transition: background-color var(--transition-fast);
+    vertical-align: middle;
 }
 
 .data-table tbody tr:nth-child(even) {
@@ -585,30 +591,48 @@ input[type="number"]::-webkit-inner-spin-button {
     color: var(--gray-900);
 }
 
+/* Improved numeric cell styling for better readability */
 .data-table .numeric-cell {
     font-family: 'Monaco', 'Consolas', monospace;
     font-size: 0.75rem;
+    text-align: center !important;
+    padding: 0.25rem 0.25rem !important; /* Smaller padding for better fit with more columns */
 }
 
-.quantity-input {
+.data-table .quantity-input {
     width: 100%;
-    max-width: 60px;
-    padding: 0.25rem 0.375rem;
+    max-width: 50px;
+    padding: 0.125rem 0.25rem;
     text-align: center;
     border: 1px solid var(--gray-300);
     border-radius: 0.25rem;
     font-size: 0.75rem;
     transition: all var(--transition-fast);
+    height: 1.75rem;
 }
 
-.quantity-input:focus {
+.data-table .quantity-input:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
 
-.quantity-input:hover {
-    border-color: var(--gray-400);
+.data-table .quantity-input:hover {
+    border-color: var(--primary-color);
+}
+
+/* Specific styling for different types of numeric cells */
+.data-table .qty-cell { padding: 0.25rem 0.125rem !important; }
+.data-table .price-cell {
+    padding: 0.25rem 0.125rem !important;
+    font-size: 0.7rem;
+    color: var(--gray-600);
+}
+.data-table .total-cell-display {
+    padding: 0.25rem 0.125rem !important;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--gray-700);
 }
 
 /* Checkbox styling */
@@ -617,6 +641,50 @@ input[type="checkbox"] {
     height: 1.125rem;
     cursor: pointer;
     accent-color: var(--primary-color);
+}
+
+/* Order item detailed information for mobile */
+.order-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.order-item:last-child {
+    border-bottom: none;
+}
+
+.order-item-details {
+    flex: 1;
+    text-align: left;
+    padding-right: 0.5rem;
+}
+
+.order-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    text-align: right;
+    min-width: 100px;
+}
+
+.order-item-quantity {
+    font-size: 0.75rem;
+    color: var(--gray-800);
+    font-weight: 500;
+}
+
+.order-item-price {
+    font-size: 0.7rem;
+    color: var(--gray-600);
+}
+
+.order-item-total {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--primary-color);
 }
 
 /* ===================================

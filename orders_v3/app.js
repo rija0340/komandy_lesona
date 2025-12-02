@@ -575,7 +575,7 @@ function renderTableHeader() {
 
     const headers = getColumnHeaders();
 
-    // Group headers by category
+    // Group headers by category (each item will now have 3 columns: qty, unit price, total)
     const categoryGroups = {};
     headers.forEach(h => {
         if (!categoryGroups[h.categoryId]) {
@@ -584,33 +584,28 @@ function renderTableHeader() {
                 count: 0
             };
         }
-        categoryGroups[h.categoryId].count++;
+        categoryGroups[h.categoryId].count += 3; // 3 columns per item now
     });
 
     // Row 1: Category names
     let html = '<tr class="bg-gray-100">';
-    html += '<th rowspan="3" class="sticky left-0 bg-gray-100 z-20 min-w-[150px]">Nom</th>';
-    html += '<th rowspan="3" class="min-w-[40px]">✓</th>';
+    html += '<th rowspan="2" class="sticky left-0 bg-gray-100 z-20 min-w-[150px]">Nom</th>';
+    html += '<th rowspan="2" class="min-w-[40px]">✓</th>';
 
     Object.entries(categoryGroups).forEach(([id, cat]) => {
         html += `<th colspan="${cat.count}" class="category-header ${categoryColors[id] || 'bg-gray-50'}">${cat.name}</th>`;
     });
-    html += '<th rowspan="3" class="min-w-[100px]">Total</th>';
-    html += '<th rowspan="3" class="min-w-[80px]">Actions</th>';
+    html += '<th rowspan="2" class="min-w-[100px]">Total</th>';
+    html += '<th rowspan="2" class="min-w-[80px]">Actions</th>';
     html += '</tr>';
 
-    // Row 2: Format names
+    // Row 2: Sub-headers (Qty, Unit Price, Total)
     html += '<tr class="bg-gray-50">';
     headers.forEach(h => {
         const label = h.formatName || h.languageName;
-        html += `<th class="text-xs font-medium ${categoryColors[h.categoryId] || 'bg-gray-50'}" title="${h.categoryName} - ${h.languageName}">${label}</th>`;
-    });
-    html += '</tr>';
-
-    // Row 3: Unit prices
-    html += '<tr class="bg-gray-50">';
-    headers.forEach(h => {
-        html += `<th class="text-xs text-gray-500 font-normal ${categoryColors[h.categoryId] || 'bg-gray-50'}">${formatCurrency(h.price)}</th>`;
+        html += `<th class="text-xs font-medium qty-header ${categoryColors[h.categoryId] || 'bg-gray-50'}" title="${h.categoryName} - ${h.languageName} - Qté">Qté</th>`;
+        html += `<th class="text-xs font-medium price-header ${categoryColors[h.categoryId] || 'bg-gray-50'}" title="${h.categoryName} - ${h.languageName} - Prix">Prix</th>`;
+        html += `<th class="text-xs font-medium total-header ${categoryColors[h.categoryId] || 'bg-gray-50'}" title="${h.categoryName} - ${h.languageName} - Total">Total</th>`;
     });
     html += '</tr>';
 
@@ -630,7 +625,7 @@ function renderTableBody() {
     if (filteredPeople.length === 0) {
         elements.tableBody.innerHTML = `
             <tr>
-                <td colspan="${headers.length + 4}" class="py-12">
+                <td colspan="${(headers.length * 3) + 4}" class="py-12">
                     <div class="empty-state">
                         <i class="fas fa-users"></i>
                         <h3>${searchTerm ? 'Aucun résultat' : 'Aucune personne'}</h3>
@@ -662,33 +657,41 @@ function renderTableBody() {
 function renderPersonRow(person, headers) {
     let total = 0;
 
-    // Row 1: Quantities
     let html = `<tr data-person-id="${person.id}" class="person-row">`;
-    html += `<td class="person-name-cell" rowspan="2">${escapeHtml(person.name)}</td>`;
-    html += `<td rowspan="2">
+    html += `<td class="person-name-cell sticky left-0 bg-white z-10">${escapeHtml(person.name)}</td>`;
+    html += `<td>
         <input type="checkbox" ${person.selected ? 'checked' : ''}
             onchange="togglePersonSelection('${person.id}')"
             class="cursor-pointer">
     </td>`;
 
-    // Quantity cells
+    // For each item, create 3 columns: quantity, unit price, item total
     headers.forEach(h => {
         const qty = person.orders?.[h.key] || 0;
-        total += qty * h.price;
-        html += `<td class="numeric-cell">
+        const itemTotal = qty * h.price;
+        total += itemTotal;
+
+        // Quantity input
+        html += `<td class="numeric-cell qty-cell">
             <input type="number" min="0" value="${qty}"
                 data-person-id="${person.id}"
                 data-key="${h.key}"
                 data-price="${h.price}"
                 class="quantity-input">
         </td>`;
+
+        // Unit price (static display)
+        html += `<td class="numeric-cell price-cell">${formatCurrency(h.price)}</td>`;
+
+        // Item total (qty * price)
+        html += `<td class="numeric-cell total-cell-display">${itemTotal > 0 ? formatCurrency(itemTotal) : ''}</td>`;
     });
 
-    // Total (rowspan 2)
-    html += `<td class="total-cell numeric-cell font-bold" rowspan="2">${formatCurrency(total)}</td>`;
+    // Total
+    html += `<td class="total-cell numeric-cell font-bold">${formatCurrency(total)}</td>`;
 
-    // Actions (rowspan 2)
-    html += `<td rowspan="2">
+    // Actions
+    html += `<td>
         <div class="flex justify-center gap-1">
             <button onclick="openOrderEntryForPerson('${person.id}')"
                 class="btn btn-sm btn-primary" title="Modifier">
@@ -700,15 +703,6 @@ function renderPersonRow(person, headers) {
             </button>
         </div>
     </td>`;
-    html += '</tr>';
-
-    // Row 2: Item totals (qty * price)
-    html += `<tr data-person-id="${person.id}" class="person-subtotal-row bg-gray-50">`;
-    headers.forEach(h => {
-        const qty = person.orders?.[h.key] || 0;
-        const itemTotal = qty * h.price;
-        html += `<td class="numeric-cell text-xs text-gray-600">${itemTotal > 0 ? formatCurrency(itemTotal) : ''}</td>`;
-    });
     html += '</tr>';
 
     return html;
@@ -736,7 +730,12 @@ function renderTotalsRow(headers) {
 
     headers.forEach(h => {
         const total = columnTotals[h.key];
-        html += `<td class="numeric-cell">${total > 0 ? total : ''}</td>`;
+        // Quantity total
+        html += `<td class="numeric-cell qty-cell">${total > 0 ? total : ''}</td>`;
+        // Unit price (static)
+        html += `<td class="numeric-cell price-cell">${formatCurrency(h.price)}</td>`;
+        // Item total (qty * price)
+        html += `<td class="numeric-cell total-cell-display">${total > 0 ? formatCurrency(total * h.price) : ''}</td>`;
     });
 
     html += `<td class="total-cell numeric-cell">${formatCurrency(grandTotal)}</td>`;
@@ -750,6 +749,7 @@ function handleQuantityChange(e) {
     const input = e.target;
     const personId = input.dataset.personId;
     const key = input.dataset.key;
+    const price = parseFloat(input.dataset.price);
     const value = parseInt(input.value) || 0;
 
     const person = appState.data.people.find(p => p.id === personId);
@@ -757,11 +757,23 @@ function handleQuantityChange(e) {
         if (!person.orders) person.orders = {};
         person.orders[key] = value;
 
+        // Update the item total in the corresponding cell (next cell after quantity)
+        const inputCell = input.closest('td');
+        const cells = Array.from(inputCell.parentElement.cells);
+        const inputCellIndex = cells.indexOf(inputCell);
+
+        // The item total is in the cell after the unit price (so +2 from qty cell)
+        const itemTotalCell = cells[inputCellIndex + 2];
+        if (itemTotalCell) {
+            const itemTotal = value * price;
+            itemTotalCell.textContent = itemTotal > 0 ? formatCurrency(itemTotal) : '';
+        }
+
         // Update total for this row
         updateRowTotal(personId);
 
         // Update column totals
-        renderTotalsRow(getColumnHeaders());
+        renderTableBody();
     }
 }
 
@@ -832,7 +844,8 @@ function renderPersonCard(person) {
                 language: h.languageName,
                 format: h.formatName,
                 qty,
-                price: h.price
+                price: h.price,
+                total: qty * h.price  // Item total
             });
         }
     });
@@ -863,7 +876,11 @@ function renderPersonCard(person) {
                             <div class="order-item-language">${item.language}</div>
                             ${item.format ? `<div class="order-item-format">${item.format}</div>` : ''}
                         </div>
-                        <div class="order-item-quantity">×${item.qty}</div>
+                        <div class="order-item-info">
+                            <div class="order-item-quantity">Qté: ${item.qty}</div>
+                            <div class="order-item-price">Prix: ${formatCurrency(item.price)}</div>
+                            <div class="order-item-total">Total: ${formatCurrency(item.total)}</div>
+                        </div>
                     </div>
                 `;
             });
