@@ -750,43 +750,245 @@
         }
 
         function initializeSampleData() {
-            appState.data = {
-                categories: [
-                    {
-                        id: 'lb', name: 'lehibe', languages: [
-                            { id: 'gs', name: 'gs', formats: [{ id: 'gm', name: 'GM', price: 3300 }, { id: 'pm', name: 'PM', price: 2700 }] },
-                            { id: 'en', name: 'en', formats: [{ id: 'gm', name: '', price: 6000 }] }
-                        ]
-                    },
-                    {
-                        id: 'tzo', name: 'Tanora zokiny', languages: [
-                            { id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] },
-                            { id: 'fr', name: 'fr', formats: [{ id: 'gm', name: '', price: 6000 }] },
-                            { id: 'en', name: 'en', formats: [{ id: 'gm', name: '', price: 6000 }] }
-                        ]
-                    },
-                    {
-                        id: 'zt', name: 'Zatovo', languages: [
-                            { id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] },
-                            { id: 'fr', name: 'fr', formats: [{ id: 'gm', name: '', price: 6000 }] },
-                            { id: 'en', name: 'en', formats: [{ id: 'gm', name: '', price: 6000 }] }  // Add this line if you want English
-                        ]
-                    },
-                    { id: 'tza', name: 'T. za', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] }] },
-                    { id: 'ak', name: 'Ankizy', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] }] },
-                    { id: 'zm', name: 'Z. mino', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] }] },
-                    { id: 'zb', name: 'Z. bodo', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] }] },
-                    { id: 'zk', name: 'Z. kely', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] }] },
-                    { id: 'fand_zk', name: 'Fand Z.kely', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3700 }] }] },
-                    { id: 'mf', name: 'Mofon\'aina', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: 'GM', price: 3300 }, { id: 'pm', name: 'PM', price: 2700 }] }] },
-                    { id: 'llmf_gm', name: 'LL + MA(GM)', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 6500 }] }] },
-                    { id: 'llmf_pm', name: 'LL + MA(PM)', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'pm', name: '', price: 5300 }] }] },
-                    { id: 'tt', name: 'tatitra', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 2300 }] }] }
-                ],
-                people: [
+            // appState.data = {
+            //     categories: [
+            //         {
+            //             id: 'lb', name: 'lehibe', languages: [
+            //                 { id: 'gs', name: 'gs', formats: [{ id: 'gm', name: 'GM', price: 3300 }, { id: 'pm', name: 'PM', price: 2700 }] },
+            //                 { id: 'en', name: 'en', formats: [{ id: 'gm', name: '', price: 6000 }] }
+            //             ]
+            //         },
+            //         {
+            //             id: 'tzo', name: 'Tanora zokiny', languages: [
+            //                 { id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] },
+            //                 { id: 'fr', name: 'fr', formats: [{ id: 'gm', name: '', price: 6000 }] },
+            //                 { id: 'en', name: 'en', formats: [{ id: 'gm', name: '', price: 6000 }] }
+            //             ]
+            //         },
+            //         {
+            //             id: 'zt', name: 'Zatovo', languages: [
+            //                 { id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] },
+            //                 { id: 'fr', name: 'fr', formats: [{ id: 'gm', name: '', price: 6000 }] },
+            //                 { id: 'en', name: 'en', formats: [{ id: 'gm', name: '', price: 6000 }] }  // Add this line if you want English
+            //             ]
+            //         },
+            //         { id: 'tza', name: 'T. za', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] }] },
+            //         { id: 'ak', name: 'Ankizy', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] }] },
+            //         { id: 'zm', name: 'Z. mino', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] }] },
+            //         { id: 'zb', name: 'Z. bodo', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] }] },
+            //         { id: 'zk', name: 'Z. kely', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3300 }] }] },
+            //         { id: 'fand_zk', name: 'Fand Z.kely', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 3700 }] }] },
+            //         { id: 'mf', name: 'Mofon\'aina', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: 'GM', price: 3300 }, { id: 'pm', name: 'PM', price: 2700 }] }] },
+            //         { id: 'llmf_gm', name: 'LL + MA(GM)', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 6500 }] }] },
+            //         { id: 'llmf_pm', name: 'LL + MA(PM)', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'pm', name: '', price: 5300 }] }] },
+            //         { id: 'tt', name: 'tatitra', languages: [{ id: 'gs', name: 'gs', formats: [{ id: 'gm', name: '', price: 2300 }] }] }
+            //     ],
+            //     people: [
 
-                ]
-            };
+            //     ]
+            // };
+            appState.data = {
+    categories: [
+        {
+            id: 'lb', name: 'Lehibe', languages: [
+                { id: 'gs', name: 'Malagasy', formats: [
+                    { id: 'gm', name: 'GM', price: 3300, articles: ['LEHIBE GM'] }, 
+                    { id: 'pm', name: 'PM', price: 2700, articles: ['LEHIBE PM'] },
+                    { id: 'tra', name: 'TRA', price: 2700, articles: ['LEHIBE/TANORA'] }
+                ]},
+                { id: 'fr', name: 'Français', formats: [
+                    { id: 'lsn', name: 'LESONA', price: 6000, articles: ['LESONA LEHIBE Français'] }
+                ]},
+                { id: 'en', name: 'Anglais', formats: [
+                    { id: 'std', name: 'STANDARD', price: 6000, articles: ['STANDARD EDITION'] }
+                ]}
+            ]
+        },
+        {
+            id: 'tzo', name: 'Tanora Zokiny (19-35taona)', languages: [
+                { id: 'gs', name: 'Malagasy', formats: [
+                    { id: 'gm', name: '', price: 3300, articles: ['FIONONA ZOKINY (19-35taona)', 'FIONONA ADIVANTISTA'] },
+                    { id: 'tr', name: 'TRA', price: 2700, articles: ['LEHIBE/TANORA'] } // Répétition pour couvrir la ligne 28 si elle inclut cette tranche d'âge
+                ]},
+                { id: 'fr', name: 'Français', formats: [
+                    { id: 'lsn', name: 'LSN', price: 6000, articles: ['FIANARAN ZOKINY Français'] }
+                ]},
+                { id: 'en', name: 'Anglais', formats: [
+                    { id: 'inv', name: 'INVERSE', price: 6000, articles: ['INVERSE (19-35years)'] }
+                ]}
+            ]
+        },
+        {
+            id: 'zt', name: 'Zatovo (13-18taona)', languages: [
+                { id: 'gs', name: 'Malagasy', formats: [
+                    { id: 'gm', name: '', price: 3300, articles: ['FATOVO (13-18taona)', 'TANORA MANONTANTO (13-14ans)'] },
+                    { id: 'pm', name: '', price: 2700, articles: ['FATOVO', 'MANONTANTO'] }
+                ]},
+                { id: 'fr', name: 'Français', formats: [
+                    { id: 'ado', name: 'ADO', price: 6000, articles: ['ADOLESCENT (15-18ans)', 'ADOLESCENT (13-14ans)'] }
+                ]},
+                { id: 'en', name: 'Anglais', formats: [
+                    { id: 'crn', name: 'CRN', price: 6000, articles: ['CORNERSTONE (15-18years)'] },
+                    { id: 'rtf', name: 'RTF', price: 6000, articles: ['REAL TIME FAITH (13-14years)'] }
+                ]}
+            ]
+        },
+        { 
+            id: 'tza', name: 'Tanora Zandriny (9-12taona)', languages: [
+                { id: 'gs', name: 'Malagasy', formats: [
+                    { id: 'gm', name: '', price: 3300, articles: ['TANORA ZANDRINY (9-12taona)'] },
+                    { id: 'tr', name: 'TRA', price: 2700, articles: ['TANORA'] }
+                ]},
+                { id: 'fr', name: 'Français', formats: [
+                    { id: 'prad', name: 'PRE-ADO', price: 6000, articles: ['PRE-ADOLESCENT (9-12ans)'] }
+                ]},
+                { id: 'en', name: 'Anglais', formats: [
+                    { id: 'foc', name: 'FOCUSPOINT', price: 6000, articles: ['FOCUSPOINT (9-12years)'] }
+                ]}
+            ]
+        },
+        { 
+            id: 'ak', name: 'Ankizy Kely (5-8taona)', languages: [
+                { id: 'gs', name: 'Malagasy', formats: [
+                    { id: 'gm', name: '', price: 3300, articles: ['ANKIZY KELY (5-8taona)'] },
+                    { id: 'sti', name: 'STIMULANT', price: 3700, articles: ['ANKIZY + STIMULANT'] },
+                    { id: 'tr', name: 'TRA', price: 2700, articles: ['ANKIZY'] }
+                ]},
+                { id: 'fr', name: 'Français', formats: [
+                    { id: 'pr', name: 'PRIMAIRE', price: 6000, articles: ['PRIMAIRE (6-8ans)'] }
+                ]}
+            ]
+        },
+        { 
+            id: 'zb', name: 'Zaza Bodo (4taona)', languages: [
+                { id: 'gs', name: 'Malagasy', formats: [
+                    { id: 'gm', name: '', price: 3300, articles: ['ZAZA BODO (4taona)'] },
+                    { id: 'sti', name: 'STIMULANT', price: 3700, articles: ['ZAZA BODO + STIMULANT'] }
+                ]},
+                { id: 'fr', name: 'Français', formats: [
+                    { id: 'jdf', name: 'JARDIN', price: 6000, articles: ['JARDIN D\'ENFANT (4ans)'] }
+                ]},
+                { id: 'en', name: 'Anglais', formats: [
+                    { id: 'kgt', name: 'KGT', price: 6000, articles: ['KINDERGARTEN (4years)'] }
+                ]}
+            ]
+        },
+        { 
+            id: 'zk', name: 'Zazakely (1-3taona)', languages: [
+                { id: 'gs', name: 'Malagasy', formats: [
+                    { id: 'gm', name: '', price: 3300, articles: ['ZAZAKELY (1-3taona)'] },
+                    { id: 'sti', name: 'STIMULANT', price: 3700, articles: ['ZAZAKELY + STIMULANT'] }
+                ]},
+                { id: 'fr', name: 'Français', formats: [
+                    { id: 'deb', name: 'DEBUTANT', price: 6000, articles: ['DEBUTANT (1-3ans)'] }
+                ]},
+                { id: 'en', name: 'Anglais', formats: [
+                    { id: 'bgn', name: 'BEGINNER', price: 6000, articles: ['BEGINNER (1-3years)'] }
+                ]}
+            ]
+        },
+        { 
+            id: 'zm', name: 'Zaza Minono (0-12volana)', languages: [
+                { id: 'gs', name: 'Malagasy', formats: [
+                    { id: 'gm', name: '', price: 3300, articles: ['ZAZA MINONO (0-12volana)', 'ZAZA AMAM-BOKY (0-12volana)'] },
+                    { id: 'sti', name: 'STIMULANT', price: 3700, articles: ['ZAZA MINONO + STIMULANT'] }
+                ]},
+                { id: 'fr', name: 'Français', formats: [
+                    { id: 'bbs', name: 'BEBES', price: 6000, articles: ['BEBES (0-12mois)'] }
+                ]},
+                { id: 'en', name: 'Anglais', formats: [
+                    { id: 'bbs', name: 'BABIES', price: 6000, articles: ['BABIES (0-12months)'] }
+                ]}
+            ]
+        },
+        { 
+            id: 'prt', name: 'Parents', languages: [
+                { id: 'fr', name: 'Français', formats: [
+                    { id: 'prt', name: 'PARENTS', price: 10000, articles: ['PARENTS & FUTURE PARENTS (0-12mois)'] }
+                ]},
+                { id: 'en', name: 'Anglais', formats: [
+                    { id: 'prt', name: 'PARENTS', price: 10000, articles: ['PARENTS/FUTURE PARENTS (0-12months)'] }
+                ]}
+            ]
+        },
+        { 
+            id: 'mf', name: 'Mofon\'aina', languages: [
+                { id: 'gs', name: 'Malagasy', formats: [
+                    { id: 'gm', name: 'GM', price: 3300, articles: ['MOFONAJINA GM'] }, 
+                    { id: 'pm', name: 'PM', price: 2700, articles: ['MOFONAJINA PM'] }
+                ]}
+            ]
+        },
+        { 
+            id: 'llmf', name: 'Lehibe/Mofonaina (PACK)', languages: [
+                { id: 'gs', name: 'Malagasy', formats: [
+                    { id: 'gm', name: 'GM', price: 6500, articles: ['GESONA AMIN\'NY ZARIDAINY', 'GESONA-MOFONAJINA'] }, 
+                    { id: 'pm', name: 'PM', price: 5300, articles: ['LESONA-MOFONAJINA'] }
+                ]}
+            ]
+        },
+        { 
+            id: 'md', name: 'Manao Dingana', languages: [
+                { id: 'gs', name: 'Malagasy', formats: [
+                    { id: '1', name: '1', price: 3300, articles: ['MANAO DINGANA 1'] }, 
+                    { id: '2', name: '2', price: 3300, articles: ['MANAO DINGANA 2'] }
+                ]}
+            ]
+        },
+        { 
+            id: 'mt', name: 'Moniteur', languages: [
+                { id: 'fr', name: 'Français', formats: [
+                    { id: 'cn', name: 'CONNEXION', price: 6000, articles: ['MONITEUR CONNEXION'] }, 
+                    { id: 'ado', name: 'ADOLESCENT', price: 6000, articles: ['MONITEUR ADOLESCENT'] }, 
+                    { id: 'prad', name: 'PRE-ADO', price: 6000, articles: ['MONITEUR PRE-ADOLESCENT'] }, 
+                    { id: 'pr', name: 'PRIMAIRE', price: 6000, articles: ['MONITEUR PRIMAIRE'] }, 
+                    { id: 'jdf', name: 'JARDIN', price: 6000, articles: ['MONITEUR JARDIN D\'ENFANT'] }, 
+                    { id: 'deb', name: 'DEBUTANT', price: 6000, articles: ['MONITEUR DEBUTANT'] }, 
+                    { id: 'bbs', name: 'BEBES', price: 6000, articles: ['MONITEUR BEBES'] }
+                ]},
+                { id: 'en', name: 'Anglais', formats: [
+                    { id: 'tch', name: 'TEACHERS EDITION', price: 6000, articles: ['TEACHERS EDITION'] },
+                    { id: 'crn', name: 'CRN', price: 6000, articles: ['MONITEUR CORNERSTONE'] },
+                    { id: 'rtf', name: 'RTF', price: 6000, articles: ['MONITEUR REAL TIME FAITH'] },
+                    { id: 'pp', name: 'POWERPOINTS', price: 6000, articles: ['MONITEUR POWERPOINTS'] },
+                    { id: 'pr', name: 'PRIMARY', price: 6000, articles: ['MONITEUR PRIMARY'] },
+                    { id: 'kgt', name: 'KGT', price: 6000, articles: ['MONITEUR KINDERGARTEN'] },
+                    { id: 'bgn', name: 'BEGINNER', price: 6000, articles: ['MONITEUR BEGINNER'] },
+                    { id: 'bbs', name: 'BABIES', price: 6000, articles: ['MONITEUR BABIES'] }
+                ]}
+            ]
+        },
+        { 
+            id: 'dvdtp', name: 'DVD & Tokony An\'Ankizy', languages: [
+                { id: 'gs', name: 'Malagasy', formats: [
+                    { id: 'v1', name: 'FESA - VOL.1', price: 5000, articles: ['DVD. FESA - VOL.1'] }, 
+                    { id: 'v4', name: 'EX-V.4', price: 3000, articles: ['DVD. EX-V.4'] }, 
+                    { id: 'v3', name: 'EX-V.3', price: 3000, articles: ['DVD. EX-V.3'] }, 
+                    { id: 'jesco', name: 'AMPI AHY JESCO', price: 3000, articles: ['DVD AMPY AHY JESCO'] }, 
+                    { id: 'toa', name: 'TOA', price: 6000, articles: ['TORENY HO AN\'NY ANKIZY'] }
+                ]}
+            ]
+        },
+        { 
+            id: 'hira', name: 'Hira', languages: [
+                { id: 'gs', name: 'Malagasy', formats: [
+                    { id: 'pk', name: 'PK', price: 9000, articles: ['FIHIRANA KELY'] }
+                ]}
+            ]
+        },
+        { 
+            id: 'acc', name: 'Accessoires', languages: [
+                { id: 'gs', name: 'Malagasy', formats: [
+                    { id: 'sari', name: 'SARINTANY', price: 1900, articles: ['SARINTANY'] }, 
+                    { id: 'reji', name: 'REJISTRA', price: 1700, articles: ['REJISTRA'] }, 
+                    { id: 'fo-o', name: 'FONON-ORGA', price: 4500, articles: ['FONON-GESONA KOPA-ORGA'] }, 
+                    { id: 'fo-t', name: 'FONON-TELO', price: 5500, articles: ['FONON-GESONA KOPA-TELO'] }
+                ]}
+            ]
+        }
+    ],
+    people: [] // La liste `people` reste vide selon le format initial
+};
             appState.data.categories.forEach(cat => {
                 cat.languages.forEach(lang => {
                     lang.formats.forEach(format => {

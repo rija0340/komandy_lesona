@@ -84,12 +84,22 @@
             </div>
 
             <!-- Nav -->
-            <nav class="flex bg-slate-100 p-1 rounded-lg overflow-x-auto min-w-0">
+            <nav class="hidden sm:flex bg-slate-100 p-1 rounded-lg overflow-x-auto min-w-0">
                 <button onclick="switchTab('global')" id="tab-btn-global" class="tab-btn px-3 py-1.5 rounded-md text-sm font-medium transition-all text-slate-600 whitespace-nowrap">Global</button>
                 <button onclick="switchTab('config')" id="tab-btn-config" class="tab-btn px-3 py-1.5 rounded-md text-sm font-medium transition-all text-slate-600 active-tab bg-white shadow-sm text-primary whitespace-nowrap">Config</button>
                 <button onclick="switchTab('planning')" id="tab-btn-planning" class="tab-btn px-3 py-1.5 rounded-md text-sm font-medium transition-all text-slate-600 whitespace-nowrap">Planning</button>
                 <button onclick="switchTab('stats')" id="tab-btn-stats" class="tab-btn px-3 py-1.5 rounded-md text-sm font-medium transition-all text-slate-600 whitespace-nowrap">Stats</button>
             </nav>
+            
+            <!-- Mobile Nav Dropdown -->
+            <div class="sm:hidden">
+                <select id="mobile-tab-selector" onchange="switchTab(this.value)" class="text-sm font-medium bg-slate-100 border-none rounded-lg focus:ring-0 cursor-pointer p-1">
+                    <option value="global">Global</option>
+                    <option value="config">Config</option>
+                    <option value="planning">Planning</option>
+                    <option value="stats">Stats</option>
+                </select>
+            </div>
 
             <div class="flex gap-2">
                 <button onclick="deleteCurrentPlan()" class="p-2 text-slate-400 hover:text-red-500 transition" title="Supprimer ce planning">
@@ -408,12 +418,16 @@
             const target = document.getElementById(`tab-${tabId}`);
             if(target) target.classList.add('active');
             
-            // Update Button UI
+            // Update Desktop Button UI
             document.querySelectorAll('.tab-btn').forEach(el => {
                 el.classList.remove('bg-white', 'shadow-sm', 'text-primary');
             });
             const btn = document.getElementById(`tab-btn-${tabId}`);
             if(btn) btn.classList.add('bg-white', 'shadow-sm', 'text-primary');
+            
+            // Update Mobile Selector UI
+            const mobileSelector = document.getElementById('mobile-tab-selector');
+            if(mobileSelector) mobileSelector.value = tabId;
 
             // Trigger Tab Specific Logic
             if (tabId === 'planning') renderPlanning();
