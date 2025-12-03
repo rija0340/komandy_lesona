@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,17 +20,36 @@
 
         /* Animations */
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         @keyframes slideIn {
-            from { transform: translateX(-20px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from {
+                transform: translateX(-20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
-        .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
-        .animate-slideIn { animation: slideIn 0.3s ease-out; }
+        .animate-fadeIn {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .animate-slideIn {
+            animation: slideIn 0.3s ease-out;
+        }
 
         /* Quantity Input Styling */
         .quantity-input-group {
@@ -71,6 +91,7 @@
             border-left: none;
             border-right: none;
             outline: none;
+            appearance: textfield;
             -moz-appearance: textfield;
         }
 
@@ -81,7 +102,8 @@
         }
 
         /* Table Styling */
-        .compact-table th, .compact-table td {
+        .compact-table th,
+        .compact-table td {
             padding: 6px 8px;
             font-size: 13px;
         }
@@ -110,6 +132,7 @@
                 opacity: 0;
                 transform: scale(0.95) translateY(-10px);
             }
+
             to {
                 opacity: 1;
                 transform: scale(1) translateY(0);
@@ -125,19 +148,70 @@
             text-transform: uppercase;
         }
 
-        .category-lb { background: #dbeafe; color: #1e40af; }
-        .category-tzo { background: #d1fae5; color: #065f46; }
-        .category-zt { background: #fef3c7; color: #92400e; }
-        .category-tza { background: #e9d5ff; color: #6b21a8; }
-        .category-ak { background: #fce7f3; color: #9d174d; }
-        .category-zm { background: #fed7aa; color: #9a3412; }
-        .category-zb { background: #fecaca; color: #991b1b; }
-        .category-mf { background: #c7d2fe; color: #3730a3; }
-        .category-zk { background: #a5f3fc; color: #0e7490; }
-        .category-fand_zk { background: #bbf7d0; color: #166534; }
-        .category-llmf_gm { background: #99f6e4; color: #115e59; }
-        .category-llmf_pm { background: #a7f3d0; color: #047857; }
-        .category-tt { background: #fde68a; color: #92400e; }
+        .category-lb {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .category-tzo {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .category-zt {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .category-tza {
+            background: #e9d5ff;
+            color: #6b21a8;
+        }
+
+        .category-ak {
+            background: #fce7f3;
+            color: #9d174d;
+        }
+
+        .category-zm {
+            background: #fed7aa;
+            color: #9a3412;
+        }
+
+        .category-zb {
+            background: #fecaca;
+            color: #991b1b;
+        }
+
+        .category-mf {
+            background: #c7d2fe;
+            color: #3730a3;
+        }
+
+        .category-zk {
+            background: #a5f3fc;
+            color: #0e7490;
+        }
+
+        .category-fand_zk {
+            background: #bbf7d0;
+            color: #166534;
+        }
+
+        .category-llmf_gm {
+            background: #99f6e4;
+            color: #115e59;
+        }
+
+        .category-llmf_pm {
+            background: #a7f3d0;
+            color: #047857;
+        }
+
+        .category-tt {
+            background: #fde68a;
+            color: #92400e;
+        }
 
         /* Status Dots */
         .status-dot {
@@ -148,15 +222,31 @@
             margin-right: 6px;
         }
 
-        .status-active { background: #10b981; }
-        .status-inactive { background: #6b7280; }
-        .status-pending { background: #f59e0b; }
+        .status-active {
+            background: #10b981;
+        }
+
+        .status-inactive {
+            background: #6b7280;
+        }
+
+        .status-pending {
+            background: #f59e0b;
+        }
 
         /* Print Styles */
         @media print {
-            .no-print { display: none !important; }
-            .print-only { display: block !important; }
-            .print-break { page-break-inside: avoid; }
+            .no-print {
+                display: none !important;
+            }
+
+            .print-only {
+                display: block !important;
+            }
+
+            .print-break {
+                page-break-inside: avoid;
+            }
         }
 
         /* Custom Scrollbar */
@@ -179,11 +269,13 @@
         }
     </style>
 </head>
+
 <body class="bg-gray-50">
     <!-- Loading Overlay -->
     <div id="loading" class="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50 hidden">
         <div class="text-center">
-            <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4">
+            </div>
             <p class="text-gray-600">Chargement...</p>
         </div>
     </div>
@@ -205,7 +297,8 @@
                     </div>
                     <div class="flex items-center space-x-2">
                         <span id="currentDate" class="text-sm bg-white bg-opacity-20 px-3 py-1 rounded-full"></span>
-                        <button onclick="toggleTheme()" class="p-2 rounded-lg bg-white bg-opacity-20 hover:bg-opacity-30">
+                        <button onclick="toggleTheme()"
+                            class="p-2 rounded-lg bg-white bg-opacity-20 hover:bg-opacity-30">
                             <i class="fas fa-moon"></i>
                         </button>
                     </div>
@@ -268,19 +361,23 @@
             <!-- Action Buttons -->
             <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
                 <div class="flex flex-wrap gap-2">
-                    <button onclick="openOrderModal()" class="btn-primary flex items-center gap-2 px-4 py-2.5 rounded-lg">
+                    <button onclick="openOrderModal()"
+                        class="btn-primary flex items-center gap-2 px-4 py-2.5 rounded-lg">
                         <i class="fas fa-plus-circle"></i>
                         Nouvelle Commande
                     </button>
-                    <button onclick="openAddPersonModal()" class="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg">
+                    <button onclick="openAddPersonModal()"
+                        class="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg">
                         <i class="fas fa-user-plus"></i>
                         Ajouter Personne
                     </button>
-                    <button onclick="exportToExcel()" class="btn-success flex items-center gap-2 px-4 py-2.5 rounded-lg">
+                    <button onclick="exportToExcel()"
+                        class="btn-success flex items-center gap-2 px-4 py-2.5 rounded-lg">
                         <i class="fas fa-file-excel"></i>
                         Exporter Excel
                     </button>
-                    <button onclick="showSelectedOrders()" class="btn-info flex items-center gap-2 px-4 py-2.5 rounded-lg">
+                    <button onclick="showSelectedOrders()"
+                        class="btn-info flex items-center gap-2 px-4 py-2.5 rounded-lg">
                         <i class="fas fa-check-double"></i>
                         Voir Sélection
                     </button>
@@ -296,8 +393,8 @@
                 <div class="flex flex-col md:flex-row gap-4">
                     <div class="flex-1">
                         <div class="relative">
-                            <input type="text" id="searchInput" placeholder="Rechercher par nom..." 
-                                   class="w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <input type="text" id="searchInput" placeholder="Rechercher par nom..."
+                                class="w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
                         </div>
                     </div>
@@ -381,8 +478,8 @@
                 <!-- Search Bar -->
                 <div class="sticky top-[68px] bg-white border-b p-4">
                     <div class="relative">
-                        <input type="text" id="orderSearch" placeholder="Rechercher un article..." 
-                               class="w-full pl-10 pr-4 py-2.5 border rounded-lg">
+                        <input type="text" id="orderSearch" placeholder="Rechercher un article..."
+                            class="w-full pl-10 pr-4 py-2.5 border rounded-lg">
                         <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
                     </div>
                 </div>
@@ -427,21 +524,19 @@
                     <form id="personForm" class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium mb-1">Nom Complet</label>
-                            <input type="text" id="personName" required 
-                                   class="w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <input type="text" id="personName" required
+                                class="w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500">
                         </div>
                         <div>
                             <label class="block text-sm font-medium mb-1">ID/Référence (optionnel)</label>
-                            <input type="text" id="personId" 
-                                   class="w-full px-3 py-2.5 border rounded-lg">
+                            <input type="text" id="personId" class="w-full px-3 py-2.5 border rounded-lg">
                         </div>
                         <div class="flex gap-3 pt-4">
-                            <button type="button" onclick="closeAddPersonModal()" 
-                                    class="flex-1 px-4 py-2.5 border rounded-lg hover:bg-gray-50">
+                            <button type="button" onclick="closeAddPersonModal()"
+                                class="flex-1 px-4 py-2.5 border rounded-lg hover:bg-gray-50">
                                 Annuler
                             </button>
-                            <button type="submit" 
-                                    class="flex-1 btn-primary px-4 py-2.5 rounded-lg">
+                            <button type="submit" class="flex-1 btn-primary px-4 py-2.5 rounded-lg">
                                 Ajouter
                             </button>
                         </div>
@@ -459,6 +554,9 @@
                 <div class="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
                     <h3 class="text-xl font-semibold">Commandes Sélectionnées</h3>
                     <div class="flex gap-2">
+                        <button onclick="exportSelectedToPng()" class="btn-success px-3 py-1.5 rounded-lg">
+                            <i class="fas fa-image"></i> PNG
+                        </button>
                         <button onclick="printSelectedOrders()" class="btn-secondary px-3 py-1.5 rounded-lg">
                             <i class="fas fa-print"></i>
                         </button>
@@ -479,6 +577,7 @@
 
     <!-- Scripts -->
     <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
         // Application State
         const state = {
@@ -497,26 +596,26 @@
 
         async function initializeApp() {
             showLoading();
-            
+
             // Set current date
-            document.getElementById('currentDate').textContent = 
-                new Date().toLocaleDateString('fr-FR', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
+            document.getElementById('currentDate').textContent =
+                new Date().toLocaleDateString('fr-FR', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
                 });
-            
+
             // Load data
             await loadData();
-            
+
             // Setup event listeners
             setupEventListeners();
-            
+
             // Render initial view
             renderTable();
             updateStats();
-            
+
             hideLoading();
         }
 
@@ -530,7 +629,7 @@
                 } else {
                     await loadSampleData();
                 }
-                
+
                 // Ensure categories have proper structure
                 state.categories = state.categories.map(cat => ({
                     ...cat,
@@ -703,17 +802,17 @@
         function renderTable() {
             const tableBody = document.getElementById('tableBody');
             const mobileView = document.getElementById('mobileView');
-            
+
             // Clear existing content
             tableBody.innerHTML = '';
             mobileView.innerHTML = '';
-            
+
             // Update category headers
             updateCategoryHeaders();
-            
+
             // Filter people based on search and filters
             const filteredPeople = filterPeople();
-            
+
             if (filteredPeople.length === 0) {
                 const emptyRow = `
                     <tr>
@@ -732,18 +831,18 @@
                 `;
                 return;
             }
-            
+
             // Render table rows and mobile cards
             filteredPeople.forEach(person => {
                 // Table row
                 const row = createTableRow(person);
                 tableBody.appendChild(row);
-                
+
                 // Mobile card
                 const card = createMobileCard(person);
                 mobileView.appendChild(card);
             });
-            
+
             // Update totals
             updateTotals();
             updateSelectedTotal();
@@ -755,13 +854,13 @@
                 if (state.searchTerm && !person.name.toLowerCase().includes(state.searchTerm)) {
                     return false;
                 }
-                
+
                 // Apply status filter
                 const statusFilter = document.getElementById('statusFilter').value;
                 if (statusFilter && person.status !== statusFilter) {
                     return false;
                 }
-                
+
                 return true;
             });
         }
@@ -770,10 +869,10 @@
             const row = document.createElement('tr');
             row.className = 'border-b hover:bg-gray-50';
             row.dataset.personId = person.id;
-            
+
             // Calculate person total
             const personTotal = calculatePersonTotal(person);
-            
+
             // Create checkbox cell
             const checkboxCell = document.createElement('td');
             checkboxCell.className = 'px-4 py-3';
@@ -791,7 +890,7 @@
                 updateSelectedTotal();
             });
             checkboxCell.appendChild(checkbox);
-            
+
             // Create name cell
             const nameCell = document.createElement('td');
             nameCell.className = 'px-4 py-3';
@@ -804,12 +903,12 @@
                 openOrderModal(person.id);
             };
             nameCell.appendChild(nameLink);
-            
+
             // Create ID cell
             const idCell = document.createElement('td');
             idCell.className = 'px-4 py-3 text-gray-500 text-sm';
             idCell.textContent = person.id;
-            
+
             // Create status cell
             const statusCell = document.createElement('td');
             statusCell.className = 'px-4 py-3';
@@ -817,15 +916,15 @@
             statusSpan.className = `status-dot status-${person.status || 'active'}`;
             statusCell.appendChild(statusSpan);
             statusCell.appendChild(document.createTextNode(person.status || 'active'));
-            
+
             // Create category cells
             const categoryCells = createCategoryCells(person);
-            
+
             // Create total cell
             const totalCell = document.createElement('td');
             totalCell.className = 'px-4 py-3 font-semibold text-gray-800';
             totalCell.textContent = `${personTotal.toLocaleString()} Ar`;
-            
+
             // Create actions cell
             const actionsCell = document.createElement('td');
             actionsCell.className = 'px-4 py-3';
@@ -841,33 +940,33 @@
                     </button>
                 </div>
             `;
-            
+
             // Append all cells to row
             row.appendChild(checkboxCell);
             row.appendChild(nameCell);
             row.appendChild(idCell);
             row.appendChild(statusCell);
-            
+
             categoryCells.forEach(cell => row.appendChild(cell));
-            
+
             row.appendChild(totalCell);
             row.appendChild(actionsCell);
-            
+
             return row;
         }
 
         function createCategoryCells(person) {
             const cells = [];
-            
+
             state.categories.forEach(category => {
                 category.languages.forEach(language => {
                     language.formats.forEach(format => {
                         const key = `${category.id}|${language.id}|${format.id}`;
                         const quantity = person.orders?.[key] || 0;
-                        
+
                         const cell = document.createElement('td');
                         cell.className = 'px-2 py-3 text-center';
-                        
+
                         if (quantity > 0) {
                             const span = document.createElement('span');
                             span.className = 'inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded';
@@ -876,22 +975,22 @@
                         } else {
                             cell.innerHTML = '<span class="text-gray-300">-</span>';
                         }
-                        
+
                         cells.push(cell);
                     });
                 });
             });
-            
+
             return cells;
         }
 
         function createMobileCard(person) {
             const card = document.createElement('div');
             card.className = 'bg-white rounded-lg shadow-sm p-4';
-            
+
             const personTotal = calculatePersonTotal(person);
             const orderCount = Object.values(person.orders || {}).reduce((a, b) => a + b, 0);
-            
+
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-3">
                     <div class="flex items-center gap-3">
@@ -929,7 +1028,7 @@
                     </div>
                 </div>
             `;
-            
+
             // Add checkbox event listener
             const checkbox = card.querySelector('.person-checkbox');
             checkbox.addEventListener('change', (e) => {
@@ -940,14 +1039,14 @@
                 }
                 updateSelectedTotal();
             });
-            
+
             return card;
         }
 
         function renderMobileOrderItems(person) {
             let html = '';
             let count = 0;
-            
+
             for (const [key, quantity] of Object.entries(person.orders || {})) {
                 if (quantity > 0 && count < 3) {
                     const [catId, langId, formatId] = key.split('|');
@@ -969,7 +1068,7 @@
                     }
                 }
             }
-            
+
             return html;
         }
 
@@ -977,12 +1076,12 @@
             const thead = document.querySelector('#mainTable thead tr');
             const existingHeaders = thead.querySelectorAll('.category-header');
             existingHeaders.forEach(h => h.remove());
-            
+
             // Insert category headers before the total column
-            const totalHeaderIndex = Array.from(thead.children).findIndex(th => 
+            const totalHeaderIndex = Array.from(thead.children).findIndex(th =>
                 th.textContent.includes('Total') || th.textContent === 'Total'
             ) || thead.children.length - 2;
-            
+
             state.categories.forEach(category => {
                 const header = document.createElement('th');
                 header.className = 'category-header px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase';
@@ -996,7 +1095,7 @@
             const totalPeople = state.people.length;
             const totalRevenue = calculateTotalRevenue();
             const todayOrders = calculateTodayOrders();
-            
+
             document.getElementById('totalPeople').textContent = totalPeople;
             document.getElementById('totalRevenue').textContent = `${totalRevenue.toLocaleString()} Ar`;
             document.getElementById('todayOrders').textContent = todayOrders;
@@ -1013,7 +1112,7 @@
 
         function calculateTodayOrders() {
             // For now, return total orders
-            return state.people.reduce((sum, person) => 
+            return state.people.reduce((sum, person) =>
                 sum + Object.values(person.orders || {}).reduce((a, b) => a + b, 0), 0);
         }
 
@@ -1042,47 +1141,47 @@
 
         function updateSelectedTotal() {
             let selectedTotal = 0;
-            
+
             state.selectedPeople.forEach(personId => {
                 const person = state.people.find(p => p.id === personId);
                 if (person) {
                     selectedTotal += calculatePersonTotal(person);
                 }
             });
-            
+
             document.getElementById('selectedTotal').textContent = `${selectedTotal.toLocaleString()} Ar`;
         }
 
         // Modal Functions
         function openOrderModal(personId = null) {
-            state.selectedPerson = personId ? 
+            state.selectedPerson = personId ?
                 state.people.find(p => p.id === personId) : null;
-            
+
             // Reset order data
             state.orderData = {};
-            
+
             if (state.selectedPerson) {
-                document.getElementById('modalPersonName').textContent = 
+                document.getElementById('modalPersonName').textContent =
                     `Commande pour: ${state.selectedPerson.name}`;
-                document.getElementById('modalPersonId').textContent = 
+                document.getElementById('modalPersonId').textContent =
                     `ID: ${state.selectedPerson.id}`;
-                
+
                 // Copy existing orders
                 state.orderData = JSON.parse(JSON.stringify(state.selectedPerson.orders || {}));
             } else {
                 document.getElementById('modalPersonName').textContent = 'Nouvelle Commande';
                 document.getElementById('modalPersonId').textContent = 'Sélectionnez ou ajoutez une personne';
             }
-            
+
             // Generate categories accordion
             generateCategoriesAccordion();
-            
+
             // Update order total
             updateOrderTotal();
-            
+
             // Show modal
             document.getElementById('orderModal').classList.remove('hidden');
-            
+
             // Focus search
             setTimeout(() => {
                 document.getElementById('orderSearch').focus();
@@ -1098,16 +1197,16 @@
         function generateCategoriesAccordion() {
             const container = document.getElementById('categoriesAccordion');
             const searchTerm = document.getElementById('orderSearch').value.toLowerCase();
-            
+
             container.innerHTML = '';
-            
+
             state.categories.forEach(category => {
                 const categoryDiv = document.createElement('div');
                 categoryDiv.className = 'border rounded-lg overflow-hidden';
                 categoryDiv.dataset.categoryId = category.id;
-                
+
                 let categoryHasVisibleItems = false;
-                
+
                 // Create category content
                 let itemsHTML = '';
                 category.languages.forEach(language => {
@@ -1115,10 +1214,10 @@
                         const key = `${category.id}|${language.id}|${format.id}`;
                         const quantity = state.orderData[key] || 0;
                         const itemName = `${category.name} - ${language.name} ${format.name !== 'Std' ? `(${format.name})` : ''}`.toLowerCase();
-                        
+
                         if (!searchTerm || itemName.includes(searchTerm)) {
                             categoryHasVisibleItems = true;
-                            
+
                             itemsHTML += `
                                 <div class="flex items-center justify-between p-3 border-b last:border-b-0 hover:bg-gray-50">
                                     <div class="flex-1">
@@ -1142,7 +1241,7 @@
                         }
                     });
                 });
-                
+
                 if (!searchTerm || category.name.toLowerCase().includes(searchTerm) || categoryHasVisibleItems) {
                     categoryDiv.innerHTML = `
                         <div class="bg-gray-50 p-3 flex justify-between items-center cursor-pointer"
@@ -1157,12 +1256,12 @@
                             ${itemsHTML || '<div class="p-4 text-center text-gray-500">Aucun article correspondant</div>'}
                         </div>
                     `;
-                    
+
                     container.appendChild(categoryDiv);
-                    
+
                     // Update category summary
                     updateCategorySummary(category.id);
-                    
+
                     // Auto-expand if searching or has items
                     if (searchTerm || categoryHasVisibleItems) {
                         const content = document.getElementById(`categoryContent-${category.id}`);
@@ -1173,10 +1272,10 @@
                     }
                 }
             });
-            
+
             // Update item count
             updateItemCount();
-            
+
             // Setup search listener
             document.getElementById('orderSearch').oninput = (e) => {
                 generateCategoriesAccordion();
@@ -1186,7 +1285,7 @@
         function toggleCategory(categoryId) {
             const content = document.getElementById(`categoryContent-${categoryId}`);
             const icon = content.previousElementSibling.querySelector('.fa-chevron-down, .fa-chevron-up');
-            
+
             content.classList.toggle('hidden');
             icon.classList.toggle('fa-chevron-down');
             icon.classList.toggle('fa-chevron-up');
@@ -1195,46 +1294,46 @@
         function updateOrderQuantity(key, delta) {
             const current = state.orderData[key] || 0;
             const newValue = Math.max(0, current + delta);
-            
+
             if (newValue > 0) {
                 state.orderData[key] = newValue;
             } else {
                 delete state.orderData[key];
             }
-            
+
             // Update the input value
             const input = document.querySelector(`.quantity-input[data-key="${key}"]`);
             if (input) {
                 input.value = newValue;
             }
-            
+
             // Update summaries
             updateOrderTotal();
             updateItemCount();
-            
+
             const [categoryId] = key.split('|');
             updateCategorySummary(categoryId);
         }
 
         function updateOrderQuantityFromInput(key, value) {
             const newValue = parseInt(value) || 0;
-            
+
             if (newValue > 0) {
                 state.orderData[key] = newValue;
             } else {
                 delete state.orderData[key];
             }
-            
+
             updateOrderTotal();
             updateItemCount();
-            
+
             const [categoryId] = key.split('|');
             updateCategorySummary(categoryId);
         }
 
         function updateOrderTotal() {
             let total = 0;
-            
+
             for (const [key, quantity] of Object.entries(state.orderData)) {
                 const [catId, langId, formatId] = key.split('|');
                 const category = state.categories.find(c => c.id === catId);
@@ -1248,7 +1347,7 @@
                     }
                 }
             }
-            
+
             document.getElementById('orderTotal').textContent = `Total: ${total.toLocaleString()} Ar`;
         }
 
@@ -1260,14 +1359,14 @@
         function updateCategorySummary(categoryId) {
             let itemCount = 0;
             let totalQuantity = 0;
-            
+
             for (const [key, quantity] of Object.entries(state.orderData)) {
                 if (key.startsWith(categoryId + '|')) {
                     itemCount++;
                     totalQuantity += quantity;
                 }
             }
-            
+
             const summary = document.getElementById(`categorySummary-${categoryId}`);
             if (summary) {
                 if (itemCount > 0) {
@@ -1284,7 +1383,7 @@
                 showToast('Veuillez ajouter des articles à la commande', 'error');
                 return;
             }
-            
+
             if (state.selectedPerson) {
                 // Update existing person
                 state.selectedPerson.orders = { ...state.orderData };
@@ -1296,25 +1395,25 @@
                     showToast('Le nom est requis', 'error');
                     return;
                 }
-                
+
                 const newPerson = {
                     id: `person_${Date.now()}`,
                     name: personName,
                     status: 'active',
                     orders: { ...state.orderData }
                 };
-                
+
                 state.people.push(newPerson);
                 showToast(`Nouvelle personne et commande ajoutées`, 'success');
             }
-            
+
             // Save to localStorage
             saveData();
-            
+
             // Update UI
             renderTable();
             updateStats();
-            
+
             // Close modal
             closeOrderModal();
         }
@@ -1332,25 +1431,25 @@
         function addPerson() {
             const name = document.getElementById('personName').value.trim();
             const id = document.getElementById('personId').value.trim() || `person_${Date.now()}`;
-            
+
             if (!name) {
                 showToast('Le nom est requis', 'error');
                 return;
             }
-            
+
             const newPerson = {
                 id: id,
                 name: name,
                 status: 'active',
                 orders: {}
             };
-            
+
             state.people.push(newPerson);
             saveData();
             renderTable();
             updateStats();
             closeAddPersonModal();
-            
+
             showToast('Personne ajoutée avec succès', 'success');
         }
 
@@ -1362,14 +1461,14 @@
             if (!confirm('Voulez-vous vraiment supprimer cette personne ?')) {
                 return;
             }
-            
+
             state.people = state.people.filter(p => p.id !== personId);
             state.selectedPeople.delete(personId);
-            
+
             saveData();
             renderTable();
             updateStats();
-            
+
             showToast('Personne supprimée', 'success');
         }
 
@@ -1379,17 +1478,17 @@
                 showToast('Veuillez sélectionner au moins une personne', 'warning');
                 return;
             }
-            
+
             const content = document.getElementById('selectedOrdersContent');
             let html = '';
             let grandTotal = 0;
-            
+
             state.selectedPeople.forEach(personId => {
                 const person = state.people.find(p => p.id === personId);
                 if (person) {
                     const personTotal = calculatePersonTotal(person);
                     grandTotal += personTotal;
-                    
+
                     html += `
                         <div class="mb-6 pb-4 border-b">
                             <h4 class="font-semibold text-lg mb-2">${person.name}</h4>
@@ -1420,7 +1519,7 @@
                     `;
                 }
             });
-            
+
             html += `
                 <div class="mt-4 pt-4 border-t">
                     <div class="flex justify-between items-center">
@@ -1429,14 +1528,14 @@
                     </div>
                 </div>
             `;
-            
+
             content.innerHTML = html;
             document.getElementById('selectedOrdersModal').classList.remove('hidden');
         }
 
         function renderSelectedOrderItems(person) {
             let html = '';
-            
+
             for (const [key, quantity] of Object.entries(person.orders || {})) {
                 if (quantity > 0) {
                     const [catId, langId, formatId] = key.split('|');
@@ -1462,7 +1561,7 @@
                     }
                 }
             }
-            
+
             return html;
         }
 
@@ -1514,7 +1613,7 @@
             try {
                 // Prepare data for export
                 const data = [];
-                
+
                 // Add headers
                 const headers = ['Nom', 'ID', 'Statut'];
                 state.categories.forEach(category => {
@@ -1526,41 +1625,73 @@
                 });
                 headers.push('Total');
                 data.push(headers);
-                
+
                 // Add person data
                 state.people.forEach(person => {
                     const row = [person.name, person.id, person.status];
                     let personTotal = 0;
-                    
+
                     state.categories.forEach(category => {
                         category.languages.forEach(language => {
                             language.formats.forEach(format => {
                                 const key = `${category.id}|${language.id}|${format.id}`;
                                 const quantity = person.orders?.[key] || 0;
                                 row.push(quantity);
-                                
+
                                 if (quantity > 0) {
                                     personTotal += quantity * format.price;
                                 }
                             });
                         });
                     });
-                    
+
                     row.push(personTotal);
                     data.push(row);
                 });
-                
+
                 // Create worksheet
                 const ws = XLSX.utils.aoa_to_sheet(data);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Commandes");
-                
+
                 // Export
                 XLSX.writeFile(wb, `commandes_${new Date().toISOString().slice(0, 10)}.xlsx`);
                 showToast('Export Excel réussi', 'success');
             } catch (error) {
                 showToast('Erreur lors de l\'export', 'error');
             }
+        }
+
+        function exportSelectedToPng() {
+            if (typeof html2canvas === 'undefined') {
+                showToast('Bibliothèque html2canvas non chargée', 'error');
+                return;
+            }
+
+            const content = document.getElementById('selectedOrdersContent');
+            if (!content) {
+                showToast('Aucun contenu à exporter', 'error');
+                return;
+            }
+
+            showLoading();
+
+            html2canvas(content, {
+                backgroundColor: '#ffffff',
+                scale: 2,
+                logging: false
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `commandes_selectionnees_${new Date().toISOString().slice(0, 10)}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                showToast('Export PNG réussi', 'success');
+                hideLoading();
+            }).catch(error => {
+                console.error('Erreur export PNG:', error);
+                showToast('Erreur lors de l\'export PNG', 'error');
+                hideLoading();
+            });
         }
 
         // UI Helpers
@@ -1574,25 +1705,24 @@
 
         function showToast(message, type = 'info') {
             const toast = document.createElement('div');
-            toast.className = `toast animate-fadeIn p-4 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px] ${
-                type === 'success' ? 'bg-green-50 text-green-800 border-l-4 border-green-500' :
+            toast.className = `toast animate-fadeIn p-4 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px] ${type === 'success' ? 'bg-green-50 text-green-800 border-l-4 border-green-500' :
                 type === 'error' ? 'bg-red-50 text-red-800 border-l-4 border-red-500' :
-                type === 'warning' ? 'bg-yellow-50 text-yellow-800 border-l-4 border-yellow-500' :
-                'bg-blue-50 text-blue-800 border-l-4 border-blue-500'
-            }`;
-            
+                    type === 'warning' ? 'bg-yellow-50 text-yellow-800 border-l-4 border-yellow-500' :
+                        'bg-blue-50 text-blue-800 border-l-4 border-blue-500'
+                }`;
+
             const icon = type === 'success' ? 'check-circle' :
-                        type === 'error' ? 'times-circle' :
-                        type === 'warning' ? 'exclamation-triangle' : 'info-circle';
-            
+                type === 'error' ? 'times-circle' :
+                    type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+
             toast.innerHTML = `
                 <i class="fas fa-${icon}"></i>
                 <span>${message}</span>
             `;
-            
+
             const container = document.getElementById('toastContainer');
             container.appendChild(toast);
-            
+
             setTimeout(() => {
                 toast.remove();
             }, 3000);
@@ -1683,4 +1813,5 @@
         document.head.appendChild(style);
     </script>
 </body>
+
 </html>

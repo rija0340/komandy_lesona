@@ -46,6 +46,7 @@ function initializeElements() {
         'exportExcelBtn', 'showSelectedOrdersBtn', 'fileInput',
         'mainTableSearchInput', 'tableHeader', 'tableBody', 'mobileCardView', 'desktopTableContainer',
         'orderCount', 'currentDate', 'currentYear',
+        'statTotalPeople', 'statTotalOrders', 'statTotalItems', 'statTotalAmount',
         'personModal', 'closePersonModal', 'cancelPersonBtn', 'personForm',
         'personNameInput', 'personIdInput',
         'orderEntryModal', 'orderPersonNameDisplay', 'orderPersonIdDisplay',
@@ -54,7 +55,7 @@ function initializeElements() {
         'selectedOrdersDisplay', 'selectedOrdersContent', 'selectedOrdersSearchInput',
         'closeSelectedOrders', 'printSelectedOrders', 'exportSelectedToPngBtn'
     ];
-    
+
     ids.forEach(id => {
         elements[id] = document.getElementById(id);
     });
@@ -91,7 +92,7 @@ function loadData() {
         if (savedData) {
             try {
                 const parsedData = JSON.parse(savedData);
-                if (parsedData && typeof parsedData === 'object' && 
+                if (parsedData && typeof parsedData === 'object' &&
                     Array.isArray(parsedData.categories) && Array.isArray(parsedData.people)) {
                     appState.data = parsedData;
                     showToast('Données chargées avec succès', 'success');
@@ -146,7 +147,7 @@ function exportData() {
 function handleFileImport(event) {
     const file = event.target.files[0];
     if (!file) return;
-    
+
     showLoading();
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -178,146 +179,200 @@ function initializeSampleData() {
         categories: [
             {
                 id: 'lb', name: 'Lehibe', languages: [
-                    { id: 'gs', name: 'Malagasy', formats: [
-                        { id: 'gm', name: 'GM', price: 3300 },
-                        { id: 'pm', name: 'PM', price: 2700 },
-                        { id: 'tra', name: 'TRA', price: 2700 }
-                    ]},
-                    { id: 'fr', name: 'Français', formats: [
-                        { id: 'lsn', name: 'LESONA', price: 6000 }
-                    ]},
-                    { id: 'en', name: 'Anglais', formats: [
-                        { id: 'std', name: 'STANDARD', price: 6000 }
-                    ]}
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: 'gm', name: 'GM', price: 3300 },
+                            { id: 'pm', name: 'PM', price: 2700 },
+                            { id: 'tra', name: 'TRA', price: 2700 }
+                        ]
+                    },
+                    {
+                        id: 'fr', name: 'Français', formats: [
+                            { id: 'lsn', name: 'LESONA', price: 6000 }
+                        ]
+                    },
+                    {
+                        id: 'en', name: 'Anglais', formats: [
+                            { id: 'std', name: 'STANDARD', price: 6000 }
+                        ]
+                    }
                 ]
             },
             {
                 id: 'tzo', name: 'Tanora Zokiny (19-35taona)', languages: [
-                    { id: 'gs', name: 'Malagasy', formats: [
-                        { id: 'gm', name: '', price: 3300 },
-                        { id: 'tr', name: 'TRA', price: 2700 }
-                    ]},
-                    { id: 'fr', name: 'Français', formats: [
-                        { id: 'lsn', name: 'LSN', price: 6000 }
-                    ]},
-                    { id: 'en', name: 'Anglais', formats: [
-                        { id: 'inv', name: 'INVERSE', price: 6000 }
-                    ]}
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: 'gm', name: '', price: 3300 },
+                            { id: 'tr', name: 'TRA', price: 2700 }
+                        ]
+                    },
+                    {
+                        id: 'fr', name: 'Français', formats: [
+                            { id: 'lsn', name: 'LSN', price: 6000 }
+                        ]
+                    },
+                    {
+                        id: 'en', name: 'Anglais', formats: [
+                            { id: 'inv', name: 'INVERSE', price: 6000 }
+                        ]
+                    }
                 ]
             },
             {
                 id: 'zt', name: 'Zatovo (13-18taona)', languages: [
-                    { id: 'gs', name: 'Malagasy', formats: [
-                        { id: 'gm', name: '', price: 3300 },
-                        { id: 'pm', name: '', price: 2700 }
-                    ]},
-                    { id: 'fr', name: 'Français', formats: [
-                        { id: 'ado', name: 'ADO', price: 6000 }
-                    ]},
-                    { id: 'en', name: 'Anglais', formats: [
-                        { id: 'crn', name: 'CRN', price: 6000 },
-                        { id: 'rtf', name: 'RTF', price: 6000 }
-                    ]}
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: 'gm', name: '', price: 3300 },
+                            { id: 'pm', name: '', price: 2700 }
+                        ]
+                    },
+                    {
+                        id: 'fr', name: 'Français', formats: [
+                            { id: 'ado', name: 'ADO', price: 6000 }
+                        ]
+                    },
+                    {
+                        id: 'en', name: 'Anglais', formats: [
+                            { id: 'crn', name: 'CRN', price: 6000 },
+                            { id: 'rtf', name: 'RTF', price: 6000 }
+                        ]
+                    }
                 ]
             },
             {
                 id: 'tza', name: 'Tanora Zandriny (9-12taona)', languages: [
-                    { id: 'gs', name: 'Malagasy', formats: [
-                        { id: 'gm', name: '', price: 3300 },
-                        { id: 'tr', name: 'TRA', price: 2700 }
-                    ]},
-                    { id: 'fr', name: 'Français', formats: [
-                        { id: 'prad', name: 'PRE-ADO', price: 6000 }
-                    ]},
-                    { id: 'en', name: 'Anglais', formats: [
-                        { id: 'foc', name: 'FOCUSPOINT', price: 6000 }
-                    ]}
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: 'gm', name: '', price: 3300 },
+                            { id: 'tr', name: 'TRA', price: 2700 }
+                        ]
+                    },
+                    {
+                        id: 'fr', name: 'Français', formats: [
+                            { id: 'prad', name: 'PRE-ADO', price: 6000 }
+                        ]
+                    },
+                    {
+                        id: 'en', name: 'Anglais', formats: [
+                            { id: 'foc', name: 'FOCUSPOINT', price: 6000 }
+                        ]
+                    }
                 ]
             },
             {
                 id: 'ak', name: 'Ankizy Kely (5-8taona)', languages: [
-                    { id: 'gs', name: 'Malagasy', formats: [
-                        { id: 'gm', name: '', price: 3300 },
-                        { id: 'sti', name: 'STIMULANT', price: 3700 },
-                        { id: 'tr', name: 'TRA', price: 2700 }
-                    ]},
-                    { id: 'fr', name: 'Français', formats: [
-                        { id: 'pr', name: 'PRIMAIRE', price: 6000 }
-                    ]}
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: 'gm', name: '', price: 3300 },
+                            { id: 'sti', name: 'STIMULANT', price: 3700 },
+                            { id: 'tr', name: 'TRA', price: 2700 }
+                        ]
+                    },
+                    {
+                        id: 'fr', name: 'Français', formats: [
+                            { id: 'pr', name: 'PRIMAIRE', price: 6000 }
+                        ]
+                    }
                 ]
             },
             {
                 id: 'zb', name: 'Zaza Bodo (4taona)', languages: [
-                    { id: 'gs', name: 'Malagasy', formats: [
-                        { id: 'gm', name: '', price: 3300 },
-                        { id: 'sti', name: 'STIMULANT', price: 3700 }
-                    ]},
-                    { id: 'fr', name: 'Français', formats: [
-                        { id: 'jdf', name: 'JARDIN', price: 6000 }
-                    ]},
-                    { id: 'en', name: 'Anglais', formats: [
-                        { id: 'kgt', name: 'KGT', price: 6000 }
-                    ]}
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: 'gm', name: '', price: 3300 },
+                            { id: 'sti', name: 'STIMULANT', price: 3700 }
+                        ]
+                    },
+                    {
+                        id: 'fr', name: 'Français', formats: [
+                            { id: 'jdf', name: 'JARDIN', price: 6000 }
+                        ]
+                    },
+                    {
+                        id: 'en', name: 'Anglais', formats: [
+                            { id: 'kgt', name: 'KGT', price: 6000 }
+                        ]
+                    }
                 ]
             },
             {
                 id: 'zk', name: 'Zazakely (1-3taona)', languages: [
-                    { id: 'gs', name: 'Malagasy', formats: [
-                        { id: 'gm', name: '', price: 3300 },
-                        { id: 'sti', name: 'STIMULANT', price: 3700 }
-                    ]},
-                    { id: 'fr', name: 'Français', formats: [
-                        { id: 'deb', name: 'DEBUTANT', price: 6000 }
-                    ]},
-                    { id: 'en', name: 'Anglais', formats: [
-                        { id: 'bgn', name: 'BEGINNER', price: 6000 }
-                    ]}
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: 'gm', name: '', price: 3300 },
+                            { id: 'sti', name: 'STIMULANT', price: 3700 }
+                        ]
+                    },
+                    {
+                        id: 'fr', name: 'Français', formats: [
+                            { id: 'deb', name: 'DEBUTANT', price: 6000 }
+                        ]
+                    },
+                    {
+                        id: 'en', name: 'Anglais', formats: [
+                            { id: 'bgn', name: 'BEGINNER', price: 6000 }
+                        ]
+                    }
                 ]
             },
             {
                 id: 'zm', name: 'Zaza Minono (0-12volana)', languages: [
-                    { id: 'gs', name: 'Malagasy', formats: [
-                        { id: 'gm', name: '', price: 3300 },
-                        { id: 'sti', name: 'STIMULANT', price: 3700 }
-                    ]},
-                    { id: 'fr', name: 'Français', formats: [
-                        { id: 'bbs', name: 'BEBES', price: 6000 }
-                    ]},
-                    { id: 'en', name: 'Anglais', formats: [
-                        { id: 'bbs', name: 'BABIES', price: 6000 }
-                    ]}
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: 'gm', name: '', price: 3300 },
+                            { id: 'sti', name: 'STIMULANT', price: 3700 }
+                        ]
+                    },
+                    {
+                        id: 'fr', name: 'Français', formats: [
+                            { id: 'bbs', name: 'BEBES', price: 6000 }
+                        ]
+                    },
+                    {
+                        id: 'en', name: 'Anglais', formats: [
+                            { id: 'bbs', name: 'BABIES', price: 6000 }
+                        ]
+                    }
                 ]
             },
             {
                 id: 'mf', name: 'Mofon\'aina', languages: [
-                    { id: 'gs', name: 'Malagasy', formats: [
-                        { id: 'gm', name: 'GM', price: 3300 },
-                        { id: 'pm', name: 'PM', price: 2700 }
-                    ]}
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: 'gm', name: 'GM', price: 3300 },
+                            { id: 'pm', name: 'PM', price: 2700 }
+                        ]
+                    }
                 ]
             },
             {
                 id: 'llmf', name: 'Lehibe/Mofonaina (PACK)', languages: [
-                    { id: 'gs', name: 'Malagasy', formats: [
-                        { id: 'gm', name: 'GM', price: 6500 },
-                        { id: 'pm', name: 'PM', price: 5300 }
-                    ]}
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: 'gm', name: 'GM', price: 6500 },
+                            { id: 'pm', name: 'PM', price: 5300 }
+                        ]
+                    }
                 ]
             },
             {
                 id: 'md', name: 'Manao Dingana', languages: [
-                    { id: 'gs', name: 'Malagasy', formats: [
-                        { id: '1', name: '1', price: 3300 },
-                        { id: '2', name: '2', price: 3300 }
-                    ]}
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: '1', name: '1', price: 3300 },
+                            { id: '2', name: '2', price: 3300 }
+                        ]
+                    }
                 ]
             },
             {
                 id: 'acc', name: 'Accessoires', languages: [
-                    { id: 'gs', name: 'Malagasy', formats: [
-                        { id: 'sari', name: 'SARINTANY', price: 1900 },
-                        { id: 'reji', name: 'REJISTRA', price: 1700 }
-                    ]}
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: 'sari', name: 'SARINTANY', price: 1900 },
+                            { id: 'reji', name: 'REJISTRA', price: 1700 }
+                        ]
+                    }
                 ]
             }
         ],
@@ -539,12 +594,48 @@ function renderTable() {
     renderTableBody();
     renderMobileCards();
     updateOrderCount();
+    updateStatistics();
 }
 
 function updateOrderCount() {
     const count = appState.data.people.length;
     if (elements.orderCount) {
         elements.orderCount.textContent = `(${count} personne${count !== 1 ? 's' : ''})`;
+    }
+}
+
+function updateStatistics() {
+    const headers = getColumnHeaders();
+
+    // Calculate statistics
+    const totalPeople = appState.data.people.length;
+    let totalOrders = 0;
+    let totalItems = 0;
+    let totalAmount = 0;
+
+    appState.data.people.forEach(person => {
+        headers.forEach(h => {
+            const qty = person.orders?.[h.key] || 0;
+            if (qty > 0) {
+                totalOrders++;
+                totalItems += qty;
+                totalAmount += qty * h.price;
+            }
+        });
+    });
+
+    // Update UI
+    if (elements.statTotalPeople) {
+        elements.statTotalPeople.textContent = totalPeople;
+    }
+    if (elements.statTotalOrders) {
+        elements.statTotalOrders.textContent = totalOrders;
+    }
+    if (elements.statTotalItems) {
+        elements.statTotalItems.textContent = totalItems;
+    }
+    if (elements.statTotalAmount) {
+        elements.statTotalAmount.textContent = formatCurrency(totalAmount);
     }
 }
 
@@ -1034,7 +1125,7 @@ function renderCategoryLanguages(category) {
 function setupQuantityControls() {
     // Minus buttons
     document.querySelectorAll('.minus-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             const key = this.dataset.key;
             const price = parseFloat(this.dataset.price);
             const input = document.querySelector(`.quantity-value[data-key="${key}"]`);
@@ -1053,7 +1144,7 @@ function setupQuantityControls() {
 
     // Plus buttons
     document.querySelectorAll('.plus-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             const key = this.dataset.key;
             const price = parseFloat(this.dataset.price);
             const input = document.querySelector(`.quantity-value[data-key="${key}"]`);
@@ -1070,7 +1161,7 @@ function setupQuantityControls() {
 
     // Input change
     document.querySelectorAll('.quantity-value').forEach(input => {
-        input.addEventListener('change', function() {
+        input.addEventListener('change', function () {
             const key = this.dataset.key;
             let value = parseInt(this.value) || 0;
             if (value < 0) value = 0;
@@ -1080,7 +1171,7 @@ function setupQuantityControls() {
             updateAllCategorySummaries();
         });
 
-        input.addEventListener('focus', function() {
+        input.addEventListener('focus', function () {
             this.select();
         });
     });

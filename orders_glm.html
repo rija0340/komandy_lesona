@@ -800,15 +800,154 @@
             .header, .footer, .btn, .modal, .toast, .loading-overlay {
                 display: none !important;
             }
-            
+
             .card {
                 box-shadow: none;
                 border: 1px solid #ddd;
             }
-            
+
             .data-table th, .data-table td {
                 border: 1px solid #ddd;
                 padding: 8px;
+            }
+        }
+
+        /* Restore original GLM styles */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+        }
+
+        .stat-icon {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+        }
+
+        .stat-icon.primary {
+            background-color: rgba(59, 130, 246, 0.1);
+            color: var(--primary-color);
+        }
+
+        .stat-icon.success {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+        }
+
+        .stat-icon.warning {
+            background-color: rgba(245, 158, 11, 0.1);
+            color: var(--warning-color);
+        }
+
+        .stat-icon.danger {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
+        }
+
+        .stat-content {
+            flex: 1;
+        }
+
+        .stat-title {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .category-colors {
+            --lb: #dbeafe;
+            --tzo: #dcfce7;
+            --zt: #fef3c7;
+            --tza: #e9d5ff;
+            --ak: #fce7f3;
+            --zm: #fed7aa;
+            --zb: #fee2e2;
+            --mf: #e0e7ff;
+            --zk: #cffafe;
+            --fand_zk: #d9f99d;
+            --llmf_gm: #ccfbf1;
+            --llmf_pm: #a7f3d0;
+            --tt: #fed7aa;
+        }
+
+        .category-lb { background-color: var(--lb); }
+        .category-tzo { background-color: var(--tzo); }
+        .category-zt { background-color: var(--zt); }
+        .category-tza { background-color: var(--tza); }
+        .category-ak { background-color: var(--ak); }
+        .category-zm { background-color: var(--zm); }
+        .category-zb { background-color: var(--zb); }
+        .category-mf { background-color: var(--mf); }
+        .category-zk { background-color: var(--zk); }
+        .category-fand_zk { background-color: var(--fand_zk); }
+        .category-llmf_gm { background-color: var(--llmf_gm); }
+        .category-llmf_pm { background-color: var(--llmf_pm); }
+        .category-tt { background-color: var(--tt); }
+
+        .footer {
+            background-color: var(--dark-color);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .table-container {
+                display: none; /* Hide table on mobile */
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .modal-content {
+                width: 95%;
+            }
+
+            /* Mobile tabs improvements */
+            .tabs {
+                padding: 0 0.5rem;
+            }
+
+            .tab {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.875rem;
+            }
+        }
+
+        @media (min-width: 769px) {
+            /* Hide mobile cards on desktop */
+            #mobileOrdersView,
+            #mobilePeopleView {
+                display: none;
             }
         }
     </style>
@@ -888,12 +1027,25 @@
                             <button id="addOrderBtn" class="btn btn-primary">
                                 <i class="fas fa-plus mr-2"></i> Nouvelle Commande
                             </button>
+                            <button id="addPersonBtn" class="btn btn-outline">
+                                <i class="fas fa-user-plus mr-2"></i> Ajouter Personne
+                            </button>
                             <button id="showSelectedOrdersBtn" class="btn btn-secondary">
                                 <i class="fas fa-check-double mr-2"></i> Voir Sélection
                             </button>
                             <button id="exportExcelBtn" class="btn btn-success">
                                 <i class="fas fa-file-excel mr-2"></i> Exporter Excel
                             </button>
+                            <button id="exportDataBtn" class="btn btn-warning">
+                                <i class="fas fa-file-export mr-2"></i> Exporter JSON
+                            </button>
+                            <button id="importDataBtn" class="btn btn-info">
+                                <i class="fas fa-file-import mr-2"></i> Importer JSON
+                            </button>
+                            <button id="saveDataBtn" class="btn btn-outline">
+                                <i class="fas fa-save mr-2"></i> Enregistrer
+                            </button>
+                            <input type="file" id="fileInput" class="hidden" accept=".json">
                         </div>
                     </div>
                     <div class="card-body">
@@ -904,9 +1056,9 @@
                                         <th><input type="checkbox" id="selectAllOrders"></th>
                                         <th>Personne</th>
                                         <th>Articles</th>
-                                        <th>Quantité</th>
-                                        <th>Prix Unitaire</th>
+                                        <th>Qté Totale</th>
                                         <th>Total</th>
+                                        <th>Nb Articles</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -924,82 +1076,200 @@
                 </div>
             </div>
 
-            <div class="tab-content" id="people-tab">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="text-lg font-semibold">Liste des Personnes</h2>
-                        <button id="addPersonBtn" class="btn btn-primary">
-                            <i class="fas fa-user-plus mr-2"></i> Ajouter une Personne
+            </div>
+        </div>
+
+        <div class="tab-content" id="people-tab">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="text-lg font-semibold">Liste des Personnes</h2>
+                    <button id="addPersonBtn" class="btn btn-primary">
+                        <i class="fas fa-user-plus mr-2"></i> Ajouter une Personne
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table class="data-table" id="peopleTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nom</th>
+                                    <th>Nombre de Commandes</th>
+                                    <th>Montant Total</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="peopleTableBody">
+                                <!-- People will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Mobile Card View for People -->
+                    <div id="mobilePeopleView" class="mt-4 space-y-3 md:hidden">
+                        <!-- Mobile people cards will be dynamically added -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="categories-tab">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="text-lg font-semibold">Liste des Catégories</h2>
+                    <button id="addCategoryBtn" class="btn btn-primary">
+                        <i class="fas fa-folder-plus mr-2"></i> Ajouter une Catégorie
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="categoriesContainer">
+                        <!-- Categories will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="reports-tab">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="text-lg font-semibold">Rapports</h2>
+                    <div class="btn-group">
+                        <button id="generateReportBtn" class="btn btn-primary">
+                            <i class="fas fa-chart-bar mr-2"></i> Générer un Rapport
+                        </button>
+                        <button id="printReportBtn" class="btn btn-outline">
+                            <i class="fas fa-print mr-2"></i> Imprimer
                         </button>
                     </div>
-                    <div class="card-body">
-                        <div class="table-container">
-                            <table class="data-table" id="peopleTable">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Nom</th>
-                                        <th>Nombre de Commandes</th>
-                                        <th>Montant Total</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="peopleTableBody">
-                                    <!-- People will be populated here -->
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- Mobile Card View for People -->
-                        <div id="mobilePeopleView" class="mt-4 space-y-3 md:hidden">
-                            <!-- Mobile people cards will be dynamically added -->
-                        </div>
+                </div>
+                <div class="card-body">
+                    <div id="reportsContainer">
+                        <!-- Reports will be populated here -->
                     </div>
                 </div>
             </div>
+        </div>
+    </main>
 
-            <div class="tab-content" id="categories-tab">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="text-lg font-semibold">Liste des Catégories</h2>
-                        <button id="addCategoryBtn" class="btn btn-primary">
-                            <i class="fas fa-folder-plus mr-2"></i> Ajouter une Catégorie
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div id="categoriesContainer">
-                            <!-- Categories will be populated here -->
-                        </div>
-                    </div>
-                </div>
+    <!-- Modals -->
+    <div id="orderModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Ajouter/Modifier une Commande</h3>
+                <button class="modal-close">&times;</button>
             </div>
-
-            <div class="tab-content" id="reports-tab">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="text-lg font-semibold">Rapports</h2>
-                        <div class="btn-group">
-                            <button id="generateReportBtn" class="btn btn-primary">
-                                <i class="fas fa-chart-bar mr-2"></i> Générer un Rapport
-                            </button>
-                            <button id="printReportBtn" class="btn btn-outline">
-                                <i class="fas fa-print mr-2"></i> Imprimer
-                            </button>
-                        </div>
+            <div class="modal-body">
+                <form id="orderForm">
+                    <div class="form-group">
+                        <label class="form-label">Personne</label>
+                        <select id="orderPersonSelect" class="form-input">
+                            <option value="">Sélectionner une personne</option>
+                        </select>
                     </div>
-                    <div class="card-body">
-                        <div id="reportsContainer">
-                            <!-- Reports will be populated here -->
-                        </div>
+                    <div id="orderItemsContainer">
+                        <!-- Order items will be populated here -->
                     </div>
-                </div>
+                </form>
             </div>
-        </main>
-
-        <footer class="footer">
-            <p>&copy; <span id="currentYear"></span> Komandin'ny Lesona S.S - Tous droits réservés</p>
-        </footer>
+            <div class="modal-footer">
+                <button class="btn btn-outline modal-close">Annuler</button>
+                <button id="saveOrderBtn" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </div>
     </div>
+
+    <div id="personModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Ajouter/Modifier une Personne</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="personForm">
+                    <div class="form-group">
+                        <label class="form-label">ID</label>
+                        <input type="text" id="personIdInput" class="form-input" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Nom</label>
+                        <input type="text" id="personNameInput" class="form-input" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline modal-close">Annuler</button>
+                <button id="savePersonBtn" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="categoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Ajouter/Modifier une Catégorie</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="categoryForm">
+                    <div class="form-group">
+                        <label class="form-label">ID</label>
+                        <input type="text" id="categoryIdInput" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Nom</label>
+                        <input type="text" id="categoryNameInput" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Langues et Formats</label>
+                        <div id="languagesContainer">
+                            <!-- Languages will be populated here -->
+                        </div>
+                        <button type="button" id="addLanguageBtn" class="btn btn-outline btn-sm">
+                            <i class="fas fa-plus mr-1"></i> Ajouter une Langue
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline modal-close">Annuler</button>
+                <button id="saveCategoryBtn" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="selectedOrdersModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Commandes Sélectionnées</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="selectedOrdersContainer">
+                    <!-- Selected orders will be populated here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline modal-close">Fermer</button>
+                <button id="exportSelectedToPngBtn" class="btn btn-success">
+                    <i class="fas fa-image mr-2"></i> Exporter en PNG
+                </button>
+                <button id="printSelectedOrdersBtn" class="btn btn-primary">
+                    <i class="fas fa-print mr-2"></i> Imprimer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; <span id="currentYear"></span> Komandin'ny Lesona S.S - Tous droits réservés</p>
+    </footer>
+    </div>
+
 
     <!-- Modals -->
     <div id="orderModal" class="modal">
@@ -1148,6 +1418,10 @@
             selectAllOrders: document.getElementById('selectAllOrders'),
             showSelectedOrdersBtn: document.getElementById('showSelectedOrdersBtn'),
             exportExcelBtn: document.getElementById('exportExcelBtn'),
+            exportDataBtn: document.getElementById('exportDataBtn'),
+            importDataBtn: document.getElementById('importDataBtn'),
+            saveDataBtn: document.getElementById('saveDataBtn'),
+            fileInput: document.getElementById('fileInput'),
             
             // People
             peopleTable: document.getElementById('peopleTable'),
@@ -1162,13 +1436,19 @@
             reportsContainer: document.getElementById('reportsContainer'),
             generateReportBtn: document.getElementById('generateReportBtn'),
             printReportBtn: document.getElementById('printReportBtn'),
-            
+
             // Modals
             orderModal: document.getElementById('orderModal'),
             orderForm: document.getElementById('orderForm'),
             orderPersonSelect: document.getElementById('orderPersonSelect'),
             orderItemsContainer: document.getElementById('orderItemsContainer'),
             saveOrderBtn: document.getElementById('saveOrderBtn'),
+
+            // Person selection modal
+            personSelectionModal: document.getElementById('personSelectionModal'),
+            existingPersonSelect: document.getElementById('existingPersonSelect'),
+            newPersonNameInput: document.getElementById('newPersonNameInput'),
+            selectPersonBtn: document.getElementById('selectPersonBtn'),
             
             personModal: document.getElementById('personModal'),
             personForm: document.getElementById('personForm'),
@@ -1212,6 +1492,52 @@
             renderOrdersTable();
             renderPeopleTable();
             renderCategories();
+            updateDateDisplay();
+        }
+
+        function updateDateDisplay() {
+            if (elements.currentDate) {
+                const now = new Date();
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                elements.currentDate.textContent = now.toLocaleDateString('fr-FR', options);
+            }
+            if (elements.currentYear) {
+                elements.currentYear.textContent = new Date().getFullYear();
+            }
+        }
+
+        function filterOrders(searchTerm) {
+            const rows = document.querySelectorAll('#ordersTableBody tr');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        function filterOrderItems(searchTerm) {
+            // This function will filter items in the order entry modal
+            const categorySections = document.querySelectorAll('#categoriesAccordion > div');
+            categorySections.forEach(section => {
+                const text = section.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    section.style.display = '';
+                } else {
+                    section.style.display = 'none';
+                }
+            });
+        }
+
+        function filterSelectedOrders(searchTerm) {
+            // This function will filter orders in the selected orders modal
+            const selectedOrdersContent = elements.selectedOrdersContent;
+            if (selectedOrdersContent) {
+                // For now, just refresh to apply new filter
+                renderSelectedOrders();
+            }
         }
 
         function setupEventListeners() {
@@ -1222,7 +1548,7 @@
                     switchTab(tabId);
                 });
             });
-            
+
             // Modal close buttons
             document.querySelectorAll('.modal-close').forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -1230,34 +1556,34 @@
                     closeModal(modal);
                 });
             });
-            
+
             // Global search
             elements.globalSearch.addEventListener('input', (e) => {
                 const searchTerm = e.target.value.toLowerCase();
                 filterData(searchTerm);
             });
-            
+
             // Orders
             elements.addOrderBtn.addEventListener('click', () => {
                 app.editingOrder = null;
                 openOrderModal();
             });
-            
+
             elements.selectAllOrders.addEventListener('change', (e) => {
                 const checkboxes = document.querySelectorAll('.order-checkbox');
                 checkboxes.forEach(checkbox => {
                     checkbox.checked = e.target.checked;
-                    const orderId = checkbox.getAttribute('data-order-id');
+                    const personId = checkbox.getAttribute('data-person-id');
                     if (e.target.checked) {
-                        if (!app.selectedOrders.includes(orderId)) {
-                            app.selectedOrders.push(orderId);
+                        if (!app.selectedOrders.includes(personId)) {
+                            app.selectedOrders.push(personId);
                         }
                     } else {
-                        app.selectedOrders = app.selectedOrders.filter(id => id !== orderId);
+                        app.selectedOrders = app.selectedOrders.filter(id => id !== personId);
                     }
                 });
             });
-            
+
             elements.showSelectedOrdersBtn.addEventListener('click', () => {
                 if (app.selectedOrders.length === 0) {
                     showToast('Veuillez sélectionner au moins une commande', 'warning');
@@ -1266,42 +1592,59 @@
                 renderSelectedOrders();
                 openModal(elements.selectedOrdersModal);
             });
-            
+
             elements.exportExcelBtn.addEventListener('click', exportToExcel);
-            
+
             // People
             elements.addPersonBtn.addEventListener('click', () => {
                 app.editingPerson = null;
                 openPersonModal();
             });
-            
+
             // Categories
             elements.addCategoryBtn.addEventListener('click', () => {
                 app.editingCategory = null;
                 openCategoryModal();
             });
-            
+
             // Reports
             elements.generateReportBtn.addEventListener('click', generateReport);
             elements.printReportBtn.addEventListener('click', () => {
                 window.print();
             });
-            
+
             // Modal forms
             elements.saveOrderBtn.addEventListener('click', saveOrder);
             elements.savePersonBtn.addEventListener('click', savePerson);
             elements.saveCategoryBtn.addEventListener('click', saveCategory);
-            
+
             // Add language button in category modal
             elements.addLanguageBtn.addEventListener('click', addLanguageField);
-            
+
             // Export selected orders to PNG
             elements.exportSelectedToPngBtn.addEventListener('click', exportSelectedOrdersToPng);
-            
+
             // Print selected orders
             elements.printSelectedOrdersBtn.addEventListener('click', () => {
                 window.print();
             });
+
+            // Person selection modal
+            elements.selectPersonBtn.addEventListener('click', selectPersonForOrder);
+
+            // Data management buttons
+            elements.saveDataBtn.addEventListener('click', () => {
+                saveData();
+                showToast('Données enregistrées avec succès dans le stockage local', 'success');
+            });
+
+            elements.exportDataBtn.addEventListener('click', exportToJSON);
+
+            elements.importDataBtn.addEventListener('click', () => {
+                elements.fileInput.click();
+            });
+
+            elements.fileInput.addEventListener('change', handleFileImport);
         }
 
         function initializeSampleData() {
@@ -1547,6 +1890,56 @@
             showToast('Données enregistrées avec succès', 'success');
         }
 
+        function exportToJSON() {
+            const dataStr = JSON.stringify(app.data, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+
+            const exportFileDefaultName = `data_${new Date().toISOString().slice(0, 10)}.json`;
+
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+            showToast('Export JSON réussi', 'success');
+        }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+
+                    // Validate the imported data structure
+                    if (!importedData.categories || !importedData.people || !importedData.orders) {
+                        showToast('Format de fichier invalide', 'error');
+                        return;
+                    }
+
+                    // Update the app data
+                    app.data = importedData;
+
+                    // Save to localStorage and update UI
+                    saveData();
+                    renderStats();
+                    renderOrdersTable();
+                    renderPeopleTable();
+                    renderCategories();
+
+                    showToast('Données importées avec succès', 'success');
+                } catch (error) {
+                    console.error('Error importing JSON:', error);
+                    showToast('Erreur lors de l\'importation du fichier', 'error');
+                }
+            };
+            reader.readAsText(file);
+
+            // Reset input to allow re-importing the same file
+            event.target.value = '';
+        }
+
         function switchTab(tabId) {
             // Update tab buttons
             elements.tabs.forEach(tab => {
@@ -1633,11 +2026,8 @@
             const person = app.data.people.find(p => p.id === personId);
             if (!person) return;
 
-            app.editingOrder = person;
+            app.editingOrder = { ...person };  // Create a copy
             openOrderModal();
-
-            // Select the person
-            elements.orderPersonSelect.value = personId;
         }
 
         function deletePersonOrders(personId) {
@@ -1666,6 +2056,11 @@
             const mobileOrdersView = document.getElementById('mobileOrdersView');
             if (mobileOrdersView) {
                 mobileOrdersView.innerHTML = '';
+            }
+
+            // Update order count
+            if (elements.orderCount) {
+                elements.orderCount.textContent = `(${app.data.people.length} personnes)`;
             }
 
             if (app.data.people.length === 0) {
@@ -1722,33 +2117,79 @@
                 }
             });
 
-            // Render orders in table format
+            // Render grouped orders in table format
             for (const personId in ordersByPerson) {
                 const personOrders = ordersByPerson[personId];
 
+                // Calculate total for this person
+                let totalAmount = 0;
+                let totalItems = 0;
                 personOrders.orders.forEach(order => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td><input type="checkbox" class="order-checkbox" data-order-id="${order.orderId}"></td>
-                        <td>${personOrders.person.name}</td>
-                        <td>${order.category.name} - ${order.language.name} ${order.format.name || ''}</td>
-                        <td>${order.quantity}</td>
-                        <td class="numeric">${order.format.price.toLocaleString()} Ar</td>
-                        <td class="numeric">${order.total.toLocaleString()} Ar</td>
-                        <td>
-                            <div class="btn-group">
-                                <button class="btn btn-sm btn-outline edit-order" data-person-id="${personOrders.person.id}" data-order-key="${order.key}">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger delete-order" data-person-id="${personOrders.person.id}" data-order-key="${order.key}">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    `;
-
-                    elements.ordersTableBody.appendChild(row);
+                    totalAmount += order.total;
+                    totalItems += order.quantity;
                 });
+
+                const row = document.createElement('tr');
+
+                // Create detailed order items string with unit and total prices
+                let orderDetails = '';
+                personOrders.orders.forEach((order, index) => {
+                    if (index > 0) orderDetails += '<br>';
+                    orderDetails += `${order.category.name} - ${order.language.name} ${order.format.name || ''} (${order.quantity} x ${order.format.price.toLocaleString()} Ar = ${order.total.toLocaleString()} Ar)`;
+                });
+
+                row.innerHTML = `
+                    <td><input type="checkbox" class="order-checkbox" data-person-id="${personOrders.person.id}"></td>
+                    <td>${personOrders.person.name}</td>
+                    <td>${orderDetails}</td>
+                    <td class="numeric">${totalItems}</td>
+                    <td class="numeric">${totalAmount.toLocaleString()} Ar</td>
+                    <td class="numeric">${personOrders.orders.length}</td>
+                    <td>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline edit-person-orders" data-person-id="${personOrders.person.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger delete-person-orders" data-person-id="${personOrders.person.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+
+                // Add event listener to the checkbox
+                const checkbox = row.querySelector('.order-checkbox');
+                if (checkbox) {
+                    checkbox.addEventListener('change', (e) => {
+                        const personId = e.target.getAttribute('data-person-id');
+                        if (e.target.checked) {
+                            if (!app.selectedOrders.includes(personId)) {
+                                app.selectedOrders.push(personId);
+                            }
+                        } else {
+                            app.selectedOrders = app.selectedOrders.filter(id => id !== personId);
+                        }
+                    });
+                }
+
+                // Add event listeners to edit and delete buttons
+                const editBtn = row.querySelector('.edit-person-orders');
+                if (editBtn) {
+                    editBtn.addEventListener('click', (e) => {
+                        const personId = e.currentTarget.getAttribute('data-person-id');
+                        editPersonOrders(personId);
+                    });
+                }
+
+                const deleteBtn = row.querySelector('.delete-person-orders');
+                if (deleteBtn) {
+                    deleteBtn.addEventListener('click', (e) => {
+                        const personId = e.currentTarget.getAttribute('data-person-id');
+                        deletePersonOrders(personId);
+                    });
+                }
+
+                elements.ordersTableBody.appendChild(row);
             }
 
             // Render mobile cards
@@ -1807,23 +2248,6 @@
                 }
             }
 
-            // Add event listeners to edit and delete buttons
-            document.querySelectorAll('.edit-order').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const personId = e.currentTarget.getAttribute('data-person-id');
-                    const orderKey = e.currentTarget.getAttribute('data-order-key');
-                    editOrder(personId, orderKey);
-                });
-            });
-
-            document.querySelectorAll('.delete-order').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const personId = e.currentTarget.getAttribute('data-person-id');
-                    const orderKey = e.currentTarget.getAttribute('data-order-key');
-                    deleteOrder(personId, orderKey);
-                });
-            });
-
             // Add event listeners to mobile edit/delete buttons
             document.querySelectorAll('.edit-person-orders').forEach(btn => {
                 btn.addEventListener('click', (e) => {
@@ -1839,16 +2263,16 @@
                 });
             });
 
-            // Add event listeners to checkboxes
-            document.querySelectorAll('.order-checkbox').forEach(checkbox => {
+            // Add event listeners to mobile checkboxes
+            document.querySelectorAll('.mobile-order-checkbox').forEach(checkbox => {
                 checkbox.addEventListener('change', (e) => {
-                    const orderId = e.target.getAttribute('data-order-id');
+                    const personId = e.target.getAttribute('data-person-id');
                     if (e.target.checked) {
-                        if (!app.selectedOrders.includes(orderId)) {
-                            app.selectedOrders.push(orderId);
+                        if (!app.selectedOrders.includes(personId)) {
+                            app.selectedOrders.push(personId);
                         }
                     } else {
-                        app.selectedOrders = app.selectedOrders.filter(id => id !== orderId);
+                        app.selectedOrders = app.selectedOrders.filter(id => id !== personId);
                     }
                 });
             });
@@ -2288,10 +2712,15 @@
                 option.textContent = person.name;
                 elements.orderPersonSelect.appendChild(option);
             });
-            
+
+            // If editing an existing order, select the person
+            if (app.editingOrder && app.editingOrder.id) {
+                elements.orderPersonSelect.value = app.editingOrder.id;
+            }
+
             // Generate order items
             generateOrderItems();
-            
+
             // Open modal
             openModal(elements.orderModal);
         }
@@ -2365,35 +2794,35 @@
 
         function saveOrder() {
             const personId = elements.orderPersonSelect.value;
-            
+
             if (!personId) {
                 showToast('Veuillez sélectionner une personne', 'error');
                 return;
             }
-            
+
             const person = app.data.people.find(p => p.id === personId);
             if (!person) {
                 showToast('Personne non trouvée', 'error');
                 return;
             }
-            
+
             // Initialize orders object if it doesn't exist
             if (!person.orders) {
                 person.orders = {};
             }
-            
+
             // Update order quantities
             document.querySelectorAll('.quantity-input').forEach(input => {
                 const orderKey = input.getAttribute('data-order-key');
                 const quantity = parseInt(input.value) || 0;
-                
+
                 if (quantity > 0) {
                     person.orders[orderKey] = quantity;
                 } else {
                     delete person.orders[orderKey];
                 }
             });
-            
+
             // Save data and update UI
             saveData();
             renderStats();
@@ -2403,23 +2832,73 @@
             showToast('Commande enregistrée avec succès', 'success');
         }
 
+        function openPersonSelectionModal() {
+            // Populate existing persons dropdown
+            elements.existingPersonSelect.innerHTML = '<option value="">Sélectionner une personne existante</option>';
+            app.data.people.forEach(person => {
+                const option = document.createElement('option');
+                option.value = person.id;
+                option.textContent = person.name;
+                elements.existingPersonSelect.appendChild(option);
+            });
+
+            // Clear the new person name input
+            elements.newPersonNameInput.value = '';
+
+            // Open modal
+            openModal(elements.personSelectionModal);
+        }
+
+        function selectPersonForOrder() {
+            const existingPersonId = elements.existingPersonSelect.value;
+            const newPersonName = elements.newPersonNameInput.value.trim();
+
+            if (!existingPersonId && !newPersonName) {
+                showToast('Veuillez sélectionner une personne existante ou entrer un nouveau nom', 'error');
+                return;
+            }
+
+            let selectedPerson;
+
+            if (existingPersonId) {
+                // Use existing person
+                selectedPerson = app.data.people.find(p => p.id === existingPersonId);
+            } else if (newPersonName) {
+                // Create new person
+                selectedPerson = {
+                    id: 'person_' + Date.now(),
+                    name: newPersonName,
+                    orders: {}
+                };
+                app.data.people.push(selectedPerson);
+            }
+
+            if (selectedPerson) {
+                // Set the selected person as the editing order person
+                app.editingOrder = selectedPerson;
+
+                // Close person selection modal and open order modal
+                closeModal(elements.personSelectionModal);
+                openOrderModal();
+            }
+        }
+
         function editOrder(personId, orderKey) {
             const person = app.data.people.find(p => p.id === personId);
             if (!person) return;
-            
+
             app.editingOrder = {
-                person,
-                orders: {}
+                ...person,
+                orders: { ...person.orders }  // Create a copy of the orders
             };
-            
-            // Set the current order
-            app.editingOrder.orders[orderKey] = person.orders[orderKey];
-            
+
+            // Set the current order for editing
+            const tempOrders = { ...app.editingOrder.orders };
+            app.editingOrder.orders = {};
+            app.editingOrder.orders[orderKey] = tempOrders[orderKey];
+
             // Open order modal
             openOrderModal();
-            
-            // Select the person
-            elements.orderPersonSelect.value = personId;
         }
 
         function deleteOrder(personId, orderKey) {
@@ -2443,12 +2922,9 @@
         function viewPersonOrders(personId) {
             const person = app.data.people.find(p => p.id === personId);
             if (!person) return;
-            
-            app.editingOrder = person;
+
+            app.editingOrder = { ...person };  // Create a copy
             openOrderModal();
-            
-            // Select the person
-            elements.orderPersonSelect.value = personId;
         }
 
         function openPersonModal() {
@@ -2734,49 +3210,51 @@
 
         function renderSelectedOrders() {
             elements.selectedOrdersContainer.innerHTML = '';
-            
+
             if (app.selectedOrders.length === 0) {
                 elements.selectedOrdersContainer.innerHTML = '<p class="text-center py-4">Aucune commande sélectionnée</p>';
                 return;
             }
-            
+
             let totalAmount = 0;
             let ordersHtml = '<div class="table-container"><table class="data-table"><thead><tr><th>Personne</th><th>Article</th><th>Quantité</th><th>Prix Unitaire</th><th>Total</th></tr></thead><tbody>';
-            
-            app.selectedOrders.forEach(orderId => {
-                const [personId, orderKey] = orderId.split('_');
+
+            app.selectedOrders.forEach(personId => {
                 const person = app.data.people.find(p => p.id === personId);
-                
-                if (person && person.orders && person.orders[orderKey]) {
-                    const quantity = person.orders[orderKey];
-                    const [categoryId, languageId, formatId] = orderKey.split('|');
-                    const category = app.data.categories.find(c => c.id === categoryId);
-                    
-                    if (category) {
-                        const language = category.languages.find(l => l.id === languageId);
-                        if (language) {
-                            const format = language.formats.find(f => f.id === formatId);
-                            if (format) {
-                                const itemTotal = quantity * format.price;
-                                totalAmount += itemTotal;
-                                
-                                ordersHtml += `
-                                    <tr>
-                                        <td>${person.name}</td>
-                                        <td>${category.name} - ${language.name} ${format.name || ''}</td>
-                                        <td class="numeric">${quantity}</td>
-                                        <td class="numeric">${format.price.toLocaleString()} Ar</td>
-                                        <td class="numeric">${itemTotal.toLocaleString()} Ar</td>
-                                    </tr>
-                                `;
+
+                if (person && person.orders) {
+                    Object.entries(person.orders).forEach(([key, quantity]) => {
+                        if (quantity > 0) {
+                            const [categoryId, languageId, formatId] = key.split('|');
+                            const category = app.data.categories.find(c => c.id === categoryId);
+
+                            if (category) {
+                                const language = category.languages.find(l => l.id === languageId);
+                                if (language) {
+                                    const format = language.formats.find(f => f.id === formatId);
+                                    if (format) {
+                                        const itemTotal = quantity * format.price;
+                                        totalAmount += itemTotal;
+
+                                        ordersHtml += `
+                                            <tr>
+                                                <td>${person.name}</td>
+                                                <td>${category.name} - ${language.name} ${format.name || ''}</td>
+                                                <td class="numeric">${quantity}</td>
+                                                <td class="numeric">${format.price.toLocaleString()} Ar</td>
+                                                <td class="numeric">${itemTotal.toLocaleString()} Ar</td>
+                                            </tr>
+                                        `;
+                                    }
+                                }
                             }
                         }
-                    }
+                    });
                 }
             });
-            
+
             ordersHtml += `</tbody></table></div><div class="mt-4 text-right"><strong>Total: ${totalAmount.toLocaleString()} Ar</strong></div>`;
-            
+
             elements.selectedOrdersContainer.innerHTML = ordersHtml;
         }
 
@@ -2971,28 +3449,64 @@
         }
 
         function openModal(modal) {
-            modal.classList.add('active');
+            if (modal) {
+                modal.classList.remove('hidden');
+            }
         }
 
         function closeModal(modal) {
-            modal.classList.remove('active');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
         }
 
         function showToast(message, type = 'success') {
-            elements.toast.textContent = message;
-            elements.toast.className = `toast ${type} show`;
-            
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            if (!toast || !toastMessage) return;
+
+            toastMessage.textContent = message;
+            toast.className = `fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-md shadow-lg transform translate-y-10 opacity-0 transition-all duration-300 flex items-center hidden z-[1001]`;
+
+            // Add type-specific styling
+            if (type === 'error') {
+                toast.classList.add('bg-red-600');
+            } else if (type === 'warning') {
+                toast.classList.add('bg-yellow-600');
+            } else if (type === 'info') {
+                toast.classList.add('bg-blue-600');
+            } else {
+                toast.classList.add('bg-green-600');
+            }
+
+            // Show toast
+            toast.classList.remove('hidden');
             setTimeout(() => {
-                elements.toast.classList.remove('show');
+                toast.classList.remove('translate-y-10', 'opacity-0');
+                toast.classList.add('translate-y-0', 'opacity-100');
+            }, 10);
+
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+                toast.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                    toast.classList.remove('translate-y-0', 'opacity-100');
+                    toast.classList.remove('bg-red-600', 'bg-yellow-600', 'bg-blue-600', 'bg-green-600');
+                }, 300);
             }, 3000);
         }
 
         function showLoading() {
-            elements.loadingOverlay.classList.add('active');
+            if (elements.loadingOverlay) {
+                elements.loadingOverlay.classList.remove('hidden');
+            }
         }
 
         function hideLoading() {
-            elements.loadingOverlay.classList.remove('active');
+            if (elements.loadingOverlay) {
+                elements.loadingOverlay.classList.add('hidden');
+            }
         }
     </script>
 </body>

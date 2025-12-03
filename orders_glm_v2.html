@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Système de Gestion des Commandes - GLM v2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --secondary-color: #6366f1;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-icon {
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .btn-outline {
+            background: white;
+            color: #6b7280;
+            border: 1px solid #d1d5db;
+        }
+
+        .btn-outline:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 1rem;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .accordion-item {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-bottom: 0.75rem;
+        }
+
+        .accordion-header {
+            padding: 1rem;
+            background: linear-gradient(to bottom, #f9fafb, white);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .accordion-header:hover {
+            background: #f3f4f6;
+        }
+
+        .accordion-header.active {
+            background: linear-gradient(to bottom, #eff6ff, #dbeafe);
+        }
+
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .accordion-content.open {
+            max-height: 2000px;
+        }
+
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .quantity-btn {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 0.375rem;
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quantity-btn:hover {
+            background: #e5e7eb;
+        }
+
+        .quantity-input {
+            width: 4rem;
+            text-align: center;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            padding: 0.25rem;
+            appearance: textfield;
+            -moz-appearance: textfield;
+        }
+
+        .quantity-input::-webkit-outer-spin-button,
+        .quantity-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+
+        .data-table th {
+            background: linear-gradient(to bottom, #f9fafb, #f3f4f6);
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid #e5e7eb;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .data-table td {
+            padding: 0.75rem;
+            border: 1px solid #e5e7eb;
+        }
+
+        .data-table tbody tr:hover {
+            background: #f0f9ff;
+        }
+
+        /* Order Cards */
+        .order-card {
+            background: white;
+            border-radius: 1rem;
+            border: 2px solid #e5e7eb;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s;
+        }
+
+        .order-card:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .order-card.selected {
+            border-color: #3b82f6;
+            background: linear-gradient(to right, #eff6ff, white);
+        }
+
+        .order-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f3f4f6;
+        }
+
+        .order-card-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .order-card-checkbox {
+            width: 1.5rem;
+            height: 1.5rem;
+            cursor: pointer;
+            accent-color: #3b82f6;
+        }
+
+        .order-card-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .order-card-total {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #3b82f6;
+            text-align: right;
+        }
+
+        .order-items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .order-item {
+            background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .order-item:hover {
+            background: #f0f9ff;
+            border-color: #3b82f6;
+        }
+
+        .order-item-info {
+            flex: 1;
+        }
+
+        .order-item-category {
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.875rem;
+        }
+
+        .order-item-details {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 0.125rem;
+        }
+
+        .order-item-quantity {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .order-item-price {
+            font-size: 0.875rem;
+            color: #3b82f6;
+        }
+
+        .order-card-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+            padding-top: 1rem;
+            border-top: 1px solid #f3f4f6;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: #9ca3af;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+
+        @media (max-width: 640px) {
+            .order-items-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .order-card {
+                padding: 1rem;
+            }
+
+            .order-card-name {
+                font-size: 1.125rem;
+            }
+
+            .order-card-total {
+                font-size: 1.25rem;
+            }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            z-index: 2000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .loading {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f4f6;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading" style="display: none;">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="min-h-screen py-6 px-4">
+        <div class="max-w-7xl mx-auto">
+            <!-- Header -->
+            <div class="glass-card mb-6 p-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-book-open text-white text-2xl"></i>
+                        </div>
+                        <div>
+                            <h1
+                                class="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                                Komandin'ny Lesona S.S
+                            </h1>
+                            <p class="text-gray-600 mt-1">Système de gestion des commandes - GLM v2</p>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        <i class="fas fa-calendar-alt mr-2"></i>
+                        <span id="currentDate"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #dbeafe; color: #1e40af;">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-600">Total Personnes</div>
+                        <div class="text-2xl font-bold" id="statTotalPeople">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #dcfce7; color: #166534;">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-600">Total Commandes</div>
+                        <div class="text-2xl font-bold" id="statTotalOrders">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #e9d5ff; color: #6b21a8;">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-600">Total Articles</div>
+                        <div class="text-2xl font-bold" id="statTotalItems">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #fed7aa; color: #9a3412;">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-600">Montant Total</div>
+                        <div class="text-2xl font-bold" id="statTotalAmount">0 Ar</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="glass-card mb-6 p-4">
+                <div class="flex flex-wrap gap-3">
+                    <button id="addOrderBtn" class="btn btn-primary">
+                        <i class="fas fa-plus-circle"></i>
+                        Nouvelle Commande
+                    </button>
+                    <button id="showSelectedBtn" class="btn btn-success">
+                        <i class="fas fa-check-double"></i>
+                        Voir Sélection
+                    </button>
+                    <button id="exportExcelBtn" class="btn btn-success">
+                        <i class="fas fa-file-excel"></i>
+                        Export Excel
+                    </button>
+                    <button id="saveDataBtn" class="btn" style="background: #f59e0b; color: white;">
+                        <i class="fas fa-save"></i>
+                        Sauvegarder
+                    </button>
+                </div>
+            </div>
+
+            <!-- Orders Cards View -->
+            <div class="glass-card">
+                <div class="p-4 sm:p-6 bg-gray-50 border-b border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-bold flex items-center gap-2">
+                            <i class="fas fa-list text-blue-600"></i>
+                            Liste des Commandes
+                            <span id="orderCount" class="text-sm font-normal text-gray-500"></span>
+                        </h2>
+                        <div class="flex gap-2">
+                            <button id="selectAllBtn" class="btn btn-sm" style="padding: 0.5rem 1rem;">
+                                <i class="fas fa-check-square"></i>
+                                Tout sélectionner
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 sm:p-6" id="ordersContainer">
+                    <!-- Cards will be rendered here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Entry Modal -->
+    <div id="orderModal" class="modal">
+        <div class="modal-content">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="text-2xl font-bold flex items-center gap-2">
+                            <i class="fas fa-shopping-cart text-green-600"></i>
+                            <span id="modalTitle">Nouvelle Commande</span>
+                        </h3>
+                        <p class="text-sm text-gray-500 mt-1" id="modalPersonInfo"></p>
+                    </div>
+                    <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Person Name Input (shown only for new orders) -->
+            <div id="personNameSection" class="p-6 border-b border-gray-200" style="display: none;">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-user mr-2"></i>
+                    Nom de la personne
+                </label>
+                <input type="text" id="personNameInput"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Entrez le nom complet...">
+            </div>
+
+            <div class="p-6 border-b border-gray-200">
+                <input type="text" id="searchInput"
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="Rechercher un article...">
+            </div>
+
+            <div class="p-6 border-b border-gray-200 bg-blue-50">
+                <div class="flex justify-between items-center">
+                    <span class="font-medium text-gray-700">Total de la commande:</span>
+                    <span id="orderTotal" class="text-2xl font-bold text-blue-600">0 Ar</span>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-6" style="max-height: 50vh;">
+                <div id="categoriesAccordion"></div>
+            </div>
+
+            <div class="p-6 border-t border-gray-200 flex justify-between items-center">
+                <span id="itemCount" class="text-sm text-gray-600">0 article(s) sélectionné(s)</span>
+                <div class="flex gap-3">
+                    <button id="cancelOrderBtn" class="btn btn-outline">
+                        <i class="fas fa-times"></i>
+                        Annuler
+                    </button>
+                    <button id="saveOrderBtn" class="btn btn-primary">
+                        <i class="fas fa-check"></i>
+                        Enregistrer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Selected Orders Modal -->
+    <div id="selectedModal" class="modal">
+        <div class="modal-content">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-2xl font-bold">Commandes Sélectionnées</h3>
+                    <div class="flex gap-2">
+                        <button id="exportPngBtn" class="btn btn-success btn-sm">
+                            <i class="fas fa-image"></i>
+                            PNG
+                        </button>
+                        <button id="printBtn" class="btn btn-primary btn-sm">
+                            <i class="fas fa-print"></i>
+                            Imprimer
+                        </button>
+                        <button id="closeSelectedBtn" class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 overflow-y-auto" style="max-height: 70vh;" id="selectedContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Application State
+        const app = {
+            data: {
+                categories: [],
+                people: []
+            },
+            currentPerson: null,
+            tempOrders: {},
+            editMode: false
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            updateDate();
+            loadData();
+            setupEventListeners();
+            renderTable();
+            updateStats();
+        }
+
+        function updateDate() {
+            const date = new Date().toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            document.getElementById('currentDate').textContent = date;
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('glm_orders_data');
+            if (saved) {
+                app.data = JSON.parse(saved);
+            } else {
+                initializeSampleData();
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('glm_orders_data', JSON.stringify(app.data));
+            showToast('Données sauvegardées avec succès', 'success');
+        }
+
+        function initializeSampleData() {
+            app.data = {
+                categories: [
+                    {
+                        id: 'lb',
+                        name: 'Lehibe',
+                        languages: [
+                            {
+                                id: 'gs',
+                                name: 'Malagasy',
+                                formats: [
+                                    { id: 'gm', name: 'GM', price: 3300 },
+                                    { id: 'pm', name: 'PM', price: 2700 }
+                                ]
+                            },
+                            {
+                                id: 'fr',
+                                name: 'Français',
+                                formats: [
+                                    { id: 'lsn', name: 'LESONA', price: 6000 }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        id: 'tzo',
+                        name: 'Tanora Zokiny',
+                        languages: [
+                            {
+                                id: 'gs',
+                                name: 'Malagasy',
+                                formats: [
+                                    { id: 'gm', name: '', price: 3300 }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        id: 'zt',
+                        name: 'Zatovo',
+                        languages: [
+                            {
+                                id: 'gs',
+                                name: 'Malagasy',
+                                formats: [
+                                    { id: 'gm', name: '', price: 3300 }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                people: []
+            };
+        }
+
+        function setupEventListeners() {
+            document.getElementById('addOrderBtn').addEventListener('click', () => openOrderModal());
+            document.getElementById('closeModalBtn').addEventListener('click', closeOrderModal);
+            document.getElementById('cancelOrderBtn').addEventListener('click', closeOrderModal);
+            document.getElementById('saveOrderBtn').addEventListener('click', saveOrder);
+            document.getElementById('saveDataBtn').addEventListener('click', saveData);
+            document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
+            document.getElementById('showSelectedBtn').addEventListener('click', showSelectedOrders);
+            document.getElementById('closeSelectedBtn').addEventListener('click', closeSelectedModal);
+            document.getElementById('exportPngBtn').addEventListener('click', exportSelectedToPng);
+            document.getElementById('printBtn').addEventListener('click', () => window.print());
+            document.getElementById('searchInput').addEventListener('input', filterCategories);
+            document.getElementById('selectAllBtn').addEventListener('click', () => {
+                const allSelected = app.data.people.every(p => p.selected);
+                app.data.people.forEach(p => p.selected = !allSelected);
+                renderTable();
+                showToast(allSelected ? 'Tout désélectionné' : 'Tout sélectionné', 'info');
+            });
+        }
+
+        function openOrderModal(personId = null) {
+            app.editMode = false;
+            app.tempOrders = {};
+
+            if (personId) {
+                const person = app.data.people.find(p => p.id === personId);
+                if (person) {
+                    app.currentPerson = person;
+                    app.tempOrders = { ...person.orders };
+                    app.editMode = true;
+                    document.getElementById('modalTitle').textContent = `Commande de ${person.name}`;
+                    document.getElementById('modalPersonInfo').textContent = person.id;
+                    document.getElementById('personNameSection').style.display = 'none';
+                }
+            } else {
+                app.currentPerson = null;
+                document.getElementById('modalTitle').textContent = 'Nouvelle Commande';
+                document.getElementById('modalPersonInfo').textContent = 'Ajoutez des articles puis entrez le nom';
+                document.getElementById('personNameSection').style.display = 'block';
+                document.getElementById('personNameInput').value = '';
+            }
+
+            renderCategoriesAccordion();
+            updateOrderTotal();
+            document.getElementById('orderModal').classList.add('active');
+        }
+
+        function closeOrderModal() {
+            document.getElementById('orderModal').classList.remove('active');
+            app.currentPerson = null;
+            app.tempOrders = {};
+        }
+
+        function renderCategoriesAccordion() {
+            const container = document.getElementById('categoriesAccordion');
+            let html = '';
+
+            app.data.categories.forEach((category, index) => {
+                html += `
+                    <div class="accordion-item">
+                        <div class="accordion-header ${index === 0 ? 'active' : ''}" onclick="toggleAccordion(this)">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-book"></i>
+                                </div>
+                                <span class="font-semibold">${category.name}</span>
+                                <span class="text-sm text-gray-500 ml-2" data-summary="${category.id}"></span>
+                            </div>
+                            <i class="fas fa-chevron-down transition-transform"></i>
+                        </div>
+                        <div class="accordion-content ${index === 0 ? 'open' : ''}">
+                            <div class="p-4 space-y-3">
+                                ${renderLanguageFormats(category)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            updateCategorySummaries();
+        }
+
+        function renderLanguageFormats(category) {
+            let html = '';
+
+            category.languages.forEach(language => {
+                html += `<div class="mb-3">
+                    <div class="text-sm font-medium text-gray-600 mb-2">
+                        <i class="fas fa-globe mr-1"></i>${language.name}
+                    </div>
+                `;
+
+                language.formats.forEach(format => {
+                    const key = `${category.id}|${language.id}|${format.id}`;
+                    const qty = app.tempOrders[key] || 0;
+                    const displayName = format.name || language.name;
+
+                    html += `
+                        <div class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg mb-2">
+                            <div>
+                                <div class="font-medium">${displayName}</div>
+                                <div class="text-sm text-gray-500">${format.price.toLocaleString()} Ar</div>
+                            </div>
+                            <div class="quantity-control">
+                                <button class="quantity-btn" onclick="updateQuantity('${key}', -1)">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <input type="number" class="quantity-input" value="${qty}" 
+                                    onchange="setQuantity('${key}', this.value)" min="0">
+                                <button class="quantity-btn" onclick="updateQuantity('${key}', 1)">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+            });
+
+            return html;
+        }
+
+        function toggleAccordion(header) {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('.fa-chevron-down');
+
+            header.classList.toggle('active');
+            content.classList.toggle('open');
+            icon.style.transform = content.classList.contains('open') ? 'rotate(180deg)' : '';
+        }
+
+        function updateQuantity(key, delta) {
+            const current = app.tempOrders[key] || 0;
+            const newValue = Math.max(0, current + delta);
+            app.tempOrders[key] = newValue;
+            renderCategoriesAccordion();
+            updateOrderTotal();
+        }
+
+        function setQuantity(key, value) {
+            const qty = Math.max(0, parseInt(value) || 0);
+            app.tempOrders[key] = qty;
+            updateOrderTotal();
+            updateCategorySummaries();
+        }
+
+        function updateOrderTotal() {
+            let total = 0;
+            let itemCount = 0;
+
+            app.data.categories.forEach(category => {
+                category.languages.forEach(language => {
+                    language.formats.forEach(format => {
+                        const key = `${category.id}|${language.id}|${format.id}`;
+                        const qty = app.tempOrders[key] || 0;
+                        if (qty > 0) {
+                            total += qty * format.price;
+                            itemCount++;
+                        }
+                    });
+                });
+            });
+
+            document.getElementById('orderTotal').textContent = total.toLocaleString() + ' Ar';
+            document.getElementById('itemCount').textContent = `${itemCount} article(s) sélectionné(s)`;
+        }
+
+        function updateCategorySummaries() {
+            app.data.categories.forEach(category => {
+                let total = 0;
+                let count = 0;
+
+                category.languages.forEach(language => {
+                    language.formats.forEach(format => {
+                        const key = `${category.id}|${language.id}|${format.id}`;
+                        const qty = app.tempOrders[key] || 0;
+                        if (qty > 0) {
+                            total += qty;
+                            count++;
+                        }
+                    });
+                });
+
+                const summary = document.querySelector(`[data-summary="${category.id}"]`);
+                if (summary) {
+                    summary.textContent = total > 0 ? `(${count} articles, ${total} unités)` : '';
+                }
+            });
+        }
+
+        function filterCategories() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            renderCategoriesAccordion();
+        }
+
+        function saveOrder() {
+            const hasItems = Object.values(app.tempOrders).some(qty => qty > 0);
+
+            if (!hasItems) {
+                showToast('Veuillez ajouter au moins un article', 'error');
+                return;
+            }
+
+            if (app.editMode && app.currentPerson) {
+                app.currentPerson.orders = { ...app.tempOrders };
+                showToast(`Commande de ${app.currentPerson.name} mise à jour`, 'success');
+            } else {
+                const personName = document.getElementById('personNameInput').value.trim();
+
+                if (!personName) {
+                    showToast('Veuillez entrer un nom', 'error');
+                    return;
+                }
+
+                const newPerson = {
+                    id: `P${Date.now()}`,
+                    name: personName,
+                    orders: { ...app.tempOrders },
+                    selected: false
+                };
+
+                app.data.people.push(newPerson);
+                showToast(`Commande de ${personName} créée`, 'success');
+            }
+
+            saveData();
+            renderTable();
+            updateStats();
+            closeOrderModal();
+        }
+
+        function renderTable() {
+            renderCardsView();
+            document.getElementById('orderCount').textContent = `(${app.data.people.length} personne${app.data.people.length > 1 ? 's' : ''})`;
+        }
+
+        function renderCardsView() {
+            const container = document.getElementById('ordersContainer');
+
+            if (app.data.people.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-shopping-cart"></i>
+                        <h3 class="text-xl font-bold text-gray-700 mt-4">Aucune commande</h3>
+                        <p class="text-gray-500 mt-2">Cliquez sur "Nouvelle Commande" pour commencer</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+
+            app.data.people.forEach(person => {
+                const items = [];
+                let total = 0;
+
+                // Collect all items with quantities
+                app.data.categories.forEach(category => {
+                    category.languages.forEach(language => {
+                        language.formats.forEach(format => {
+                            const key = `${category.id}|${language.id}|${format.id}`;
+                            const qty = person.orders?.[key] || 0;
+                            if (qty > 0) {
+                                total += qty * format.price;
+                                items.push({
+                                    category: category.name,
+                                    language: language.name,
+                                    format: format.name || language.name,
+                                    qty,
+                                    price: format.price,
+                                    itemTotal: qty * format.price
+                                });
+                            }
+                        });
+                    });
+                });
+
+                html += `
+                    <div class="order-card ${person.selected ? 'selected' : ''}">
+                        <div class="order-card-header">
+                            <div class="order-card-title">
+                                <input type="checkbox" 
+                                    class="order-card-checkbox" 
+                                    ${person.selected ? 'checked' : ''}
+                                    onchange="toggleSelection('${person.id}')">
+                                <div>
+                                    <div class="order-card-name">${person.name}</div>
+                                    <div class="text-sm text-gray-500">ID: ${person.id}</div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="order-card-total">${total.toLocaleString()} Ar</div>
+                                <div class="text-sm text-gray-500 text-right mt-1">${items.length} article${items.length > 1 ? 's' : ''}</div>
+                            </div>
+                        </div>
+                        
+                        ${items.length > 0 ? `
+                            <div class="order-items-grid">
+                                ${items.map(item => `
+                                    <div class="order-item">
+                                        <div class="order-item-info">
+                                            <div class="order-item-category">
+                                                <i class="fas fa-book mr-1"></i>
+                                                ${item.category}
+                                            </div>
+                                            <div class="order-item-details">
+                                                ${item.language}${item.format ? ' - ' + item.format : ''}
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="order-item-quantity">
+                                                <span class="text-2xl">${item.qty}</span>
+                                                <span class="text-sm text-gray-500">×</span>
+                                            </div>
+                                            <div class="order-item-price">${item.price.toLocaleString()} Ar</div>
+                                            <div class="text-xs text-gray-600 mt-1">${item.itemTotal.toLocaleString()} Ar</div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : '<p class="text-gray-500 text-sm">Aucun article</p>'}
+                        
+                        <div class="order-card-actions">
+                            <button onclick="editOrder('${person.id}')" class="btn btn-primary btn-sm">
+                                <i class="fas fa-edit"></i>
+                                Modifier
+                            </button>
+                            <button onclick="deletePerson('${person.id}')" class="btn btn-danger btn-sm">
+                                <i class="fas fa-trash"></i>
+                                Supprimer
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function getHeaders() {
+            const headers = [];
+            app.data.categories.forEach(category => {
+                category.languages.forEach(language => {
+                    language.formats.forEach(format => {
+                        headers.push({
+                            categoryId: category.id,
+                            categoryName: category.name,
+                            languageId: language.id,
+                            languageName: language.name,
+                            formatId: format.id,
+                            formatName: format.name,
+                            price: format.price,
+                            key: `${category.id}|${language.id}|${format.id}`
+                        });
+                    });
+                });
+            });
+            return headers;
+        }
+
+        function toggleSelection(personId) {
+            const person = app.data.people.find(p => p.id === personId);
+            if (person) {
+                person.selected = !person.selected;
+            }
+        }
+
+        function editOrder(personId) {
+            openOrderModal(personId);
+        }
+
+        function deletePerson(personId) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cette personne ?')) {
+                app.data.people = app.data.people.filter(p => p.id !== personId);
+                saveData();
+                renderTable();
+                updateStats();
+                showToast('Personne supprimée', 'success');
+            }
+        }
+
+        function updateStats() {
+            const totalPeople = app.data.people.length;
+            let totalOrders = 0;
+            let totalItems = 0;
+            let totalAmount = 0;
+
+            app.data.people.forEach(person => {
+                getHeaders().forEach(h => {
+                    const qty = person.orders?.[h.key] || 0;
+                    if (qty > 0) {
+                        totalOrders++;
+                        totalItems += qty;
+                        totalAmount += qty * h.price;
+                    }
+                });
+            });
+
+            document.getElementById('statTotalPeople').textContent = totalPeople;
+            document.getElementById('statTotalOrders').textContent = totalOrders;
+            document.getElementById('statTotalItems').textContent = totalItems;
+            document.getElementById('statTotalAmount').textContent = totalAmount.toLocaleString() + ' Ar';
+        }
+
+        function showSelectedOrders() {
+            const selected = app.data.people.filter(p => p.selected);
+            if (selected.length === 0) {
+                showToast('Aucune personne sélectionnée', 'warning');
+                return;
+            }
+
+            const headers = getHeaders();
+            let html = '<table class="data-table"><thead><tr><th>Nom</th>';
+
+            headers.forEach(h => {
+                html += `<th>${h.categoryName}<br><small>${h.formatName || h.languageName}</small></th>`;
+            });
+            html += '<th>Total</th></tr></thead><tbody>';
+
+            selected.forEach(person => {
+                let total = 0;
+                html += `<tr><td>${person.name}</td>`;
+
+                headers.forEach(h => {
+                    const qty = person.orders?.[h.key] || 0;
+                    total += qty * h.price;
+                    html += `<td class="text-center">${qty > 0 ? qty : '-'}</td>`;
+                });
+
+                html += `<td class="font-bold">${total.toLocaleString()} Ar</td></tr>`;
+            });
+
+            html += '</tbody></table>';
+            document.getElementById('selectedContent').innerHTML = html;
+            document.getElementById('selectedModal').classList.add('active');
+        }
+
+        function closeSelectedModal() {
+            document.getElementById('selectedModal').classList.remove('active');
+        }
+
+        function exportToExcel() {
+            const headers = getHeaders();
+            const data = [['Nom', ...headers.map(h => `${h.categoryName} - ${h.formatName || h.languageName}`), 'Total']];
+
+            app.data.people.forEach(person => {
+                let total = 0;
+                const row = [person.name];
+
+                headers.forEach(h => {
+                    const qty = person.orders?.[h.key] || 0;
+                    row.push(qty);
+                    total += qty * h.price;
+                });
+
+                row.push(total);
+                data.push(row);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Commandes");
+            XLSX.writeFile(wb, `commandes_${new Date().toISOString().slice(0, 10)}.xlsx`);
+            showToast('Export Excel réussi', 'success');
+        }
+
+        function exportSelectedToPng() {
+            const content = document.getElementById('selectedContent');
+            showLoading();
+
+            html2canvas(content, {
+                backgroundColor: '#ffffff',
+                scale: 2
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `commandes_${new Date().toISOString().slice(0, 10)}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                hideLoading();
+                showToast('Export PNG réussi', 'success');
+            }).catch(error => {
+                hideLoading();
+                showToast('Erreur lors de l\'export PNG', 'error');
+            });
+        }
+
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        function showToast(message, type = 'info') {
+            const colors = {
+                success: 'border-l-4 border-green-500',
+                error: 'border-l-4 border-red-500',
+                warning: 'border-l-4 border-yellow-500',
+                info: 'border-l-4 border-blue-500'
+            };
+
+            const icons = {
+                success: 'check-circle text-green-600',
+                error: 'times-circle text-red-600',
+                warning: 'exclamation-triangle text-yellow-600',
+                info: 'info-circle text-blue-600'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${colors[type]}`;
+            toast.innerHTML = `
+                <i class="fas fa-${icons[type]}"></i>
+                <span>${message}</span>
+            `;
+
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+    </script>
+</body>
+
+</html>
