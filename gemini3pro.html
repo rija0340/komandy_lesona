@@ -166,6 +166,9 @@
                 <button onclick="app.openModal('personModal')" class="btn-primary">
                     <i class="fas fa-plus mr-2"></i>Personne
                 </button>
+                <button onclick="app.openCategoryModal()" class="btn-secondary">
+                    <i class="fas fa-tags mr-2"></i>Catégories
+                </button>
                 <div class="h-6 w-px bg-slate-200 mx-1"></div>
                 <button onclick="app.toggleSelectionModal()" class="btn-secondary" title="Voir Sélection">
                     <i class="fas fa-check-double text-primary"></i>
@@ -249,6 +252,63 @@
     </main>
 
     <!-- 3. Modals -->
+
+    <!-- Category Management Modal -->
+    <div id="categoryModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm modal hidden">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col">
+            <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                <h3 class="font-semibold text-slate-800" id="categoryModalTitle">Gestion des catégories</h3>
+                <button onclick="app.closeModal('categoryModal')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6 flex flex-col">
+                <!-- Existing Categories Section -->
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="font-bold text-slate-700">Catégories existantes</h4>
+                        <button type="button" onclick="app.openAddCategoryForm()" class="btn-primary text-sm">
+                            <i class="fas fa-plus mr-1"></i> Nouvelle catégorie
+                        </button>
+                    </div>
+                    <div id="existingCategoriesContainer" class="border border-slate-200 rounded-lg overflow-hidden">
+                        <!-- Existing categories will be shown here -->
+                    </div>
+                </div>
+
+                <!-- Add/Edit Category Form -->
+                <div id="categoryFormSection" class="hidden">
+                    <h4 class="font-bold text-slate-700 mb-3" id="formSectionTitle">Nouvelle catégorie</h4>
+                    <form id="categoryForm">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">ID de la catégorie</label>
+                                <input type="text" id="categoryIdInput" required class="w-full input-field" placeholder="ex: lb, tzo">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nom de la catégorie</label>
+                                <input type="text" id="categoryNameInput" required class="w-full input-field" placeholder="ex: Lehibe, Tanora">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Âge (optionnel)</label>
+                                <input type="text" id="categoryAgeInput" class="w-full input-field" placeholder="ex: 19-35taona">
+                            </div>
+                        </div>
+                        <div id="languagesContainer">
+                            <!-- Languages will be added here dynamically -->
+                        </div>
+                        <div class="mt-4">
+                            <button type="button" onclick="app.addLanguageField()" class="btn-secondary text-sm">
+                                <i class="fas fa-plus mr-1"></i> Ajouter une langue
+                            </button>
+                        </div>
+                    </form>
+                    <div class="flex justify-end gap-2 pt-4">
+                        <button type="button" onclick="app.cancelCategoryForm()" class="btn-ghost">Annuler</button>
+                        <button onclick="app.saveCategory()" class="btn-primary">Enregistrer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Add Person Modal -->
     <div id="personModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm modal hidden">
@@ -404,23 +464,205 @@
             initializeSampleData() {
                 this.state.data = {
                     categories: [
-                        { id: 'lb', name: 'Lehibe', languages: [
-                            { id: 'gs', name: 'G.S.', formats: [{id: 'gm', name: 'GM', price: 3300}, {id: 'pm', name: 'PM', price: 2700}] },
-                            { id: 'fr', name: 'FR', formats: [{id: 'gm', name: 'GM', price: 6000}] }
-                        ]},
-                        { id: 'tzo', name: 'Tanora Zokiny', languages: [
-                            { id: 'mg', name: 'MG', formats: [{id: 'std', name: 'Std', price: 1500}] }
-                        ]},
-                        { id: 'zt', name: 'Zatovo', languages: [
-                            { id: 'mg', name: 'MG', formats: [{id: 'std', name: 'Std', price: 1500}] }
-                        ]},
-                        { id: 'tza', name: 'Tanora Zandry', languages: [
-                            { id: 'mg', name: 'MG', formats: [{id: 'std', name: 'Std', price: 1500}] }
-                        ]},
-                        { id: 'ak', name: 'Ankizy', languages: [
-                            { id: 'mg', name: 'MG', formats: [{id: 'std', name: 'Std', price: 1500}] }
-                        ]}
-                    ],
+            {
+                id: 'lb', name: 'Lehibe', languages: [
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: 'gm', name: 'GM', price: 3300 },
+                            { id: 'pm', name: 'PM', price: 2700 },
+                            { id: 'tra', name: 'TRA', price: 2700 }
+                        ]
+                    },
+                    {
+                        id: 'fr', name: 'Français', formats: [
+                            { id: 'lsn', name: 'LESONA', price: 6000 }
+                        ]
+                    },
+                    {
+                        id: 'en', name: 'Anglais', formats: [
+                            { id: 'std', name: 'STANDARD', price: 6000 }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'tzo', name: 'Tanora Zokiny', age: '19-35taona', languages: [
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: 'gm', name: 'GM', price: 3300 },
+                            { id: 'tr', name: 'TRA', price: 2700 }
+                        ]
+                    },
+                    {
+                        id: 'fr', name: 'Français', formats: [
+                            { id: 'lsn', name: 'LSN', price: 6000 }
+                        ]
+                    },
+                    {
+                        id: 'en', name: 'Anglais', formats: [
+                            { id: 'inv', name: 'INVERSE', price: 6000 }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'zt', name: 'Zatovo', age: '13-18taona', languages: [
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: 'gm', name: 'GM', price: 3300 },
+                            { id: 'pm', name: 'PM', price: 2700 }
+                        ]
+                    },
+                    {
+                        id: 'fr', name: 'Français', formats: [
+                            { id: 'ado', name: 'ADO', price: 6000 }
+                        ]
+                    },
+                    {
+                        id: 'en', name: 'Anglais', formats: [
+                            { id: 'crn', name: 'CRN', price: 6000 },
+                            { id: 'rtf', name: 'RTF', price: 6000 }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'tza', name: 'Tanora Zandriny', age: '9-12taona', languages: [
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: 'gm', name: 'GM', price: 3300 },
+                            { id: 'tr', name: 'TRA', price: 2700 }
+                        ]
+                    },
+                    {
+                        id: 'fr', name: 'Français', formats: [
+                            { id: 'prad', name: 'PRE-ADO', price: 6000 }
+                        ]
+                    },
+                    {
+                        id: 'en', name: 'Anglais', formats: [
+                            { id: 'foc', name: 'FOCUSPOINT', price: 6000 }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'ak', name: 'Ankizy Kely', age: '5-8taona', languages: [
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: 'gm', name: 'GM', price: 3300 },
+                            { id: 'sti', name: 'STIMULANT', price: 3700 },
+                            { id: 'tr', name: 'TRA', price: 2700 }
+                        ]
+                    },
+                    {
+                        id: 'fr', name: 'Français', formats: [
+                            { id: 'pr', name: 'PRIMAIRE', price: 6000 }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'zb', name: 'Zaza Bodo', age: '4taona', languages: [
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: 'gm', name: 'GM', price: 3300 },
+                            { id: 'sti', name: 'STIMULANT', price: 3700 }
+                        ]
+                    },
+                    {
+                        id: 'fr', name: 'Français', formats: [
+                            { id: 'jdf', name: 'JARDIN', price: 6000 }
+                        ]
+                    },
+                    {
+                        id: 'en', name: 'Anglais', formats: [
+                            { id: 'kgt', name: 'KGT', price: 6000 }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'zk', name: 'Zazakely', age: '1-3taona', languages: [
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: 'gm', name: 'GM', price: 3300 },
+                            { id: 'sti', name: 'STIMULANT', price: 3700 }
+                        ]
+                    },
+                    {
+                        id: 'fr', name: 'Français', formats: [
+                            { id: 'deb', name: 'DEBUTANT', price: 6000 }
+                        ]
+                    },
+                    {
+                        id: 'en', name: 'Anglais', formats: [
+                            { id: 'bgn', name: 'BEGINNER', price: 6000 }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'zm', name: 'Zaza Minono', age: '0-12volana', languages: [
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: 'gm', name: 'GM', price: 3300 },
+                            { id: 'sti', name: 'STIMULANT', price: 3700 }
+                        ]
+                    },
+                    {
+                        id: 'fr', name: 'Français', formats: [
+                            { id: 'bbs', name: 'BEBES', price: 6000 }
+                        ]
+                    },
+                    {
+                        id: 'en', name: 'Anglais', formats: [
+                            { id: 'bbs', name: 'BABIES', price: 6000 }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'mf', name: 'Mofon\'aina', languages: [
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: 'gm', name: 'GM', price: 3300 },
+                            { id: 'pm', name: 'PM', price: 2700 }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'llmf', name: 'Lehibe/Mofonaina', age: 'PACK', languages: [
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: 'gm', name: 'GM', price: 6500 },
+                            { id: 'pm', name: 'PM', price: 5300 }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'md', name: 'Manao Dingana', languages: [
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: '1', name: '1', price: 3300 },
+                            { id: '2', name: '2', price: 3300 }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'acc', name: 'Accessoires', languages: [
+                    {
+                        id: 'gs', name: 'Malagasy', formats: [
+                            { id: 'sari', name: 'SARINTANY', price: 1900 },
+                            { id: 'reji', name: 'REJISTRA', price: 1700 }
+                        ]
+                    }
+                ]
+            }
+        ],
                     people: [
                         { id: 'p1', name: 'Rasoa', orders: {'lb_gs_gm': 2, 'tzo_mg_std': 1} },
                         { id: 'p2', name: 'Randria', orders: {} }
@@ -457,24 +699,29 @@
                             colTotals[key] = 0; // Init total
 
                             const label = lang.name === fmt.name ? lang.name : `${lang.name} ${fmt.name}`;
+                            const shortLabel = `${lang.id.toUpperCase()}<br>${fmt.id.toUpperCase()}`;
                             theadBottom.innerHTML += `
-                                <th class="px-2 py-2 border-b text-center min-w-[60px] border-r border-slate-100 text-[10px] text-slate-500 font-normal">
-                                    ${label}<br><span class="text-slate-300">${fmt.price}Ar</span>
+                                <th class="px-2 py-2 border-b text-center min-w-[60px] border-r border-slate-100 text-[10px] text-slate-500 font-normal" title="${label}">
+                                    ${shortLabel}<br><span class="text-slate-300">${fmt.price}Ar</span>
                                 </th>
                             `;
                         });
                     });
                     
                     const colorClass = this.state.categoryColors[cat.id] || this.state.categoryColors['default'];
+                    const ageDisplay = cat.age ? `<br><span class="text-[8px] text-slate-500">${cat.age}</span>` : '';
                     theadTop.innerHTML += `
                         <th colspan="${colspan}" class="px-2 py-2 text-center border-b border-r border-slate-200">
-                            <span class="${colorClass} px-2 py-1 rounded text-[10px] font-bold uppercase">${cat.name}</span>
+                            <span class="${colorClass} px-2 py-1 rounded text-[10px] font-bold uppercase">${cat.name}${ageDisplay}</span>
                         </th>
                     `;
                 });
 
                 // Add Total Column Header
                 theadTop.innerHTML += '<th rowspan="2" class="p-3 border-b bg-slate-50 font-bold text-slate-700 border-l border-slate-200">Total</th>';
+
+                // Add Actions Column Header
+                theadTop.innerHTML += '<th rowspan="2" class="p-3 border-b bg-slate-50 font-bold text-slate-700 border-l border-slate-200">Actions</th>';
 
                 // 2. Build Body
                 tbody.innerHTML = '';
@@ -507,8 +754,9 @@
                                 colTotals[key] += qty;
 
                                 const cellClass = qty > 0 ? 'bg-green-50 text-green-700 font-bold' : 'text-slate-300';
+                                const tooltip = `${lang.name} ${fmt.name}`;
                                 rowHtml += `
-                                    <td class="px-2 py-3 border-b text-center border-r border-slate-100 ${cellClass} text-xs">
+                                    <td class="px-2 py-3 border-b text-center border-r border-slate-100 ${cellClass} text-xs" title="${tooltip}">
                                         ${qty > 0 ? qty : '-'}
                                     </td>
                                 `;
@@ -518,10 +766,15 @@
 
                     grandTotalAmount += rowTotal;
 
-                    // Row Total
+                    // Row Total with delete button
                     rowHtml += `
                         <td class="p-3 border-b border-l border-slate-200 bg-slate-50 font-bold text-right text-slate-800 text-sm whitespace-nowrap">
                             ${rowTotal.toLocaleString()} Ar
+                        </td>
+                        <td class="p-3 border-b border-l border-slate-200 bg-slate-50 text-center border-r border-slate-200">
+                            <button onclick="app.deletePersonOrders('${person.id}'); event.stopPropagation();" class="text-red-500 hover:text-red-700" title="Supprimer les commandes">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         </td>
                         </tr>
                     `;
@@ -537,9 +790,11 @@
                     footerHtml += `<td class="px-2 py-3 border-t border-r border-slate-300 text-center ${total > 0 ? 'text-slate-800' : 'text-slate-400'}">${total}</td>`;
                 });
 
-                // Grand Total Cell
-                footerHtml += `<td class="p-3 border-t border-l border-slate-300 text-right text-primary">${grandTotalAmount.toLocaleString()} Ar</td></tr>`;
-                
+                // Grand Total Cell and empty actions cell in footer
+                footerHtml += `<td class="p-3 border-t border-l border-slate-300 text-right text-primary">${grandTotalAmount.toLocaleString()} Ar</td>`;
+                footerHtml += `<td class="p-3 border-t border-l border-slate-300 bg-slate-100"></td>`;
+                footerHtml += `</tr>`;
+
                 tfooter.innerHTML = footerHtml;
             },
 
@@ -582,9 +837,10 @@
 
                 this.state.data.categories.forEach(cat => {
                     const colorClass = this.state.categoryColors[cat.id] || 'bg-gray-100 text-gray-700';
+                    const ageDisplay = cat.age ? `<span class="block text-[10px] text-slate-500">${cat.age}</span>` : '';
                     const catDiv = document.createElement('div');
                     catDiv.className = 'border border-slate-200 rounded-lg overflow-hidden';
-                    catDiv.innerHTML = `<div class="${colorClass} px-4 py-2 text-xs font-bold uppercase">${cat.name}</div>`;
+                    catDiv.innerHTML = `<div class="${colorClass} px-4 py-2 text-xs font-bold uppercase">${cat.name}${ageDisplay}</div>`;
 
                     const grid = document.createElement('div');
                     grid.className = 'grid grid-cols-1 sm:grid-cols-2 gap-0 divide-y divide-slate-100';
@@ -594,16 +850,19 @@
                         lang.formats.forEach(fmt => {
                             const key = `${cat.id}_${lang.id}_${fmt.id}`;
                             const displayName = `${lang.name} - ${fmt.name}`;
-                            if (search && !displayName.toLowerCase().includes(search) && !cat.name.toLowerCase().includes(search)) return;
+                            const shortName = `${lang.id.toUpperCase()} ${fmt.id.toUpperCase()}`;
+                            if (search && !displayName.toLowerCase().includes(search) && !shortName.toLowerCase().includes(search) && !cat.name.toLowerCase().includes(search)) return;
                             hasVisibleItems = true;
 
                             const val = this.state.tempOrders[key] || 0;
                             const isActive = val > 0 ? 'bg-blue-50/50' : 'bg-white';
+                            const fullName = `${lang.name} ${fmt.name}`;
+                            const displayShortName = `${lang.id.toUpperCase()}<br>${fmt.id.toUpperCase()}`;
 
                             const itemHtml = `
-                                <div class="p-3 flex justify-between items-center ${isActive} hover:bg-slate-50 transition-colors">
+                                <div class="p-3 flex justify-between items-center ${isActive} hover:bg-slate-50 transition-colors" title="${fullName}">
                                     <div>
-                                        <div class="font-medium text-sm text-slate-700">${displayName}</div>
+                                        <div class="font-medium text-sm text-slate-700">${displayShortName}</div>
                                         <div class="text-xs text-slate-400">${fmt.price} Ar</div>
                                     </div>
                                     <div class="flex items-center gap-2">
@@ -659,11 +918,13 @@
 
                                 const badgeClass = this.state.categoryColors[catId] || 'bg-gray-100 text-gray-600';
 
+                                const shortName = `${lang.id.toUpperCase()}<br>${fmt.id.toUpperCase()}`;
+                                const fullName = `${lang.name} ${fmt.name}`;
                                 itemsHtml += `
-                                    <div class="flex justify-between items-center text-xs py-0.5 px-1.5 bg-white rounded border border-slate-200">
+                                    <div class="flex justify-between items-center text-xs py-0.5 px-1.5 bg-white rounded border border-slate-200" title="${fullName}">
                                         <div class="flex items-center gap-1.5">
                                             <span class="${badgeClass} text-[9px] px-1 rounded uppercase font-bold w-6 text-center">${cat.name.substr(0,2)}</span>
-                                            <div class="truncate max-w-[80px]">${lang.name} ${fmt.name}</div>
+                                            <div class="truncate max-w-[80px]">${shortName}</div>
                                         </div>
                                         <div class="text-right">
                                             <div class="font-medium">${lineTotal.toLocaleString()} Ar</div>
@@ -767,7 +1028,8 @@
                     let personTotal = 0;
                     let ordersHtml = '';
 
-                    // Build list of items for this person
+                    // Build table of items for this person
+                    let tableRows = '';
                     this.state.data.categories.forEach(cat => {
                         cat.languages.forEach(lang => {
                             lang.formats.forEach(fmt => {
@@ -780,31 +1042,51 @@
                                     // Get badge color
                                     const badgeClass = this.state.categoryColors[cat.id] || 'bg-gray-100 text-gray-600';
 
-                                    ordersHtml += `
-                                        <div class="flex justify-between items-center text-sm py-1 border-b border-dashed border-slate-100 last:border-0">
-                                            <div class="flex items-center gap-2">
-                                                <span class="${badgeClass} text-[10px] px-1.5 rounded uppercase font-bold w-12 text-center">${cat.name.substr(0,4)}</span>
-                                                <span class="text-slate-700">${lang.name} ${fmt.name}</span>
-                                                <span class="text-xs text-slate-400">x${qty}</span>
-                                            </div>
-                                            <div class="font-medium text-slate-800">${lineTotal.toLocaleString()} Ar</div>
-                                        </div>
+                                    tableRows += `
+                                        <tr class="border-b border-slate-100">
+                                            <td class="py-2 px-3 text-sm">${cat.name}${cat.age ? ` (${cat.age})` : ''}</td>
+                                            <td class="py-2 px-3 text-sm">${fmt.name}</td>
+                                            <td class="py-2 px-3 text-sm">${lang.name}</td>
+                                            <td class="py-2 px-3 text-sm text-center">${qty}</td>
+                                            <td class="py-2 px-3 text-sm text-right">${fmt.price.toLocaleString()} Ar</td>
+                                            <td class="py-2 px-3 text-sm text-right">${lineTotal.toLocaleString()} Ar</td>
+                                        </tr>
                                     `;
                                 }
                             });
                         });
                     });
 
-                    if (ordersHtml) {
+                    if (tableRows) {
                         const card = document.createElement('div');
                         card.className = 'bg-white border border-slate-200 rounded-lg p-4 shadow-sm break-inside-avoid';
                         card.innerHTML = `
-                            <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-100">
-                                <h3 class="font-bold text-slate-800 text-md">${p.name}</h3>
-                                <span class="bg-slate-800 text-white text-xs px-2 py-1 rounded font-bold">${personTotal.toLocaleString()} Ar</span>
+                            <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
+                                <h3 class="font-bold text-slate-800 text-lg">${p.name}</h3>
+                                <span class="bg-slate-800 text-white px-3 py-1 rounded font-bold">${personTotal.toLocaleString()} Ar</span>
                             </div>
-                            <div class="space-y-1">
-                                ${ordersHtml}
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm border-collapse">
+                                    <thead class="bg-slate-50 font-semibold">
+                                        <tr>
+                                            <th class="py-2 px-3 border-b text-left">Article</th>
+                                            <th class="py-2 px-3 border-b text-left">Format</th>
+                                            <th class="py-2 px-3 border-b text-left">Langue</th>
+                                            <th class="py-2 px-3 border-b text-center">Nombre</th>
+                                            <th class="py-2 px-3 border-b text-right">Prix unitaire</th>
+                                            <th class="py-2 px-3 border-b text-right">Total par article</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${tableRows}
+                                    </tbody>
+                                    <tfoot class="font-bold">
+                                        <tr>
+                                            <td colspan="5" class="py-2 px-3 text-right border-t">Total:</td>
+                                            <td class="py-2 px-3 text-right border-t">${personTotal.toLocaleString()} Ar</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
                             </div>
                         `;
                         container.appendChild(card);
@@ -927,6 +1209,309 @@
                 const ws = XLSX.utils.aoa_to_sheet(rows);
                 XLSX.utils.book_append_sheet(wb, ws, "Commandes");
                 XLSX.writeFile(wb, "commandes_lesona.xlsx");
+            },
+
+            /* --- Category Management --- */
+            openCategoryForm(category = null) {
+                this.state.editingCategory = category;
+
+                // Show the form section and hide the category list
+                document.getElementById('categoryFormSection').classList.remove('hidden');
+                document.getElementById('existingCategoriesContainer').classList.add('hidden');
+
+                if (category) {
+                    document.getElementById('categoryIdInput').value = category.id;
+                    document.getElementById('categoryNameInput').value = category.name;
+                    document.getElementById('categoryAgeInput').value = category.age || '';
+                    document.getElementById('formSectionTitle').textContent = 'Modifier la catégorie';
+
+                    // Populate languages
+                    const container = document.getElementById('languagesContainer');
+                    container.innerHTML = '';
+                    category.languages.forEach(lang => this.addLanguageField(lang));
+                } else {
+                    document.getElementById('categoryIdInput').value = '';
+                    document.getElementById('categoryNameInput').value = '';
+                    document.getElementById('categoryAgeInput').value = '';
+                    document.getElementById('formSectionTitle').textContent = 'Nouvelle catégorie';
+
+                    // Clear languages container and add one empty field
+                    const container = document.getElementById('languagesContainer');
+                    container.innerHTML = '';
+                    this.addLanguageField();
+                }
+            },
+
+            addLanguageField(language = null) {
+                const container = document.getElementById('languagesContainer');
+                const langDiv = document.createElement('div');
+                langDiv.className = 'border border-slate-200 rounded-lg p-4 mb-4';
+
+                const langId = language ? language.id : '';
+                const langName = language ? language.name : '';
+
+                langDiv.innerHTML = `
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="font-medium text-slate-700">Langue</h4>
+                        <button type="button" class="btn-ghost remove-language-btn">
+                            <i class="fas fa-trash text-red-500"></i>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">ID de la langue</label>
+                            <input type="text" class="input-field language-id-input" value="${langId}" required placeholder="ex: gs, fr, en">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nom de la langue</label>
+                            <input type="text" class="input-field language-name-input" value="${langName}" required placeholder="ex: Malagasy, Français, Anglais">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Formats</label>
+                        <div class="formats-container">
+                            <!-- Formats will be added here -->
+                        </div>
+                        <button type="button" class="btn-secondary text-sm mt-2 add-format-btn">
+                            <i class="fas fa-plus mr-1"></i> Ajouter un Format
+                        </button>
+                    </div>
+                `;
+
+                container.appendChild(langDiv);
+
+                // Add formats
+                const formatsContainer = langDiv.querySelector('.formats-container');
+                if (language && language.formats) {
+                    language.formats.forEach(format => this.addFormatField(formatsContainer, format));
+                } else {
+                    this.addFormatField(formatsContainer);
+                }
+
+                // Add event listeners
+                langDiv.querySelector('.remove-language-btn').addEventListener('click', () => {
+                    langDiv.remove();
+                });
+
+                langDiv.querySelector('.add-format-btn').addEventListener('click', () => {
+                    this.addFormatField(formatsContainer);
+                });
+            },
+
+            addFormatField(container, format = null) {
+                const formatDiv = document.createElement('div');
+                formatDiv.className = 'flex items-center gap-2 mb-2';
+
+                const formatId = format ? format.id : '';
+                const formatName = format ? format.name : '';
+                const formatPrice = format ? format.price : '';
+
+                formatDiv.innerHTML = `
+                    <input type="text" class="input-field format-id-input w-1/4" value="${formatId}" placeholder="ID" required>
+                    <input type="text" class="input-field format-name-input w-1/4" value="${formatName}" placeholder="Nom">
+                    <input type="number" class="input-field format-price-input w-1/4" value="${formatPrice}" placeholder="Prix" required>
+                    <button type="button" class="btn-ghost remove-format-btn">
+                        <i class="fas fa-trash text-red-500"></i>
+                    </button>
+                `;
+
+                container.appendChild(formatDiv);
+
+                // Add event listener
+                formatDiv.querySelector('.remove-format-btn').addEventListener('click', () => {
+                    formatDiv.remove();
+                });
+            },
+
+            saveCategory() {
+                const categoryId = document.getElementById('categoryIdInput').value.trim();
+                const categoryName = document.getElementById('categoryNameInput').value.trim();
+                const categoryAge = document.getElementById('categoryAgeInput').value.trim();
+
+                if (!categoryId || !categoryName) {
+                    this.showToast('Veuillez remplir les champs ID et Nom de la catégorie');
+                    return;
+                }
+
+                // Check if category ID already exists (for new categories)
+                if (!this.state.editingCategory && this.state.data.categories.some(c => c.id === categoryId)) {
+                    this.showToast('ID de catégorie déjà utilisé');
+                    return;
+                }
+
+                // Collect languages and formats
+                const languages = [];
+                let isValid = true;
+
+                document.querySelectorAll('#languagesContainer > div').forEach(langDiv => {
+                    const languageId = langDiv.querySelector('.language-id-input').value.trim();
+                    const languageName = langDiv.querySelector('.language-name-input').value.trim();
+
+                    if (!languageId || !languageName) {
+                        isValid = false;
+                        return;
+                    }
+
+                    const formats = [];
+                    langDiv.querySelectorAll('.formats-container > div').forEach(formatDiv => {
+                        const formatId = formatDiv.querySelector('.format-id-input').value.trim();
+                        const formatName = formatDiv.querySelector('.format-name-input').value.trim();
+                        const formatPrice = parseFloat(formatDiv.querySelector('.format-price-input').value);
+
+                        if (!formatId || isNaN(formatPrice)) {
+                            isValid = false;
+                            return;
+                        }
+
+                        formats.push({
+                            id: formatId,
+                            name: formatName,
+                            price: formatPrice
+                        });
+                    });
+
+                    if (formats.length === 0) {
+                        isValid = false;
+                        return;
+                    }
+
+                    languages.push({
+                        id: languageId,
+                        name: languageName,
+                        formats: formats
+                    });
+                });
+
+                if (!isValid || languages.length === 0) {
+                    this.showToast('Veuillez remplir correctement tous les champs des langues et formats');
+                    return;
+                }
+
+                if (this.state.editingCategory) {
+                    // Update existing category
+                    this.state.editingCategory.id = categoryId;
+                    this.state.editingCategory.name = categoryName;
+                    if (categoryAge) this.state.editingCategory.age = categoryAge;
+                    else delete this.state.editingCategory.age;
+                    this.state.editingCategory.languages = languages;
+                } else {
+                    // Add new category
+                    const newCategory = {
+                        id: categoryId,
+                        name: categoryName,
+                        languages: languages
+                    };
+                    if (categoryAge) newCategory.age = categoryAge;
+                    this.state.data.categories.push(newCategory);
+                }
+
+                // Save data and update UI
+                this.saveData();
+                this.renderTable();
+                this.closeModal('categoryModal');
+                this.showToast('Catégorie enregistrée avec succès');
+            },
+
+            editCategory(categoryId) {
+                const category = this.state.data.categories.find(c => c.id === categoryId);
+                if (!category) return;
+                this.openCategoryModal(category);
+            },
+
+            deleteCategory(categoryId) {
+                const category = this.state.data.categories.find(c => c.id === categoryId);
+                if (!category) return;
+
+                if (!confirm(`Êtes-vous sûr de vouloir supprimer la catégorie ${category.name}?`)) return;
+
+                // Remove category from data
+                this.state.data.categories = this.state.data.categories.filter(c => c.id !== categoryId);
+
+                // Save data and update UI
+                this.saveData();
+                this.renderTable();
+                this.showToast('Catégorie supprimée avec succès');
+            },
+
+            /* --- Order Management --- */
+            deletePersonOrders(personId) {
+                const person = this.state.data.people.find(p => p.id === personId);
+                if (!person) return;
+
+                if (!confirm(`Êtes-vous sûr de vouloir supprimer toutes les commandes de ${person.name}?`)) return;
+
+                // Remove all orders for this person
+                person.orders = {};
+
+                // Save data and update UI
+                this.saveData();
+                this.renderTable();
+                this.showToast('Commandes de la personne supprimées avec succès');
+            },
+
+            /* --- Updated Category Management --- */
+            openCategoryModal() {
+                // Show the existing categories section and hide the form section initially
+                document.getElementById('categoryFormSection').classList.add('hidden');
+                document.getElementById('existingCategoriesContainer').classList.remove('hidden');
+
+                // Update title
+                document.getElementById('categoryModalTitle').textContent = 'Gestion des catégories';
+
+                // Render existing categories
+                this.renderExistingCategories();
+
+                this.openModal('categoryModal');
+            },
+
+            renderExistingCategories() {
+                const container = document.getElementById('existingCategoriesContainer');
+
+                if (this.state.data.categories.length === 0) {
+                    container.innerHTML = '<div class="p-4 text-center text-slate-500">Aucune catégorie trouvée. Ajoutez une nouvelle catégorie pour commencer.</div>';
+                    return;
+                }
+
+                let html = '<div class="divide-y divide-slate-200">';
+
+                this.state.data.categories.forEach(category => {
+                    html += `
+                        <div class="p-4 flex justify-between items-center">
+                            <div>
+                                <div class="font-medium">${category.name}${category.age ? ` (${category.age})` : ''}</div>
+                                <div class="text-xs text-slate-500">${category.id}</div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="app.editExistingCategory('${category.id}')" class="btn-secondary text-xs">
+                                    <i class="fas fa-edit mr-1"></i> Modifier
+                                </button>
+                                <button onclick="app.deleteCategory('${category.id}')" class="btn-secondary text-xs bg-red-100 text-red-600 hover:bg-red-200">
+                                    <i class="fas fa-trash mr-1"></i> Supprimer
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += '</div>';
+                container.innerHTML = html;
+            },
+
+            openAddCategoryForm() {
+                this.openCategoryForm(null); // Pass null to indicate adding a new category
+            },
+
+            editExistingCategory(categoryId) {
+                const category = this.state.data.categories.find(c => c.id === categoryId);
+                if (!category) return;
+
+                this.openCategoryForm(category); // Use the existing form function
+            },
+
+            cancelCategoryForm() {
+                document.getElementById('categoryFormSection').classList.add('hidden');
+                document.getElementById('existingCategoriesContainer').classList.remove('hidden');
+                this.renderExistingCategories();
             }
         };
 
