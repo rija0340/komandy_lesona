@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gestion Komandy Lesona S.S - Modern</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Libraries for Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+
+    <!-- Google Fonts (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#64748b',
+                        success: '#10b981',
+                        surface: '#ffffff',
+                        background: '#f1f5f9',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Sticky Headers & Columns Logic */
+        .table-container {
+            overflow: auto;
+            /* Dynamic height calculation to ensure footer is visible */
+            height: calc(100vh - 180px);
+            position: relative;
+            box-shadow: inset 0 0 0 1px #e2e8f0;
+            border-radius: 8px;
+            background-color: white;
+        }
+
+        table {
+            border-collapse: separate; 
+            border-spacing: 0;
+            width: 100%;
+        }
+
+        /* Sticky Header (Top) */
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background-color: #f8fafc;
+            box-shadow: 0 1px 0 #e2e8f0;
+        }
+
+        /* Sticky Footer (Bottom) for Totals */
+        tfoot td {
+            position: sticky;
+            bottom: 0;
+            z-index: 20;
+            background-color: #f1f5f9;
+            box-shadow: 0 -1px 0 #cbd5e1; 
+            font-weight: bold;
+        }
+
+        /* Sticky First Column (Left) - Names */
+        tbody td:first-child,
+        thead th:first-child,
+        tfoot td:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 30; 
+            background-color: #ffffff;
+            border-right: 1px solid #e2e8f0;
+            /* Drop shadow for visual cue on scroll */
+            box-shadow: 2px 0 5px -2px rgba(0,0,0,0.1);
+        }
+        
+        /* Specific z-index adjustments for corners */
+        thead th:first-child { z-index: 40; background-color: #f1f5f9; }
+        tfoot td:first-child { z-index: 40; background-color: #e2e8f0; }
+
+        /* Highlight classes */
+        .highlight-row { background-color: #f0fdf4 !important; }
+        .highlight-row td:first-child { background-color: #f0fdf4 !important; }
+
+        /* Smooth Modal Transitions */
+        .modal {
+            transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.98);
+        }
+        .modal.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1);
+        }
+
+        @media print {
+            .hide-print { display: none !important; }
+            body { background: white; height: auto; overflow: visible; }
+            .table-container { height: auto; overflow: visible; }
+            body * { visibility: hidden; }
+            #printArea, #printArea * { visibility: visible; }
+            #printArea { position: absolute; left: 0; top: 0; width: 100%; }
+        }
+    </style>
+</head>
+<body class="bg-background text-slate-800 font-sans h-screen flex flex-col overflow-hidden">
+
+    <!-- 1. Top Navigation Bar -->
+    <header class="bg-surface border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-6 shrink-0 z-50">
+        <div class="flex items-center gap-3">
+            <div class="bg-primary/10 text-primary p-2 rounded-lg">
+                <i class="fas fa-book-open text-xl"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg leading-tight text-slate-800">Komandin'ny Lesona</h1>
+                <p class="text-xs text-slate-500 hidden sm:block">Système de Gestion S.S</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 sm:gap-3">
+            <!-- Search Bar -->
+            <div class="relative hidden md:block">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                <input type="text" id="globalSearch" placeholder="Rechercher..." 
+                    class="pl-9 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary/50 outline-none w-64 transition-all">
+            </div>
+
+            <!-- Mobile Actions Menu Trigger -->
+            <button id="mobileMenuBtn" class="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
+                <i class="fas fa-ellipsis-v"></i>
+            </button>
+
+            <!-- Desktop Actions -->
+            <div class="hidden md:flex items-center gap-2">
+                <button onclick="app.openModal('personModal')" class="btn-primary">
+                    <i class="fas fa-plus mr-2"></i>Personne
+                </button>
+                <div class="h-6 w-px bg-slate-200 mx-1"></div>
+                <button onclick="app.toggleSelectionModal()" class="btn-secondary" title="Voir Sélection">
+                    <i class="fas fa-check-double text-primary"></i>
+                </button>
+                <button onclick="app.saveData()" class="btn-secondary" title="Sauvegarder">
+                    <i class="fas fa-save text-slate-600"></i>
+                </button>
+                
+                <!-- Dropdown for Exports -->
+                <div class="relative group">
+                    <button class="btn-secondary">
+                        <i class="fas fa-download text-slate-600"></i>
+                    </button>
+                    <div class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-slate-100 hidden group-hover:block z-50">
+                        <a href="#" onclick="app.exportJson()" class="block px-4 py-2 text-sm hover:bg-slate-50 text-slate-700"><i class="fas fa-code mr-2"></i>JSON</a>
+                        <a href="#" onclick="app.exportExcel()" class="block px-4 py-2 text-sm hover:bg-slate-50 text-slate-700"><i class="fas fa-file-excel mr-2"></i>Excel</a>
+                        <label for="importFile" class="block px-4 py-2 text-sm hover:bg-slate-50 text-slate-700 cursor-pointer border-t">
+                            <i class="fas fa-upload mr-2"></i>Importer JSON
+                        </label>
+                        <input type="file" id="importFile" class="hidden" accept=".json" onchange="app.importJson(this)">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Action Menu (Slide down) -->
+    <div id="mobileActionMenu" class="bg-white border-b border-slate-200 p-4 hidden md:hidden flex-col gap-3 absolute top-16 left-0 w-full z-40 shadow-lg">
+        <input type="text" id="mobileSearch" placeholder="Rechercher..." class="w-full p-2 bg-slate-100 rounded-lg text-sm border-none mb-2">
+        <div class="grid grid-cols-2 gap-2">
+            <button onclick="app.openModal('personModal')" class="bg-primary text-white p-2 rounded-lg text-sm font-medium">Ajouter Personne</button>
+            <button onclick="app.toggleSelectionModal()" class="bg-slate-100 text-slate-700 p-2 rounded-lg text-sm font-medium">Voir Résumé</button>
+            <button onclick="app.saveData()" class="bg-slate-100 text-slate-700 p-2 rounded-lg text-sm font-medium">Sauvegarder</button>
+            <button onclick="app.exportExcel()" class="bg-slate-100 text-slate-700 p-2 rounded-lg text-sm font-medium">Excel</button>
+        </div>
+    </div>
+
+    <!-- 2. Main Content Area (Table) -->
+    <main class="flex-1 p-2 sm:p-6 overflow-hidden flex flex-col relative">
+        <!-- Totals Banner -->
+        <div id="globalStats" class="flex gap-4 mb-4 text-xs font-medium text-slate-500 overflow-x-auto pb-1 shrink-0 px-2">
+            <span class="bg-white px-3 py-1 rounded-full border border-slate-200 whitespace-nowrap shadow-sm">
+                Total Personnes: <b class="text-slate-800" id="statPeople">0</b>
+            </span>
+            <span class="bg-white px-3 py-1 rounded-full border border-slate-200 whitespace-nowrap shadow-sm">
+                Montant Global: <b class="text-primary text-sm" id="statOrders">0 Ar</b>
+            </span>
+        </div>
+
+        <!-- Data Table -->
+        <div class="table-container bg-surface flex-1 mx-2 sm:mx-0">
+            <table class="w-full text-left text-sm" id="mainTable">
+                <thead class="bg-slate-50 text-slate-600 font-semibold uppercase text-xs tracking-wider">
+                    <tr id="headerRowTop">
+                        <!-- Generated by JS -->
+                    </tr>
+                    <tr id="headerRowBottom">
+                        <!-- Generated by JS -->
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-700" id="tableBody">
+                    <!-- Rows Generated by JS -->
+                </tbody>
+                <tfoot id="tableFooter" class="bg-slate-100 text-slate-700 text-xs font-bold uppercase">
+                    <!-- Footer Generated by JS -->
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Empty State (if no data) -->
+        <div id="emptyState" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-background/90 z-10">
+            <div class="text-center">
+                <div class="bg-white p-4 rounded-full shadow-sm inline-block mb-4">
+                    <i class="fas fa-clipboard-list text-4xl text-slate-300"></i>
+                </div>
+                <h3 class="text-lg font-medium text-slate-700">Aucune donnée</h3>
+                <p class="text-slate-500 text-sm mb-4">Commencez par ajouter une personne.</p>
+                <button onclick="app.initializeSampleData()" class="text-primary text-sm hover:underline">Charger des données démo</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- 3. Modals -->
+
+    <!-- Add Person Modal -->
+    <div id="personModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm modal hidden">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="font-semibold text-slate-800">Ajouter une personne</h3>
+                <button onclick="app.closeModal('personModal')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            </div>
+            <form onsubmit="app.handleAddPerson(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nom Complet</label>
+                    <input type="text" name="name" required class="w-full input-field" placeholder="Ex: Rakoto Jean">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Identifiant (Optionnel)</label>
+                    <input type="text" name="id" class="w-full input-field" placeholder="Ex: G12">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="app.closeModal('personModal')" class="btn-ghost">Annuler</button>
+                    <button type="submit" class="btn-primary">Ajouter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Order Entry Modal -->
+    <div id="orderModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm modal hidden">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-2 sm:mx-4 flex flex-col max-h-[90vh]">
+            <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center shrink-0">
+                <div>
+                    <h3 class="font-bold text-slate-800 text-lg" id="modalPersonName">Nom Personne</h3>
+                    <p class="text-xs text-slate-500">Saisie des commandes</p>
+                </div>
+                <div class="text-right">
+                    <div class="text-primary font-bold text-xl" id="modalTotalAmount">0 Ar</div>
+                </div>
+            </div>
+            <div class="p-3 border-b border-slate-100 bg-white sticky top-0 z-10">
+                <input type="text" id="modalSearch" placeholder="Chercher un article (ex: GM, PM)..."
+                       class="w-full bg-slate-100 border-none rounded-lg py-2 px-4 text-sm focus:ring-1 focus:ring-primary outline-none">
+            </div>
+
+            <!-- Selected Items Summary Section -->
+            <div id="selectedItemsSummary" class="p-3 border-b border-slate-100 bg-slate-50">
+                <div class="flex justify-between items-center mb-2">
+                    <h4 class="font-bold text-slate-700 text-sm flex items-center gap-1">
+                        <i class="fas fa-shopping-cart text-primary text-xs mr-1"></i> Articles Sélectionnés
+                    </h4>
+                    <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full" id="selectedItemsCount">0 article(s)</span>
+                </div>
+                <div class="space-y-1" id="selectedItemsList">
+                    <div class="text-xs text-slate-400 text-center py-2">Aucun article sélectionné</div>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 space-y-4" id="modalContent">
+                <!-- Content injected via JS -->
+            </div>
+            <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center shrink-0">
+                <button onclick="app.closeModal('orderModal')" class="btn-ghost text-slate-500">Annuler</button>
+                <button onclick="app.confirmOrders()" class="btn-primary px-6 shadow-lg shadow-blue-500/30">Valider & Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Selection / Print Modal (MODIFIED) -->
+    <div id="selectionModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm modal hidden">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-2 flex flex-col max-h-[90vh]">
+            <div class="p-4 border-b flex flex-col sm:flex-row justify-between items-center bg-slate-50 gap-3">
+                <div class="flex items-center gap-2">
+                    <h3 class="font-bold text-slate-800"><i class="fas fa-list-check mr-2 text-primary"></i>Résumé</h3>
+                    <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Par Personne</span>
+                </div>
+
+                <!-- New Search Bar in Selection Modal -->
+                <div class="relative w-full sm:w-64">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="selectionSearch" placeholder="Filtrer par nom..."
+                           class="w-full pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded-md focus:ring-1 focus:ring-primary outline-none">
+                </div>
+
+                <div class="flex gap-2">
+                    <button onclick="app.printSelection()" class="btn-secondary text-xs sm:text-sm"><i class="fas fa-print mr-1"></i>Imprimer</button>
+                    <button onclick="app.exportImage()" class="btn-secondary text-xs sm:text-sm"><i class="fas fa-image mr-1"></i>Image</button>
+                    <button onclick="app.closeModal('selectionModal')" class="text-slate-400 p-2 hover:text-slate-600"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-6 bg-white" id="printArea">
+                <div id="selectionContent" class="space-y-6"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-800 text-white px-4 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-[100] flex items-center gap-3">
+        <i class="fas fa-info-circle text-primary"></i>
+        <span id="toastMsg" class="text-sm font-medium">Notification</span>
+    </div>
+
+    <!-- Tailwind Utility Classes (Custom) -->
+    <style>
+        .btn-primary {
+            @apply bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center justify-center;
+        }
+        .btn-secondary {
+            @apply bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-3 py-2 rounded-lg transition-colors text-sm font-medium flex items-center justify-center shadow-sm;
+        }
+        .btn-ghost {
+            @apply hover:bg-slate-100 text-slate-600 px-4 py-2 rounded-lg transition-colors text-sm font-medium;
+        }
+        .input-field {
+            @apply bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5 outline-none transition-shadow;
+        }
+    </style>
+
+    <!-- Application Logic -->
+    <script>
+        const app = {
+            state: {
+                data: {
+                    categories: [],
+                    people: []
+                },
+                currentPersonId: null,
+                tempOrders: {},
+                categoryColors: {
+                    'lb': 'bg-blue-100 text-blue-700', 
+                    'tzo': 'bg-green-100 text-green-700', 
+                    'zt': 'bg-yellow-100 text-yellow-700',
+                    'tza': 'bg-purple-100 text-purple-700', 
+                    'ak': 'bg-pink-100 text-pink-700', 
+                    'zm': 'bg-orange-100 text-orange-700',
+                    'default': 'bg-slate-100 text-slate-700'
+                }
+            },
+
+            init() {
+                const saved = localStorage.getItem('ls_order_data');
+                if (saved) {
+                    try {
+                        this.state.data = JSON.parse(saved);
+                    } catch (e) { console.error('Data corrupt'); this.initializeSampleData(); }
+                } else {
+                    this.initializeSampleData();
+                }
+
+                this.setupEventListeners();
+                this.renderTable();
+                this.updateStats();
+            },
+
+            initializeSampleData() {
+                this.state.data = {
+                    categories: [
+                        { id: 'lb', name: 'Lehibe', languages: [
+                            { id: 'gs', name: 'G.S.', formats: [{id: 'gm', name: 'GM', price: 3300}, {id: 'pm', name: 'PM', price: 2700}] },
+                            { id: 'fr', name: 'FR', formats: [{id: 'gm', name: 'GM', price: 6000}] }
+                        ]},
+                        { id: 'tzo', name: 'Tanora Zokiny', languages: [
+                            { id: 'mg', name: 'MG', formats: [{id: 'std', name: 'Std', price: 1500}] }
+                        ]},
+                        { id: 'zt', name: 'Zatovo', languages: [
+                            { id: 'mg', name: 'MG', formats: [{id: 'std', name: 'Std', price: 1500}] }
+                        ]},
+                        { id: 'tza', name: 'Tanora Zandry', languages: [
+                            { id: 'mg', name: 'MG', formats: [{id: 'std', name: 'Std', price: 1500}] }
+                        ]},
+                        { id: 'ak', name: 'Ankizy', languages: [
+                            { id: 'mg', name: 'MG', formats: [{id: 'std', name: 'Std', price: 1500}] }
+                        ]}
+                    ],
+                    people: [
+                        { id: 'p1', name: 'Rasoa', orders: {'lb_gs_gm': 2, 'tzo_mg_std': 1} },
+                        { id: 'p2', name: 'Randria', orders: {} }
+                    ]
+                };
+                this.saveData(true);
+                document.getElementById('emptyState').classList.add('hidden');
+                this.renderTable();
+            },
+
+            /* --- Rendering Logic --- */
+
+            renderTable() {
+                const theadTop = document.getElementById('headerRowTop');
+                const theadBottom = document.getElementById('headerRowBottom');
+                const tbody = document.getElementById('tableBody');
+                const tfooter = document.getElementById('tableFooter');
+                
+                theadTop.innerHTML = '<th class="p-3 border-b bg-slate-50 min-w-[150px] z-50 text-left border-r border-slate-200">Nom</th>';
+                theadBottom.innerHTML = '<th class="p-2 border-b bg-slate-50 border-r border-slate-200"></th>';
+
+                // Initialize Column Totals
+                const colTotals = {}; 
+                const keysList = []; // To keep track of column order
+
+                // 1. Build Headers
+                this.state.data.categories.forEach(cat => {
+                    let colspan = 0;
+                    cat.languages.forEach(lang => {
+                        lang.formats.forEach(fmt => {
+                            colspan++;
+                            const key = `${cat.id}_${lang.id}_${fmt.id}`;
+                            keysList.push(key);
+                            colTotals[key] = 0; // Init total
+
+                            const label = lang.name === fmt.name ? lang.name : `${lang.name} ${fmt.name}`;
+                            theadBottom.innerHTML += `
+                                <th class="px-2 py-2 border-b text-center min-w-[60px] border-r border-slate-100 text-[10px] text-slate-500 font-normal">
+                                    ${label}<br><span class="text-slate-300">${fmt.price}Ar</span>
+                                </th>
+                            `;
+                        });
+                    });
+                    
+                    const colorClass = this.state.categoryColors[cat.id] || this.state.categoryColors['default'];
+                    theadTop.innerHTML += `
+                        <th colspan="${colspan}" class="px-2 py-2 text-center border-b border-r border-slate-200">
+                            <span class="${colorClass} px-2 py-1 rounded text-[10px] font-bold uppercase">${cat.name}</span>
+                        </th>
+                    `;
+                });
+
+                // Add Total Column Header
+                theadTop.innerHTML += '<th rowspan="2" class="p-3 border-b bg-slate-50 font-bold text-slate-700 border-l border-slate-200">Total</th>';
+
+                // 2. Build Body
+                tbody.innerHTML = '';
+                const filter = document.getElementById('globalSearch').value.toLowerCase();
+                const mobileFilter = document.getElementById('mobileSearch').value.toLowerCase();
+                const activeFilter = filter || mobileFilter;
+
+                let grandTotalAmount = 0;
+
+                this.state.data.people.forEach(person => {
+                    if (activeFilter && !person.name.toLowerCase().includes(activeFilter)) return;
+
+                    let rowHtml = `
+                        <tr class="hover:bg-blue-50/50 group transition-colors cursor-pointer" onclick="app.openOrderModal('${person.id}')">
+                            <td class="p-3 border-b font-medium text-slate-700 bg-white group-hover:bg-blue-50/50 transition-colors border-r border-slate-200 text-sm whitespace-nowrap">
+                                ${person.name}
+                            </td>
+                    `;
+
+                    let rowTotal = 0;
+
+                    this.state.data.categories.forEach(cat => {
+                        cat.languages.forEach(lang => {
+                            lang.formats.forEach(fmt => {
+                                const key = `${cat.id}_${lang.id}_${fmt.id}`;
+                                const qty = person.orders[key] || 0;
+                                rowTotal += qty * fmt.price;
+                                
+                                // Accumulate Column Totals
+                                colTotals[key] += qty;
+
+                                const cellClass = qty > 0 ? 'bg-green-50 text-green-700 font-bold' : 'text-slate-300';
+                                rowHtml += `
+                                    <td class="px-2 py-3 border-b text-center border-r border-slate-100 ${cellClass} text-xs">
+                                        ${qty > 0 ? qty : '-'}
+                                    </td>
+                                `;
+                            });
+                        });
+                    });
+
+                    grandTotalAmount += rowTotal;
+
+                    // Row Total
+                    rowHtml += `
+                        <td class="p-3 border-b border-l border-slate-200 bg-slate-50 font-bold text-right text-slate-800 text-sm whitespace-nowrap">
+                            ${rowTotal.toLocaleString()} Ar
+                        </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += rowHtml;
+                });
+
+                // 3. Build Footer (Totals)
+                let footerHtml = `<tr><td class="p-3 border-t border-r border-slate-300 text-right bg-slate-100">TOTAUX</td>`;
+                
+                // Add totals per column based on keyList order
+                keysList.forEach(key => {
+                    const total = colTotals[key];
+                    footerHtml += `<td class="px-2 py-3 border-t border-r border-slate-300 text-center ${total > 0 ? 'text-slate-800' : 'text-slate-400'}">${total}</td>`;
+                });
+
+                // Grand Total Cell
+                footerHtml += `<td class="p-3 border-t border-l border-slate-300 text-right text-primary">${grandTotalAmount.toLocaleString()} Ar</td></tr>`;
+                
+                tfooter.innerHTML = footerHtml;
+            },
+
+            updateStats() {
+                document.getElementById('statPeople').innerText = this.state.data.people.length;
+                let grandTotal = 0;
+                this.state.data.people.forEach(p => {
+                    this.state.data.categories.forEach(cat => {
+                        cat.languages.forEach(lang => {
+                            lang.formats.forEach(fmt => {
+                                const key = `${cat.id}_${lang.id}_${fmt.id}`;
+                                grandTotal += (p.orders[key] || 0) * fmt.price;
+                            });
+                        });
+                    });
+                });
+                document.getElementById('statOrders').innerText = grandTotal.toLocaleString() + ' Ar';
+            },
+
+            /* --- Modal & Logic --- */
+
+            openOrderModal(personId) {
+                this.state.currentPersonId = personId;
+                const person = this.state.data.people.find(p => p.id === personId);
+                if(!person) return;
+
+                document.getElementById('modalPersonName').innerText = person.name;
+                this.state.tempOrders = { ...person.orders };
+
+                this.renderModalContent();
+                this.calculateModalTotal();
+                this.updateSelectedItemsSummary(); // Update the selected items display
+                this.openModal('orderModal');
+            },
+
+            renderModalContent() {
+                const container = document.getElementById('modalContent');
+                container.innerHTML = '';
+                const search = document.getElementById('modalSearch').value.toLowerCase();
+
+                this.state.data.categories.forEach(cat => {
+                    const colorClass = this.state.categoryColors[cat.id] || 'bg-gray-100 text-gray-700';
+                    const catDiv = document.createElement('div');
+                    catDiv.className = 'border border-slate-200 rounded-lg overflow-hidden';
+                    catDiv.innerHTML = `<div class="${colorClass} px-4 py-2 text-xs font-bold uppercase">${cat.name}</div>`;
+
+                    const grid = document.createElement('div');
+                    grid.className = 'grid grid-cols-1 sm:grid-cols-2 gap-0 divide-y divide-slate-100';
+                    let hasVisibleItems = false;
+
+                    cat.languages.forEach(lang => {
+                        lang.formats.forEach(fmt => {
+                            const key = `${cat.id}_${lang.id}_${fmt.id}`;
+                            const displayName = `${lang.name} - ${fmt.name}`;
+                            if (search && !displayName.toLowerCase().includes(search) && !cat.name.toLowerCase().includes(search)) return;
+                            hasVisibleItems = true;
+
+                            const val = this.state.tempOrders[key] || 0;
+                            const isActive = val > 0 ? 'bg-blue-50/50' : 'bg-white';
+
+                            const itemHtml = `
+                                <div class="p-3 flex justify-between items-center ${isActive} hover:bg-slate-50 transition-colors">
+                                    <div>
+                                        <div class="font-medium text-sm text-slate-700">${displayName}</div>
+                                        <div class="text-xs text-slate-400">${fmt.price} Ar</div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <button onclick="app.updateTempOrder('${key}', -1)" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 flex items-center justify-center"><i class="fas fa-minus text-xs"></i></button>
+                                        <input type="number" readonly value="${val}" class="w-10 text-center text-sm font-bold text-slate-800 bg-transparent outline-none">
+                                        <button onclick="app.updateTempOrder('${key}', 1)" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-primary hover:bg-blue-50 flex items-center justify-center"><i class="fas fa-plus text-xs"></i></button>
+                                    </div>
+                                </div>`;
+                            grid.insertAdjacentHTML('beforeend', itemHtml);
+                        });
+                    });
+
+                    if (hasVisibleItems) {
+                        catDiv.appendChild(grid);
+                        container.appendChild(catDiv);
+                    }
+                });
+
+                // Update the selected items summary in the order modal
+                this.updateSelectedItemsSummary();
+            },
+
+            updateSelectedItemsSummary() {
+                const selectedItemsList = document.getElementById('selectedItemsList');
+                const selectedItemsCount = document.getElementById('selectedItemsCount');
+
+                // Filter items that have a quantity > 0
+                const selectedItems = Object.entries(this.state.tempOrders)
+                    .filter(([key, qty]) => qty > 0);
+
+                if (selectedItems.length === 0) {
+                    selectedItemsList.innerHTML = '<div class="text-xs text-slate-400 text-center py-2">Aucun article sélectionné</div>';
+                    selectedItemsCount.textContent = '0 article(s)';
+                    return;
+                }
+
+                // Create HTML for selected items
+                let itemsHtml = '';
+                let totalItems = 0;
+
+                selectedItems.forEach(([key, qty]) => {
+                    // Find the category, language, and format details
+                    const [catId, langId, fmtId] = key.split('_');
+                    const cat = this.state.data.categories.find(c => c.id === catId);
+
+                    if(cat) {
+                        const lang = cat.languages.find(l => l.id === langId);
+                        if(lang) {
+                            const fmt = lang.formats.find(f => f.id === fmtId);
+                            if(fmt) {
+                                const lineTotal = qty * fmt.price;
+                                totalItems += qty;
+
+                                const badgeClass = this.state.categoryColors[catId] || 'bg-gray-100 text-gray-600';
+
+                                itemsHtml += `
+                                    <div class="flex justify-between items-center text-xs py-0.5 px-1.5 bg-white rounded border border-slate-200">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="${badgeClass} text-[9px] px-1 rounded uppercase font-bold w-6 text-center">${cat.name.substr(0,2)}</span>
+                                            <div class="truncate max-w-[80px]">${lang.name} ${fmt.name}</div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="font-medium">${lineTotal.toLocaleString()} Ar</div>
+                                            <div class="text-slate-400 text-[8px]">x${qty}</div>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                        }
+                    }
+                });
+
+                selectedItemsList.innerHTML = itemsHtml;
+                selectedItemsCount.textContent = `${totalItems} article(s)`;
+            },
+
+            updateTempOrder(key, delta) {
+                const current = this.state.tempOrders[key] || 0;
+                const next = Math.max(0, current + delta);
+                if (next === 0) delete this.state.tempOrders[key];
+                else this.state.tempOrders[key] = next;
+                this.renderModalContent();
+                this.calculateModalTotal();
+                document.getElementById('modalSearch').focus();
+            },
+
+            calculateModalTotal() {
+                let total = 0;
+                for (const [key, qty] of Object.entries(this.state.tempOrders)) {
+                    const [catId, langId, fmtId] = key.split('_');
+                    const cat = this.state.data.categories.find(c => c.id === catId);
+                    if(cat) {
+                        const lang = cat.languages.find(l => l.id === langId);
+                        if(lang) {
+                            const fmt = lang.formats.find(f => f.id === fmtId);
+                            if(fmt) total += qty * fmt.price;
+                        }
+                    }
+                }
+                document.getElementById('modalTotalAmount').innerText = total.toLocaleString() + ' Ar';
+            },
+
+            confirmOrders() {
+                const person = this.state.data.people.find(p => p.id === this.state.currentPersonId);
+                if (person) {
+                    person.orders = { ...this.state.tempOrders };
+                    this.saveData();
+                    this.renderTable();
+                    this.closeModal('orderModal');
+                    this.showToast('Commande mise à jour');
+                }
+            },
+
+            handleAddPerson(e) {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const name = formData.get('name');
+                const id = formData.get('id') || 'u_' + Date.now();
+                this.state.data.people.push({ id: id, name: name, orders: {} });
+                this.saveData();
+                this.renderTable();
+                e.target.reset();
+                this.closeModal('personModal');
+                this.showToast('Personne ajoutée');
+            },
+
+            /* --- Selection View Logic (UPDATED) --- */
+            toggleSelectionModal() {
+                this.renderSelectionContent();
+                this.openModal('selectionModal');
+            },
+
+            renderSelectionContent() {
+                const container = document.getElementById('selectionContent');
+                const search = document.getElementById('selectionSearch').value.toLowerCase();
+                container.innerHTML = '';
+
+                // Header Info
+                const header = document.createElement('div');
+                header.className = 'text-center border-b pb-4 mb-4';
+                header.innerHTML = `
+                    <h2 class="text-xl font-bold text-slate-800">Récapitulatif des Commandes</h2>
+                    <p class="text-sm text-slate-500">${new Date().toLocaleDateString()}</p>
+                `;
+                container.appendChild(header);
+
+                let hasAnyData = false;
+
+                // Loop through People
+                this.state.data.people.forEach(p => {
+                    // Filter by Name
+                    if (search && !p.name.toLowerCase().includes(search)) return;
+
+                    // Check if person has orders
+                    const orderKeys = Object.keys(p.orders);
+                    if (orderKeys.length === 0) return;
+
+                    hasAnyData = true;
+
+                    // Calculate person's total
+                    let personTotal = 0;
+                    let ordersHtml = '';
+
+                    // Build list of items for this person
+                    this.state.data.categories.forEach(cat => {
+                        cat.languages.forEach(lang => {
+                            lang.formats.forEach(fmt => {
+                                const key = `${cat.id}_${lang.id}_${fmt.id}`;
+                                const qty = p.orders[key];
+                                if (qty > 0) {
+                                    const lineTotal = qty * fmt.price;
+                                    personTotal += lineTotal;
+
+                                    // Get badge color
+                                    const badgeClass = this.state.categoryColors[cat.id] || 'bg-gray-100 text-gray-600';
+
+                                    ordersHtml += `
+                                        <div class="flex justify-between items-center text-sm py-1 border-b border-dashed border-slate-100 last:border-0">
+                                            <div class="flex items-center gap-2">
+                                                <span class="${badgeClass} text-[10px] px-1.5 rounded uppercase font-bold w-12 text-center">${cat.name.substr(0,4)}</span>
+                                                <span class="text-slate-700">${lang.name} ${fmt.name}</span>
+                                                <span class="text-xs text-slate-400">x${qty}</span>
+                                            </div>
+                                            <div class="font-medium text-slate-800">${lineTotal.toLocaleString()} Ar</div>
+                                        </div>
+                                    `;
+                                }
+                            });
+                        });
+                    });
+
+                    if (ordersHtml) {
+                        const card = document.createElement('div');
+                        card.className = 'bg-white border border-slate-200 rounded-lg p-4 shadow-sm break-inside-avoid';
+                        card.innerHTML = `
+                            <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-100">
+                                <h3 class="font-bold text-slate-800 text-md">${p.name}</h3>
+                                <span class="bg-slate-800 text-white text-xs px-2 py-1 rounded font-bold">${personTotal.toLocaleString()} Ar</span>
+                            </div>
+                            <div class="space-y-1">
+                                ${ordersHtml}
+                            </div>
+                        `;
+                        container.appendChild(card);
+                    }
+                });
+
+                if (!hasAnyData) {
+                    container.innerHTML = '<div class="text-center p-8 text-slate-400 italic">Aucune commande trouvée pour cette recherche.</div>';
+                }
+            },
+
+            /* --- Utilities --- */
+
+            saveData(silent = false) {
+                localStorage.setItem('ls_order_data', JSON.stringify(this.state.data));
+                this.updateStats();
+                if (!silent) this.showToast('Données sauvegardées');
+            },
+
+            openModal(id) {
+                document.getElementById(id).classList.remove('hidden');
+                setTimeout(() => document.getElementById(id).classList.add('active'), 10);
+            },
+
+            closeModal(id) {
+                document.getElementById(id).classList.remove('active');
+                setTimeout(() => document.getElementById(id).classList.add('hidden'), 200);
+            },
+
+            showToast(msg) {
+                const t = document.getElementById('toast');
+                document.getElementById('toastMsg').innerText = msg;
+                t.classList.remove('translate-y-20', 'opacity-0');
+                setTimeout(() => t.classList.add('translate-y-20', 'opacity-0'), 3000);
+            },
+
+            setupEventListeners() {
+                document.getElementById('globalSearch').addEventListener('input', () => this.renderTable());
+                document.getElementById('mobileSearch').addEventListener('input', () => this.renderTable());
+                document.getElementById('modalSearch').addEventListener('input', () => this.renderModalContent());
+                
+                // New Event Listener for Selection Search
+                document.getElementById('selectionSearch').addEventListener('input', () => this.renderSelectionContent());
+
+                document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+                    const menu = document.getElementById('mobileActionMenu');
+                    menu.classList.toggle('hidden');
+                    menu.classList.toggle('flex');
+                });
+            },
+
+            /* --- Export Features --- */
+            printSelection() { window.print(); },
+
+            exportImage() {
+                const element = document.getElementById('selectionContent');
+                html2canvas(element).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'commandes_par_personne.png';
+                    link.href = canvas.toDataURL();
+                    link.click();
+                });
+            },
+
+            exportJson() {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.state.data));
+                const link = document.createElement('a');
+                link.setAttribute("href", dataStr);
+                link.setAttribute("download", "data_lesona.json");
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+            },
+
+            importJson(input) {
+                const file = input.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        this.state.data = JSON.parse(e.target.result);
+                        this.saveData();
+                        this.renderTable();
+                        this.showToast("Importation réussie !");
+                    } catch (err) {
+                        this.showToast("Erreur fichier invalide");
+                    }
+                };
+                reader.readAsText(file);
+            },
+            
+            exportExcel() {
+                const rows = [];
+                const headers = ['ID', 'Nom'];
+                const keys = [];
+                this.state.data.categories.forEach(c => c.languages.forEach(l => l.formats.forEach(f => {
+                    headers.push(`${c.name} ${l.name} ${f.name}`);
+                    keys.push(`${c.id}_${l.id}_${f.id}`);
+                })));
+                headers.push('Total (Ar)');
+                rows.push(headers);
+
+                this.state.data.people.forEach(p => {
+                    const row = [p.id, p.name];
+                    let total = 0;
+                    keys.forEach(k => {
+                        const val = p.orders[k] || 0;
+                        row.push(val);
+                        const parts = k.split('_');
+                        const cat = this.state.data.categories.find(c=>c.id==parts[0]);
+                        const lang = cat.languages.find(l=>l.id==parts[1]);
+                        const fmt = lang.formats.find(f=>f.id==parts[2]);
+                        total += val * fmt.price;
+                    });
+                    row.push(total);
+                    rows.push(row);
+                });
+
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet(rows);
+                XLSX.utils.book_append_sheet(wb, ws, "Commandes");
+                XLSX.writeFile(wb, "commandes_lesona.xlsx");
+            }
+        };
+
+        // Start App
+        document.addEventListener('DOMContentLoaded', () => app.init());
+    </script>
+</body>
+</html>
